@@ -10,7 +10,7 @@
 | | |
 |---|---|
 | ★ **仓库地址** | `https://github.com/sqbsayori/ProbCrew-v2`（**public** · 默认分支 `main`）—— 克隆、开分支、开 PR 都用它。★ **"首次托管"五步：①②③ 已完成**（远端已建 · 已推送 · **`main` 的保护规则已生效**），**④⑤ 未做**（三人的写权限 · 提交署名）—— 五步表与判据见 [`docs/05 §7.2`](docs/05-分工与协作规范.md) |
-| 当前阶段 | ★ **阶段 B 已开工** —— 模块二（W0b·卡2）已落地（分支 [`backend/w0b-core-domain`](https://github.com/sqbsayori/ProbCrew-v2/tree/backend/w0b-core-domain)，提交 `a32ec03`），详见[下方"已落地的第一份代码"](#阶段-b--已落地的第一份代码模块二-w0b卡2) |
+| 当前阶段 | ★ **阶段 B 已开工** —— 模块二（W0b·卡2）已落地（分支 [`gy`](https://github.com/sqbsayori/ProbCrew-v2/tree/gy)，提交 `a32ec03` + `412ba77`），详见[下方"已落地的第一份代码"](#阶段-b--已落地的第一份代码模块二-w0b卡2) |
 | 这个仓库现在有什么 | **7 篇文档 + 5 份 ADR + 14 份契约 schema + 第一批实现代码**（`backend/app/core/` · `backend/app/domain/` · 28 条测试全绿） |
 | 为什么这么做 | [`docs/01-需求分析.md`](docs/01-需求分析.md)（§8 是建仓承诺：把上一个仓库踩过的坑变成硬性做法） |
 | 整个仓库里该看哪一篇 | ★ [`docs/07-文档地图.md`](docs/07-文档地图.md) —— 文档清单、未产出清单、冲突裁决顺序 |
@@ -82,7 +82,7 @@ scripts/       门禁与运维脚本（见 docs/07 §2.2）—— verify.sh 尚�
 <a id="阶段-b--已落地的第一份代码模块二-w0b卡2"></a>
 ## 阶段 B · 已落地的第一份代码（模块二 · W0b · 卡2）
 
-> 分支 `backend/w0b-core-domain` · 提交 `a32ec03`（基于 main `ac1a55c`）· 10 个文件 · 约 1000 行
+> 分支 `gy` · 提交 `a32ec03`（基于 main `ac1a55c`）· 10 个文件 · 约 1000 行
 > 交付口径按 [`docs/06` §12.3 卡2](docs/06-开发计划与阶段门.md) 三步执行，**边界**：不建表、不写迁移、不写 api/ 业务路由、不碰 learning/。
 
 ### ① `backend/app/core/` —— 最小公共形状（边①，卡3 可开工）
@@ -114,7 +114,7 @@ python -m pytest backend/tests
 
 ### 卡2 状态与待办
 
-- [ ] **PR 待创建**：https://github.com/sqbsayori/ProbCrew-v2/pull/new/backend/w0b-core-domain（合并前门禁须绿）
+- [ ] **PR 待创建**：https://github.com/sqbsayori/ProbCrew-v2/pull/new/gy（合并前门禁须绿）
 - [ ] **回写 docs/02 §4.3**：normalize 的分数 / 百分数 / 单位规则取了 W0 最小集（`50%≡0.5`、`1/4≡0.25`、小数去尾零），按 docs/06 §12.5 检查点 5 需由后端与数据域回写
 - 本测试文件自带临时 `sys.path` 引导，conftest / pytest 入口归卡1，卡1 就绪后可删
 
