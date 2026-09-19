@@ -10,8 +10,8 @@
 | | |
 |---|---|
 | ★ **仓库地址** | `https://github.com/sqbsayori/ProbCrew-v2`（**public** · 默认分支 `main`）—— 克隆、开分支、开 PR 都用它。★ **"首次托管"五步：①②③ 已完成**（远端已建 · 已推送 · **`main` 的保护规则已生效**），**④⑤ 未做**（三人的写权限 · 提交署名）—— 五步表与判据见 [`docs/05 §7.2`](docs/05-分工与协作规范.md) |
-| 当前阶段 | ★ **阶段 A（文档与契约）已完成 · 代码尚未开始**（阶段 B） |
-| 这个仓库现在有什么 | **7 篇文档 + 5 份 ADR + 14 份契约 schema** —— **没有一行实现代码** |
+| 当前阶段 | ★ **阶段 B 已开工** —— 模块二（W0b·卡2）已落地（分支 [`backend/w0b-core-domain`](https://github.com/sqbsayori/ProbCrew-v2/tree/backend/w0b-core-domain)，提交 `a32ec03`），详见[下方"已落地的第一份代码"](#阶段-b--已落地的第一份代码模块二-w0b卡2) |
+| 这个仓库现在有什么 | **7 篇文档 + 5 份 ADR + 14 份契约 schema + 第一批实现代码**（`backend/app/core/` · `backend/app/domain/` · 28 条测试全绿） |
 | 为什么这么做 | [`docs/01-需求分析.md`](docs/01-需求分析.md)（§8 是建仓承诺：把上一个仓库踩过的坑变成硬性做法） |
 | 整个仓库里该看哪一篇 | ★ [`docs/07-文档地图.md`](docs/07-文档地图.md) —— 文档清单、未产出清单、冲突裁决顺序 |
 | 字段长什么样 | [`contracts/`](contracts/) —— **唯一真相**；文档不复制任何字段 |
@@ -23,7 +23,7 @@
 
 ## 现在能不能跑起来？
 
-**不能。** 这不是缺陷，是**阶段划分**：阶段 A 只产出**文档与契约**，`backend/` 与 `frontend/` 的实现代码属**阶段门 B**（[`docs/06`](docs/06-开发计划与阶段门.md) §4）。
+**后端判定链已可测试，完整服务还不能。** `backend/tests/test_domain.py` 已有 28 条真实用例全绿（`python -m pytest backend/tests`，零第三方依赖，纯标准库）；但 `main.py` / `api/` / `graph/` / `frontend/` 均未创建，HTTP 服务与页面属阶段门 B 的后续工作包（[`docs/06`](docs/06-开发计划与阶段门.md) §4）。
 
 ★ **为什么先把文档做完**：上一个仓库的实测结论是"**最热的问答接口、统一错误体、分页、作答、掌握度全无契约，每端各写各的形状**"，以及"**引擎有、通路无**"（判定引擎 521 行 / 16 项测试通过，而全仓 21 个路由里**没有一个批改端点**）。所以 v2 的顺序是：**契约先冻结，两边照着写**。
 
@@ -51,10 +51,14 @@ docs/          01 需求 · 02 设计 · 03 架构 · 04 契约层 · 05 分工 
 docs/第一轮分工.md  ★ 第一轮的完整任务与应呈现的形态（投影单据；发给领活人）
 docs/adr/      0001 免构建 ESM · 0002 账号体系 · 0003 重开仓库 · 0004 用户自持凭据 · 0005 数据走向与出网面
 contracts/     14 份 JSON Schema（draft-07）—— 前后端共同引用，不属于任何一端
-content/       ★ L0 自制内容资产（题库 / 错因库 / DAG / 公式库 / 题型）—— 阶段门 B 产出，尚未创建
-backend/       FastAPI + LangGraph（阶段 B）
-frontend/      免构建 ESM，7 个页面（阶段 B）
-scripts/       门禁与运维脚本（阶段 B；见 docs/07 §2.2）
+backend/
+  app/core/    ★ 已落地：config 配置读取 · errors 统一错误体 · logging（只记 ID 与动作）
+  app/domain/  ★ 已落地：normalize 归一化 · mistakes 错因匹配 · judge 确定性判定（零 LLM）
+  tests/       ★ 已落地：test_domain.py（28 条用例）
+  （main.py / api/ / graph/ / tools/ / learning/ —— 阶段门 B 后续工作包，尚未创建）
+content/       L0 自制内容资产（题库 / 错因库 / DAG / 公式库 / 题型）—— 尚未创建
+frontend/      免构建 ESM，7 个页面 —— 尚未创建
+scripts/       门禁与运维脚本（见 docs/07 §2.2）—— verify.sh 尚未创建
 ```
 
 ★ **目录骨架的唯一权威是 [`docs/03` §2](docs/03-架构总览.md)**，本节的列表只是给一个印象 —— **本文不定义目录**。
@@ -72,6 +76,47 @@ scripts/       门禁与运维脚本（阶段 B；见 docs/07 §2.2）
 | 3 | ★ **单 worker**（图检查点是内存态；多开会表现为"随机丢 run"，症状像前端 bug） | `docs/03 §8.1` · `docs/02 §8-15`（**启动时检测，>1 拒绝启动**） |
 | 4 | ★ **凭据只走请求头** `X-Model-Key`，**不得出现在日志 / 审计 / 错误信息 / L2 / URL / 出网载荷本体**（七面） | `docs/02 §1.6` 的 **R-J / R-M** |
 | 5 | ★ **不许"没报错就算过"**：删除要**逐表读回 0 行**、写库要**测试读回**、示例要**能通过自己的校验** | `docs/01` 承诺 9 · `docs/04 §4` · `docs/06 §9` |
+
+---
+
+<a id="阶段-b--已落地的第一份代码模块二-w0b卡2"></a>
+## 阶段 B · 已落地的第一份代码（模块二 · W0b · 卡2）
+
+> 分支 `backend/w0b-core-domain` · 提交 `a32ec03`（基于 main `ac1a55c`）· 10 个文件 · 约 1000 行
+> 交付口径按 [`docs/06` §12.3 卡2](docs/06-开发计划与阶段门.md) 三步执行，**边界**：不建表、不写迁移、不写 api/ 业务路由、不碰 learning/。
+
+### ① `backend/app/core/` —— 最小公共形状（边①，卡3 可开工）
+
+| 文件 | 内容 | 对齐的规则 |
+|---|---|---|
+| `config.py` | 配置读取（`PROBCREW_` 环境变量前缀），纯标准库 | docs/02 §8 |
+| `errors.py` | 统一错误体构造，逐项对齐 `error.schema.json`（16 个 code + HTTP 映射）；构造时**凭据不入 detail**（敏感键名当场拒绝） | R-M |
+| `logging.py` | **只记 ID 与动作**变成机器可执行约束：非 `*_id` 字段写日志当场抛错；落盘 `backend/data/logs/`，轮转 10MB×5 | R-O |
+
+### ② `backend/app/domain/` —— 纯函数（零 LLM，只依赖 core/）
+
+| 文件 | 内容 | 对齐的规则 |
+|---|---|---|
+| `normalize.py` | 归一化：去空白 / 统一符号 / 精度口径；契约锚点 `P(B\|A)→p(b\|a)`；**线性手动扫描器**（无正则嵌套量词） | R-A · docs/02 §4.3 |
+| `mistakes.py` | `match_mistake` 错因匹配入口，**集合语义**：命中 ⊇ 期望且不含未期望；未识别如实返回空，不编造；四类错因显式规则注册表（direction_reversed / unit_error / missing_partition / independence_confusion），归一化在入口内 | F5 |
+| `judge.py` | `grade` 判定确定性入口，对齐 `attempt.schema` gradeResult 两支；服务端派生字段（hint_used / attempt_no）留给 API 层 | F4（判定零模型） |
+
+> **测试抓到的真 bug**：`\d+\.\d+` 正则在无匹配的 100k 位数字串上退化为 **O(n²)（31 秒）**——正是旧仓 100k 位数字 P0 事故的同族问题。已改为线性扫描（<10ms），`match_mistake` 入口加 400 字护栏，并有防 ReDoS 回归测试。
+
+### ③ `backend/tests/test_domain.py` —— 首条真实用例（边②）
+
+28 条用例全绿（约 0.13s）：归一化 / 正确路径 / not_gradable 降级 / R-A 上界 / 四类错因正负样本 / 长数字串防 ReDoS / import 白名单与零 LLM 引用静态断言。
+
+```bash
+# 运行方式（Python 3.11+，零第三方依赖）
+python -m pytest backend/tests
+```
+
+### 卡2 状态与待办
+
+- [ ] **PR 待创建**：https://github.com/sqbsayori/ProbCrew-v2/pull/new/backend/w0b-core-domain（合并前门禁须绿）
+- [ ] **回写 docs/02 §4.3**：normalize 的分数 / 百分数 / 单位规则取了 W0 最小集（`50%≡0.5`、`1/4≡0.25`、小数去尾零），按 docs/06 §12.5 检查点 5 需由后端与数据域回写
+- 本测试文件自带临时 `sys.path` 引导，conftest / pytest 入口归卡1，卡1 就绪后可删
 
 ---
 
