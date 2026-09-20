@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ProbCrew · 概率论伴学助手</title>
+  <!-- ★ 四层 CSS（docs/02 §7.3）：顺序即层叠顺序，色值只在 tokens.css 里出现（R-D） -->
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/app.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+  <!-- ★ v2 不设 bootstrap.js —— 入口就是这个文件本身（docs/03 §5.1） -->
+  <div class="app-shell">
+    <header class="app-topbar">
+      <a class="app-topbar__brand" href="#/home">ProbCrew</a>
+      <span class="app-topbar__spacer"></span>
+      <!-- 登录态由 core/auth.js + core/bus.js 驱动，不用 innerHTML 拼内容（R-E） -->
+      <span id="app-session" class="page__subtitle">未登录</span>
+    </header>
+
+    <nav class="app-sidebar" aria-label="主导航">
+      <ul class="app-nav">
+        <li><a class="app-nav__link" href="#/home">首页</a></li>
+        <li><a class="app-nav__link" href="#/practice">练习</a></li>
+        <li><a class="app-nav__link" href="#/wrong">错题本</a></li>
+        <li><a class="app-nav__link" href="#/knowledge">知识点</a></li>
+        <li><a class="app-nav__link" href="#/settings">设置</a></li>
+        <li><a class="app-nav__link" href="#/admin">管理</a></li>
+        <li><a class="app-nav__link" href="#/login">登录</a></li>
+      </ul>
+    </nav>
+
+    <!-- ★ DOM 挂载点：外壳唯一渲染目标（docs/03 §5.1） -->
+    <main class="app-main" id="app-main"></main>
+  </div>
+
+  <noscript>
+    本应用是免构建的原生 ESM 前端（ADR-0001），需要启用 JavaScript。
+  </noscript>
+
+  <script type="module">
+    // 六个 core 模块全部在此 import —— 这就是"六个模块可被 import"的落点（docs/03 §5.1）
+    import { el, mount, qs, setText } from './core/dom.js'
+    import { EVENTS, emit, on } from './core/bus.js'
+    import { store } from './core/store.js'
+    import { register, setFallback, start, navigate } from './core/router.js'
+    import { ApiError } from './core/api.js'
+    import { role, token } from './core/auth.js'
+    import { emptyState, notice } from './components/index.js'
+
+    /** 骨架版本号（广播进 `app:ready`，便于确认"跑的是哪一版外壳"）。 */
+    const SHELL_VERSION = 'w0a'
+
+    /**
+     * 页面清单（route 与 `docs/03 §5.2` 的 7 个 v2 页面一一对应）。
+     * ★ W1–W4 在这里把占位换成各 feature 的 `index.js`（一人一页，`frontend/features/<x>/`）。
+     */
+    const PAGES = [
+      { path: '#/login', title: '登录', subtitle: '账号与令牌（F15 · N6）' },
+      { path: '#/home', title: '首页', subtitle: '今日概览与入口' },
+      { path: '#/practice', title: '练习', subtitle: '答疑与刷题（#/practice?kc=&item=&hint=）' },
+      { path: '#/wrong', title: '错题本', subtitle: '错题复习（#/wrong?kc=&cursor=）' },
+      { path: '#/knowledge', title: '知识点', subtitle: '知识图谱（#/knowledge?kc=&view=）' },
+      { path: '#/settings', title: '设置', subtitle: '模型端点与凭据 · 外传告知（N14 · N15 · N16）' },
+      { path: '#/admin', title: '管理', subtitle: '教师侧（#/admin?tab=students&user=…）' },
+    ]
+
+    const main = qs('#app-main')
+    const sessionBadge = qs('#app-session')
+
+    /** 占位页：W0a 的外壳**故意不实现任何页面逻辑**（docs/06 §12.6 规则 1）。 */
+    function placeholder(page) {
+      return el('section', { class: 'page' }, [
+        el('header', { class: 'page__header' }, [
+          el('div', { class: 'page__titles' }, [
+            el('h1', { class: 'page__title', text: page.title }),
+            el('p', { class: 'page__subtitle', text: page.subtitle ?? '' }),
+          ]),
+        ]),
+        el('div', { class: 'page__body' }, [
+          emptyState({
+            title: '页面尚未实现',
+            hint: 'W0a 只交外壳：路由、core 六模块、样式四层与组件入口。本页的实现在 W1–W4 落地。',
+          }),
+        ]),
+      ])
+    }
+
+    for (const page of PAGES) register(page.path, () => mount(main, placeholder(page)))
+
+    setFallback((route) => {
+      mount(main, placeholder({
+        title: '未知页面',
+        subtitle: `${route.path}（回 #/home 继续）`,
+      }))
+    })
+
+    /** 顶栏登录态：读 core/auth.js，变化由 auth:changed 驱动（不轮询、不各存一份）。 */
+    function paintSession() {
+      setText(sessionBadge, token() ? `已登录 · ${role() ?? '角色待取回'}` : '未登录')
+    }
+
+    on(EVENTS.AUTH_CHANGED, paintSession)
+
+    /** 导航高亮 + 当前路由进 store（跨页面临时态的唯一去处，docs/02 §7.4）。 */
+    on(EVENTS.ROUTE_CHANGED, (route) => {
+      store.set('route', route)
+      for (const link of document.querySelectorAll('.app-nav__link')) {
+        if (link.getAttribute('href') === `#${route.path}`) link.setAttribute('aria-current', 'page')
+        else link.removeAttribute('aria-current')
+      }
+    })
+
+    /** 用户可见提示：外壳统一在这里落地（含 F17/F18 的**显式降级话术**）。 */
+    on(EVENTS.NOTICE, ({ message, tone = 'info' }) => {
+      main.prepend(notice({ message, tone }))
+    })
+
+    /** 统一错误体：401 一律回登录页（清令牌在 core/api.js 里做，跳转是外壳的决定）。 */
+    on(EVENTS.API_ERROR, (error) => {
+      const detail = error instanceof ApiError ? `（${error.code}）` : ''
+      if (error?.status === 401) navigate('#/login')
+      emit(EVENTS.NOTICE, { message: `${error?.message ?? '请求失败'}${detail}`, tone: 'danger' })
+    })
+
+    paintSession()
+    start()
+    emit(EVENTS.APP_READY, { version: SHELL_VERSION })
+  </script>
+</body>
+</html>

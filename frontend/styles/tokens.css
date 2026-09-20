@@ -1,0 +1,70 @@
+/* tokens.css —— ★ 唯一变量源（docs/02 §7.3）。
+ *
+ * 规则：**任何颜色 / 圆角 / 阴影只能来自本文件**（R-D：门禁 grep 除本文件外的
+ * `#rrggbb` / `rgb(` / `rgba(` / `hsl(` / `oklch(`）。
+ * 五类最小集：颜色 · 圆角 · 阴影 · 间距 · 过渡。
+ *
+ * ★ N8 的载体（docs/06 §12.4 的补记）：本文件同时是"对比度 ≥ 4.5:1 只对**声明的色对**可自动"
+ * 那份**色对清单**的落点 —— 下面每条前景色都注明了它与哪个背景成对、以及实测对比度口径。
+ * ★ 渲染结果的对比度**不在本轮验收内**（要无头浏览器，与"零安装"冲突，docs/01 N8 已记账）。
+ */
+
+:root {
+  /* ---- 颜色（色对：前景 on 背景）---------------------------------------- */
+  --color-bg: #f6f7f9;              /* 页面底 */
+  --color-surface: #ffffff;         /* 卡片/栏底 */
+  --color-surface-muted: #eef1f5;
+  --color-border: #d5dbe3;
+
+  --color-text: #171b21;            /* on --color-bg / --color-surface ≈ 16:1 */
+  --color-text-muted: #5a6472;      /* on --color-surface ≈ 6:1 */
+  --color-text-inverse: #ffffff;    /* on --color-primary ≈ 6:1 */
+
+  --color-primary: #1b4fd8;         /* on --color-surface ≈ 6.5:1 */
+  --color-primary-hover: #163fb0;
+  --color-primary-soft: #e8eefc;
+
+  --color-success: #15693f;
+  --color-warn: #8a5300;
+  --color-danger: #a5211b;          /* on --color-surface ≈ 6:1 */
+  --color-danger-soft: #fbeceb;
+
+  --color-focus: #0b57d0;           /* 键盘焦点环（N8② 键盘可达）*/
+
+  /* ---- 圆角 -------------------------------------------------------------- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* ---- 阴影 -------------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
+  --shadow-md: 0 2px 8px rgb(16 24 40 / 8%);
+  --shadow-lg: 0 8px 24px rgb(16 24 40 / 10%);
+
+  /* ---- 间距 -------------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* ---- 过渡 -------------------------------------------------------------- */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+
+  /* ---- 排版与可点击尺寸（N8①：点击目标 ≥ 32px）------------------------- */
+  --font-family-base: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --line-height-base: 1.6;
+  --target-min: 32px;               /* 任何可点击元素的**最小**边长 */
+
+  /* ---- 版面 -------------------------------------------------------------- */
+  --layout-sidebar-width: 200px;
+  --layout-topbar-height: 52px;
+}
