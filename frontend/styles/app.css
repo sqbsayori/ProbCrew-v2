@@ -1,0 +1,113 @@
+/* app.css —— 外壳骨架：布局 / 侧栏 / 顶栏（docs/02 §7.3）。
+ * 只允许用 tokens.css 的变量（R-D）；这里不出现任何色值字面量。
+ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+}
+
+/* ---- 外壳栅格：顶栏 + 侧栏 + 内容区 -------------------------------------- */
+
+.app-shell {
+  display: grid;
+  grid-template-areas:
+    "topbar topbar"
+    "sidebar main";
+  grid-template-columns: var(--layout-sidebar-width) 1fr;
+  grid-template-rows: var(--layout-topbar-height) 1fr;
+  min-height: 100vh;
+}
+
+.app-topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-topbar__brand {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.app-topbar__spacer { flex: 1; }
+
+.app-sidebar {
+  grid-area: sidebar;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+}
+
+.app-main {
+  grid-area: main;
+  padding: var(--space-5);
+  min-width: 0; /* 栅格子项默认 min-width:auto，会撑破表格 */
+}
+
+/* ---- 导航 ---------------------------------------------------------------- */
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-nav__link {
+  display: flex;
+  align-items: center;
+  min-height: var(--target-min); /* N8① */
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.app-nav__link:hover { background: var(--color-surface-muted); }
+
+.app-nav__link[aria-current="page"] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ---- 键盘可达（N8②）----------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ---- 通用工具类 ---------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

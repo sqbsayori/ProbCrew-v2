@@ -1,0 +1,10 @@
+# 测试与门禁依赖 —— 卡 1 · W0a 第 ① 步
+#
+# 包清单的权威来源：docs/03 §8.4 第 1 步（"测试与门禁（-dev）= pytest · jsonschema"）。
+# ★ 本文件与 requirements.txt 是**叠加**关系，不写 `-r requirements.txt`：
+#   CI（.github/workflows/ci.yml）两个文件都装；本地按 docs/03 §8.4 第 1 步也是两条命令。
+#
+# W0 对三个待定问题之③的回答：★ jsonschema 归 **dev** —— 它是**门禁**依赖
+#   （scripts/verify.sh 用它校验 14 份契约），**不进服务进程**（docs/03 §8.4）。
+jsonschema==4.26.0
+pytest==9.1.1
