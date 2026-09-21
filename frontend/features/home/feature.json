@@ -1,0 +1,11 @@
+{
+  "id": "home",
+  "dir": "home",
+  "title": "首页",
+  "icon": "🏠",
+  "route": "home",
+  "group": "学习",
+  "order": 10,
+  "class": "product",
+  "subtitle": "今日概览与入口"
+}
