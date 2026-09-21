@@ -49,6 +49,7 @@
     import { ApiError } from './core/api.js'
     import { role, token } from './core/auth.js'
     import { emptyState, notice } from './components/index.js'
+    import './features/home/index.js'
 
     /** 骨架版本号（广播进 `app:ready`，便于确认"跑的是哪一版外壳"）。 */
     const SHELL_VERSION = 'w0a'
@@ -59,7 +60,6 @@
      */
     const PAGES = [
       { path: '#/login', title: '登录', subtitle: '账号与令牌（F15 · N6）' },
-      { path: '#/home', title: '首页', subtitle: '今日概览与入口' },
       { path: '#/practice', title: '练习', subtitle: '答疑与刷题（#/practice?kc=&item=&hint=）' },
       { path: '#/wrong', title: '错题本', subtitle: '错题复习（#/wrong?kc=&cursor=）' },
       { path: '#/knowledge', title: '知识点', subtitle: '知识图谱（#/knowledge?kc=&view=）' },

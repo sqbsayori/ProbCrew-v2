@@ -1,0 +1,10 @@
+/* 首页首屏专属样式。颜色、圆角、阴影一律取自 tokens.css。 */
+.home-page { max-width: 1180px; }
+.home-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: var(--space-4); }
+.home-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.home-stat { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-muted); }
+.home-stat__label { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.home-stat__value { font-size: var(--font-size-xl); line-height: 1.2; }
+.home-stat__hint { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.home-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+@media (max-width: 760px) { .home-grid, .home-stats { grid-template-columns: minmax(0, 1fr); } }
