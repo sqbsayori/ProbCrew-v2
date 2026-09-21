@@ -1,0 +1,921 @@
+{
+  "asset": "types",
+  "rev": "types-2026.09.21.1",
+  "title": "概率论与数理统计首版题型库",
+  "items": [
+    {
+      "pt_id": "pt_event_operations",
+      "name": "事件运算与事件关系",
+      "kc_ids": [
+        "kc_event_operation",
+        "kc_classical_probability"
+      ],
+      "framework": "1. 明确每个事件对应什么结果；2. 根据交、并、补的语义逐项组合；3. 检查互斥、包含和补集关系。"
+    },
+    {
+      "pt_id": "pt_classical_counting",
+      "name": "古典概型计数",
+      "kc_ids": [
+        "kc_classical_probability",
+        "kc_event_operation"
+      ],
+      "framework": "1. 确认样本空间等可能；2. 分别统计目标结果数和总结果数；3. 用组合数或枚举化简概率。"
+    },
+    {
+      "pt_id": "pt_hypergeometric_probability",
+      "name": "不放回抽样概率",
+      "kc_ids": [
+        "kc_classical_probability",
+        "kc_conditional_probability"
+      ],
+      "framework": "1. 区分成功对象和总对象；2. 用组合数计数目标抽取方式；3. 与全部抽取方式相除并化简。"
+    },
+    {
+      "pt_id": "pt_complement",
+      "name": "对立事件求概率",
+      "kc_ids": [
+        "kc_event_operation",
+        "kc_classical_probability"
+      ],
+      "framework": "1. 找到所求事件的补事件；2. 计算补事件概率；3. 用 1 减去补事件概率。"
+    },
+    {
+      "pt_id": "pt_conditional_probability",
+      "name": "条件概率计算",
+      "kc_ids": [
+        "kc_conditional_probability",
+        "kc_event_operation"
+      ],
+      "framework": "1. 明确条件和目标事件；2. 使用 P(A|B)=P(AB)/P(B)；3. 代入并检查分母是否为正。"
+    },
+    {
+      "pt_id": "pt_independence_check",
+      "name": "独立性判断",
+      "kc_ids": [
+        "kc_independence",
+        "kc_conditional_probability"
+      ],
+      "framework": "1. 计算相关事件的单独概率；2. 比较联合概率与概率乘积；3. 按相等或不相等给出独立性结论。"
+    },
+    {
+      "pt_id": "pt_multiplication_rule",
+      "name": "乘法公式与连续抽取",
+      "kc_ids": [
+        "kc_conditional_probability",
+        "kc_classical_probability"
+      ],
+      "framework": "1. 按步骤拆开连续发生的条件；2. 每步更新剩余样本；3. 将各步条件概率相乘并化简。"
+    },
+    {
+      "pt_id": "pt_total_probability",
+      "name": "全概率公式",
+      "kc_ids": [
+        "kc_total_probability",
+        "kc_conditional_probability"
+      ],
+      "framework": "1. 找出完备事件组；2. 写出各原因事件与条件概率；3. 按全概率公式加权求和。"
+    },
+    {
+      "pt_id": "pt_bayes_formula",
+      "name": "贝叶斯公式",
+      "kc_ids": [
+        "kc_bayes_formula",
+        "kc_total_probability",
+        "kc_conditional_probability"
+      ],
+      "framework": "1. 明确目标条件概率；2. 用全概率公式计算分母；3. 用联合概率除以分母得到后验概率。"
+    },
+    {
+      "pt_id": "pt_discrete_pmf",
+      "name": "离散型随机变量分布列",
+      "kc_ids": [
+        "kc_discrete_pmf",
+        "kc_random_variable"
+      ],
+      "framework": "1. 列出所有可能取值；2. 利用概率和为 1 求未知参数；3. 检查每个概率非负且总和为 1。"
+    },
+    {
+      "pt_id": "pt_distribution_function",
+      "name": "分布函数计算",
+      "kc_ids": [
+        "kc_distribution_function",
+        "kc_random_variable"
+      ],
+      "framework": "1. 确定随机变量不大于给定点的所有取值；2. 累加对应概率；3. 注意分布函数在跳跃点处右连续。"
+    },
+    {
+      "pt_id": "pt_binomial_probability",
+      "name": "二项分布概率",
+      "kc_ids": [
+        "kc_binomial_distribution",
+        "kc_discrete_pmf"
+      ],
+      "framework": "1. 确认独立重复试验次数和成功概率；2. 写出组合数与成功、失败概率；3. 计算并按要求化简或取近似值。"
+    },
+    {
+      "pt_id": "pt_poisson_probability",
+      "name": "泊松分布概率",
+      "kc_ids": [
+        "kc_poisson_distribution",
+        "kc_discrete_pmf"
+      ],
+      "framework": "1. 确认参数 λ 的物理含义；2. 使用 P(X=k)=exp(-λ)λ^k/k!；3. 代入并检查非负性。"
+    },
+    {
+      "pt_id": "pt_geometric_probability",
+      "name": "几何分布概率",
+      "kc_ids": [
+        "kc_geometric_distribution",
+        "kc_discrete_pmf"
+      ],
+      "framework": "1. 明确首次成功前的失败次数；2. 使用 P(X=k)=(1-p)^k p；3. 代入并检查概率范围。"
+    },
+    {
+      "pt_id": "pt_density_normalization",
+      "name": "连续型密度归一化",
+      "kc_ids": [
+        "kc_continuous_density",
+        "kc_random_variable"
+      ],
+      "framework": "1. 确定密度的支撑区间；2. 用积分等于 1 建立方程；3. 解未知常数并检查非负性。"
+    },
+    {
+      "pt_id": "pt_continuous_probability",
+      "name": "连续型区间概率",
+      "kc_ids": [
+        "kc_continuous_density",
+        "kc_distribution_function"
+      ],
+      "framework": "1. 明确概率等于密度积分；2. 写出积分区间；3. 计算积分并检查结果在 [0,1]。"
+    },
+    {
+      "pt_id": "pt_exponential_probability",
+      "name": "指数分布概率",
+      "kc_ids": [
+        "kc_exponential_distribution",
+        "kc_continuous_density"
+      ],
+      "framework": "1. 写出指数分布密度或尾概率；2. 确定参数与阈值；3. 用 exp 形式计算并取精确或近似值。"
+    },
+    {
+      "pt_id": "pt_normal_probability",
+      "name": "正态分布区间概率",
+      "kc_ids": [
+        "kc_normal_distribution",
+        "kc_continuous_density"
+      ],
+      "framework": "1. 标准化 X 到 Z；2. 用标准正态分布函数表示区间概率；3. 代入表值或数值计算。"
+    },
+    {
+      "pt_id": "pt_joint_distribution",
+      "name": "二维离散联合分布",
+      "kc_ids": [
+        "kc_joint_distribution",
+        "kc_discrete_pmf"
+      ],
+      "framework": "1. 列出联合分布取值；2. 用全概率和为 1 求未知项；3. 检查所有联合概率非负。"
+    },
+    {
+      "pt_id": "pt_marginal_distribution",
+      "name": "边缘分布",
+      "kc_ids": [
+        "kc_marginal_distribution",
+        "kc_joint_distribution"
+      ],
+      "framework": "1. 选择要保留的变量；2. 对另一个变量求和或积分；3. 检查边缘分布概率或密度归一。"
+    },
+    {
+      "pt_id": "pt_conditional_distribution",
+      "name": "条件分布",
+      "kc_ids": [
+        "kc_conditional_distribution",
+        "kc_joint_distribution"
+      ],
+      "framework": "1. 写出联合概率与条件事件概率；2. 按条件概率公式相除；3. 检查条件分布和或积分为 1。"
+    },
+    {
+      "pt_id": "pt_independence_joint",
+      "name": "随机变量独立性判断",
+      "kc_ids": [
+        "kc_independent_random_variables",
+        "kc_joint_distribution",
+        "kc_marginal_distribution"
+      ],
+      "framework": "1. 求所需边缘概率；2. 比较联合概率与边缘概率乘积；3. 由等式是否对所有取值成立判断独立性。"
+    },
+    {
+      "pt_id": "pt_function_transform",
+      "name": "随机变量函数分布",
+      "kc_ids": [
+        "kc_function_distribution",
+        "kc_random_variable"
+      ],
+      "framework": "1. 找原变量到新变量的映射；2. 合并映射到同一取值的概率；3. 输出新变量分布并检查归一。"
+    },
+    {
+      "pt_id": "pt_normal_sum",
+      "name": "正态变量线性组合",
+      "kc_ids": [
+        "kc_normal_sum",
+        "kc_normal_distribution",
+        "kc_linear_combination_variance"
+      ],
+      "framework": "1. 确认独立性和线性组合形式；2. 直接相加均值并按系数平方加权方差；3. 写出结果分布参数。"
+    },
+    {
+      "pt_id": "pt_expectation_discrete",
+      "name": "离散期望",
+      "kc_ids": [
+        "kc_expectation",
+        "kc_discrete_pmf"
+      ],
+      "framework": "1. 列出取值和概率；2. 计算 ΣxP(X=x)；3. 检查结果单位与合理性。"
+    },
+    {
+      "pt_id": "pt_variance_discrete",
+      "name": "离散方差",
+      "kc_ids": [
+        "kc_variance",
+        "kc_expectation",
+        "kc_discrete_pmf"
+      ],
+      "framework": "1. 求期望；2. 求二阶矩 E(X²)；3. 用 Var(X)=E(X²)-E(X)² 计算。"
+    },
+    {
+      "pt_id": "pt_covariance_correlation",
+      "name": "协方差与相关系数",
+      "kc_ids": [
+        "kc_covariance",
+        "kc_correlation",
+        "kc_variance"
+      ],
+      "framework": "1. 写清方差与协方差；2. 计算相关系数 ρ=Cov(X,Y)/(σXσY)；3. 检查相关系数是否在 [-1,1]。"
+    },
+    {
+      "pt_id": "pt_linear_combination_variance",
+      "name": "线性组合方差",
+      "kc_ids": [
+        "kc_linear_combination_variance",
+        "kc_variance",
+        "kc_covariance"
+      ],
+      "framework": "1. 写出线性组合系数；2. 使用 Var(aX+bY)=a²VarX+b²VarY+2abCov；3. 代入并检查非负。"
+    },
+    {
+      "pt_id": "pt_chebyshev_inequality",
+      "name": "切比雪夫不等式",
+      "kc_ids": [
+        "kc_chebyshev_inequality",
+        "kc_variance"
+      ],
+      "framework": "1. 写出均值、方差和偏差阈值；2. 应用 P(|X-μ|≥ε)≤Var(X)/ε²；3. 化简为数值上界。"
+    },
+    {
+      "pt_id": "pt_central_limit_approximation",
+      "name": "中心极限定理近似",
+      "kc_ids": [
+        "kc_central_limit_theorem",
+        "kc_normal_approximation"
+      ],
+      "framework": "1. 明确独立同分布变量和样本量；2. 求总和或均值的均值和方差；3. 标准化后用标准正态分布近似。"
+    },
+    {
+      "pt_id": "pt_uniform_probability",
+      "name": "均匀分布区间概率",
+      "kc_ids": [
+        "kc_uniform_distribution",
+        "kc_continuous_density"
+      ],
+      "framework": "1. 确认均匀分布的区间长度；2. 将目标区间与支撑区间比较；3. 用目标区间长度除以支撑区间长度。"
+    },
+    {
+      "pt_id": "pt_expectation_continuous",
+      "name": "连续型期望",
+      "kc_ids": [
+        "kc_expectation",
+        "kc_continuous_density"
+      ],
+      "framework": "1. 写出密度函数和支撑；2. 计算 ∫x f(x) dx；3. 检查结果是否位于合理范围。"
+    },
+    {
+      "pt_id": "pt_variance_continuous",
+      "name": "连续型方差",
+      "kc_ids": [
+        "kc_variance",
+        "kc_continuous_density",
+        "kc_expectation"
+      ],
+      "framework": "1. 先求 E(X)；2. 再求 E(X²)；3. 用 Var(X)=E(X²)-E(X)² 计算。"
+    },
+    {
+      "pt_id": "pt_moments",
+      "name": "随机变量矩",
+      "kc_ids": [
+        "kc_moment",
+        "kc_expectation"
+      ],
+      "framework": "1. 明确要求的阶数；2. 使用 Σx^kP(X=x) 或 ∫x^k f(x)dx；3. 将矩用于方差或其他数字特征。"
+    },
+    {
+      "pt_id": "pt_law_large_numbers",
+      "name": "大数定律与样本均值界",
+      "kc_ids": [
+        "kc_law_large_numbers",
+        "kc_sample_mean",
+        "kc_chebyshev_inequality"
+      ],
+      "framework": "1. 写出样本均值的均值和方差；2. 用切比雪夫不等式给出概率上界；3. 代入样本量并化简。"
+    },
+    {
+      "pt_id": "pt_sample_mean_variance",
+      "name": "样本均值方差",
+      "kc_ids": [
+        "kc_sample_mean",
+        "kc_variance"
+      ],
+      "framework": "1. 确认样本独立同分布；2. 使用 Var(样本均值)=总体方差/n；3. 代入样本量计算。"
+    },
+    {
+      "pt_id": "pt_random_process_classification",
+      "name": "随机过程类型判断",
+      "kc_ids": [
+        "kc_random_process_basic"
+      ],
+      "framework": "1. 观察状态空间是离散还是连续；2. 观察时间参数是离散还是连续；3. 结合过程定义判断类型。"
+    },
+    {
+      "pt_id": "pt_poisson_count_probability",
+      "name": "泊松计数概率",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "framework": "1. 写出区间长度与强度；2. 得到均值 λt；3. 使用泊松概率公式计算。"
+    },
+    {
+      "pt_id": "pt_poisson_increment",
+      "name": "泊松过程增量",
+      "kc_ids": [
+        "kc_poisson_process",
+        "kc_stationary_increment"
+      ],
+      "framework": "1. 利用独立增量确定区间长度；2. 计算该区间的均值；3. 使用泊松分布求增量概率。"
+    },
+    {
+      "pt_id": "pt_poisson_arrival_time",
+      "name": "泊松到达时间",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "framework": "1. 确认第 n 个到达时间服从 Gamma 分布；2. 写出均值或概率表达式；3. 代入参数计算。"
+    },
+    {
+      "pt_id": "pt_poisson_mean_variance",
+      "name": "泊松过程均值方差",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "framework": "1. 写出 N(t) 的分布；2. 均值和方差都等于 λt；3. 代入区间长度与强度。"
+    },
+    {
+      "pt_id": "pt_brownian_moment",
+      "name": "布朗运动数字特征",
+      "kc_ids": [
+        "kc_brownian_motion"
+      ],
+      "framework": "1. 使用布朗运动均值为 0；2. 使用 Var(W(t)-W(s))=t-s；3. 根据独立性计算所需量。"
+    },
+    {
+      "pt_id": "pt_brownian_increment",
+      "name": "布朗运动增量",
+      "kc_ids": [
+        "kc_brownian_motion",
+        "kc_stationary_increment"
+      ],
+      "framework": "1. 确认增量服从正态分布；2. 均值为 0、方差为时间差；3. 计算概率或协方差。"
+    },
+    {
+      "pt_id": "pt_white_noise_properties",
+      "name": "白噪声性质",
+      "kc_ids": [
+        "kc_white_noise",
+        "kc_wide_sense_stationary"
+      ],
+      "framework": "1. 写均值与方差的定义；2. 检查不同时刻的协方差；3. 按白噪声性质输出结果。"
+    },
+    {
+      "pt_id": "pt_markov_row_stochastic",
+      "name": "马尔可夫转移矩阵",
+      "kc_ids": [
+        "kc_transition_matrix",
+        "kc_markov_property"
+      ],
+      "framework": "1. 确认非负性；2. 检查每一行概率和为 1；3. 根据转移矩阵计算所需概率。"
+    },
+    {
+      "pt_id": "pt_markov_transition_probability",
+      "name": "马尔可夫转移概率",
+      "kc_ids": [
+        "kc_transition_matrix",
+        "kc_markov_property"
+      ],
+      "framework": "1. 确定起始状态和目标状态；2. 写出一步或多步转移；3. 通过矩阵乘法或路径求和。"
+    },
+    {
+      "pt_id": "pt_markov_stationary_distribution",
+      "name": "马尔可夫平稳分布",
+      "kc_ids": [
+        "kc_stationary_distribution",
+        "kc_transition_matrix"
+      ],
+      "framework": "1. 写出 πP=π；2. 联立归一化条件；3. 解方程得到平稳分布。"
+    },
+    {
+      "pt_id": "pt_markov_hitting_time",
+      "name": "马尔可夫首达时间",
+      "kc_ids": [
+        "kc_hitting_time",
+        "kc_markov_property"
+      ],
+      "framework": "1. 对目标状态设边界条件；2. 对其他状态列首步方程；3. 解线性方程得到期望首达时间。"
+    },
+    {
+      "pt_id": "pt_markov_absorption_probability",
+      "name": "马尔可夫吸收概率",
+      "kc_ids": [
+        "kc_absorption_probability",
+        "kc_hitting_time"
+      ],
+      "framework": "1. 标出吸收边界；2. 对非吸收状态列首步方程；3. 解得吸收概率。"
+    },
+    {
+      "pt_id": "pt_markov_period_classification",
+      "name": "马尔可夫周期与类",
+      "kc_ids": [
+        "kc_periodicity",
+        "kc_communication_classes"
+      ],
+      "framework": "1. 查看状态之间的可达关系；2. 找返回路径长度的最大公约数；3. 判断不可约和周期。"
+    },
+    {
+      "pt_id": "pt_wss_mean_covariance",
+      "name": "宽平稳过程",
+      "kc_ids": [
+        "kc_wide_sense_stationary",
+        "kc_autocovariance"
+      ],
+      "framework": "1. 检查均值是否常数；2. 检查协方差是否只依赖时间差；3. 判断是否宽平稳。"
+    },
+    {
+      "pt_id": "pt_autocorrelation",
+      "name": "自相关函数",
+      "kc_ids": [
+        "kc_autocorrelation",
+        "kc_autocovariance"
+      ],
+      "framework": "1. 写出协方差归一化公式；2. 使用 ρ(h)=γ(h)/γ(0)；3. 代入滞后阶数计算。"
+    },
+    {
+      "pt_id": "pt_ar1_properties",
+      "name": "AR(1) 过程性质",
+      "kc_ids": [
+        "kc_ar1_process",
+        "kc_autocovariance"
+      ],
+      "framework": "1. 写出 AR(1) 方程；2. 用平稳条件求均值和方差；3. 推导自协方差或预测值。"
+    },
+    {
+      "pt_id": "pt_ma1_properties",
+      "name": "MA(1) 过程性质",
+      "kc_ids": [
+        "kc_ma1_process",
+        "kc_autocovariance"
+      ],
+      "framework": "1. 展开 MA(1) 的噪声组合；2. 利用白噪声不相关性求方差和协方差；3. 得到自相关性质。"
+    },
+    {
+      "pt_id": "pt_ergodicity",
+      "name": "遍历性判断",
+      "kc_ids": [
+        "kc_ergodicity",
+        "kc_wide_sense_stationary"
+      ],
+      "framework": "1. 区分时间平均与集合平均；2. 检查长期时间平均是否收敛到常数；3. 给出遍历性结论。"
+    },
+    {
+      "pt_id": "pt_time_series_difference",
+      "name": "时间序列差分",
+      "kc_ids": [
+        "kc_time_series",
+        "kc_difference_stationarity"
+      ],
+      "framework": "1. 判断原序列是否含趋势或单位根；2. 构造后向差分；3. 检查差分后的均值和方差是否稳定。"
+    },
+    {
+      "pt_id": "pt_ar1_forecast",
+      "name": "AR(1) 预测",
+      "kc_ids": [
+        "kc_forecasting",
+        "kc_ar1_process"
+      ],
+      "framework": "1. 写出条件期望递推；2. 用当前观测预测下一步；3. 多步预测反复代入条件期望。"
+    },
+    {
+      "pt_id": "pt_ma1_forecast",
+      "name": "MA(1) 预测",
+      "kc_ids": [
+        "kc_forecasting",
+        "kc_ma1_process"
+      ],
+      "framework": "1. 写出当前噪声项的影响；2. 对未来新噪声取条件期望为零；3. 得到一步或两步预测。"
+    },
+    {
+      "pt_id": "pt_model_identification",
+      "name": "ARMA 模型辨识",
+      "kc_ids": [
+        "kc_time_series",
+        "kc_arma_model"
+      ],
+      "framework": "1. 在相同数据与模型类别下比较候选模型；2. 用 ACF/PACF 判断 AR、MA 或 ARMA 形式，或比较 AIC/BIC；3. 选择诊断合理且信息准则较小的模型。"
+    },
+    {
+      "pt_id": "pt_yule_walker",
+      "name": "Yule-Walker 方程",
+      "kc_ids": [
+        "kc_yule_walker",
+        "kc_ar1_process"
+      ],
+      "framework": "1. 写出自协方差递推方程；2. 除以 γ(0) 得到自相关方程；3. 解出系数或相关系数。"
+    },
+    {
+      "pt_id": "pt_population_sample",
+      "name": "总体与样本",
+      "kc_ids": [
+        "kc_population_sample",
+        "kc_sample_statistic"
+      ],
+      "framework": "1. 区分总体参数与样本统计量；2. 明确抽样单位与样本量；3. 按定义作答。"
+    },
+    {
+      "pt_id": "pt_unbiased_mean",
+      "name": "样本均值无偏性",
+      "kc_ids": [
+        "kc_sampling_distribution_mean",
+        "kc_unbiased_estimator"
+      ],
+      "framework": "1. 对样本均值取期望；2. 使用各观测同分布且期望为总体均值；3. 得到无偏性结论。"
+    },
+    {
+      "pt_id": "pt_unbiased_variance",
+      "name": "样本方差无偏性",
+      "kc_ids": [
+        "kc_sampling_distribution_variance",
+        "kc_unbiased_estimator"
+      ],
+      "framework": "1. 写样本方差定义；2. 使用平方和期望；3. 验证其期望等于总体方差。"
+    },
+    {
+      "pt_id": "pt_standard_error_mean",
+      "name": "均值标准误",
+      "kc_ids": [
+        "kc_sampling_distribution_mean",
+        "kc_sample_statistic"
+      ],
+      "framework": "1. 写出样本均值方差；2. 开方得到标准误；3. 代入总体标准差与样本量。"
+    },
+    {
+      "pt_id": "pt_chi_square_sampling",
+      "name": "卡方抽样分布",
+      "kc_ids": [
+        "kc_chi_square_distribution",
+        "kc_sampling_distribution_variance"
+      ],
+      "framework": "1. 判断适用总体与正态假设；2. 写自由度；3. 使用卡方分布公式。"
+    },
+    {
+      "pt_id": "pt_t_distribution_sampling",
+      "name": "t 分布抽样",
+      "kc_ids": [
+        "kc_t_distribution",
+        "kc_sampling_distribution_variance"
+      ],
+      "framework": "1. 确认总体方差未知；2. 确定自由度；3. 使用 t 分布描述标准化统计量。"
+    },
+    {
+      "pt_id": "pt_f_distribution_sampling",
+      "name": "F 分布抽样",
+      "kc_ids": [
+        "kc_f_distribution",
+        "kc_anova"
+      ],
+      "framework": "1. 写出两个独立卡方变量；2. 分别除以自由度；3. 得到 F 分布自由度对。"
+    },
+    {
+      "pt_id": "pt_mle_bernoulli",
+      "name": "伯努利参数最大似然",
+      "kc_ids": [
+        "kc_maximum_likelihood",
+        "kc_point_estimation"
+      ],
+      "framework": "1. 写似然函数；2. 最大化成功率；3. 用成功次数除以试验次数。"
+    },
+    {
+      "pt_id": "pt_mle_poisson",
+      "name": "泊松参数最大似然",
+      "kc_ids": [
+        "kc_maximum_likelihood",
+        "kc_point_estimation"
+      ],
+      "framework": "1. 写泊松似然函数；2. 取对数求导；3. 得到样本均值估计。"
+    },
+    {
+      "pt_id": "pt_mle_exponential",
+      "name": "指数参数最大似然",
+      "kc_ids": [
+        "kc_maximum_likelihood",
+        "kc_point_estimation"
+      ],
+      "framework": "1. 写指数分布似然；2. 求导并使之为零；3. 得到均值的倒数。"
+    },
+    {
+      "pt_id": "pt_method_moments",
+      "name": "矩估计",
+      "kc_ids": [
+        "kc_method_of_moments",
+        "kc_point_estimation"
+      ],
+      "framework": "1. 写出总体矩与参数关系；2. 用样本矩替代总体矩；3. 解出参数估计。"
+    },
+    {
+      "pt_id": "pt_unbiased_variance_estimate",
+      "name": "无偏方差估计",
+      "kc_ids": [
+        "kc_sampling_distribution_variance",
+        "kc_unbiased_estimator"
+      ],
+      "framework": "1. 计算样本均值；2. 计算离差平方和；3. 除以 n-1。"
+    },
+    {
+      "pt_id": "pt_confidence_interval_mean",
+      "name": "均值置信区间",
+      "kc_ids": [
+        "kc_confidence_interval",
+        "kc_sampling_distribution_mean"
+      ],
+      "framework": "1. 确定置信水平和标准误；2. 找临界值；3. 用样本均值加减误差。"
+    },
+    {
+      "pt_id": "pt_estimator_properties",
+      "name": "估计量性质",
+      "kc_ids": [
+        "kc_point_estimation",
+        "kc_unbiased_estimator"
+      ],
+      "framework": "1. 区分估计量与估计值；2. 检查无偏性、有效性和一致性；3. 按定义判断。"
+    },
+    {
+      "pt_id": "pt_hypothesis_error",
+      "name": "假设检验错误",
+      "kc_ids": [
+        "kc_hypothesis_testing",
+        "kc_type_error"
+      ],
+      "framework": "1. 区分原假设与备择假设；2. 识别第一类与第二类错误；3. 用检验功效表达结论。"
+    },
+    {
+      "pt_id": "pt_z_test",
+      "name": "Z 检验",
+      "kc_ids": [
+        "kc_z_test",
+        "kc_hypothesis_testing"
+      ],
+      "framework": "1. 写检验统计量；2. 代入样本均值、原假设均值和标准误；3. 得到 Z 值。"
+    },
+    {
+      "pt_id": "pt_p_value",
+      "name": "P 值",
+      "kc_ids": [
+        "kc_p_value",
+        "kc_hypothesis_testing"
+      ],
+      "framework": "1. 根据备择假设确定尾类型；2. 计算极端结果概率；3. 与显著性水平比较。"
+    },
+    {
+      "pt_id": "pt_t_test_df",
+      "name": "t 检验自由度",
+      "kc_ids": [
+        "kc_t_test",
+        "kc_hypothesis_testing"
+      ],
+      "framework": "1. 判断单样本检验；2. 使用自由度 n-1；3. 代入样本量。"
+    },
+    {
+      "pt_id": "pt_ci_test_duality",
+      "name": "置信区间与检验对偶",
+      "kc_ids": [
+        "kc_confidence_interval",
+        "kc_hypothesis_testing"
+      ],
+      "framework": "1. 明确双侧检验与置信区间的对应；2. 判断原假设值是否落在区间；3. 给出一致结论。"
+    },
+    {
+      "pt_id": "pt_multiple_testing",
+      "name": "多重检验校正",
+      "kc_ids": [
+        "kc_multiple_testing",
+        "kc_hypothesis_testing"
+      ],
+      "framework": "1. 统计检验次数；2. 用目标显著性水平除以次数；3. 得到校正阈值。"
+    },
+    {
+      "pt_id": "pt_anova_decomposition",
+      "name": "方差分解",
+      "kc_ids": [
+        "kc_anova",
+        "kc_sampling_distribution_variance"
+      ],
+      "framework": "1. 计算总离差平方和；2. 分解为组间与组内；3. 检查 SST=SSB+SSW。"
+    },
+    {
+      "pt_id": "pt_anova_df",
+      "name": "方差分析自由度",
+      "kc_ids": [
+        "kc_anova"
+      ],
+      "framework": "1. 组间自由度为 k-1；2. 组内自由度为 N-k；3. 总自由度为 N-1。"
+    },
+    {
+      "pt_id": "pt_anova_f",
+      "name": "方差分析 F 统计量",
+      "kc_ids": [
+        "kc_anova",
+        "kc_f_distribution"
+      ],
+      "framework": "1. 计算组间均方和组内均方；2. 相除得到 F；3. 根据 F 大小判断均值差异。"
+    },
+    {
+      "pt_id": "pt_regression_slope",
+      "name": "回归斜率",
+      "kc_ids": [
+        "kc_regression"
+      ],
+      "framework": "1. 写最小二乘斜率公式；2. 用协方差除以自变量方差；3. 代入数据。"
+    },
+    {
+      "pt_id": "pt_regression_intercept",
+      "name": "回归截距",
+      "kc_ids": [
+        "kc_regression"
+      ],
+      "framework": "1. 回归线经过样本均值点；2. 使用 β₀=ybar-β₁xbar；3. 代入计算。"
+    },
+    {
+      "pt_id": "pt_r_squared",
+      "name": "决定系数",
+      "kc_ids": [
+        "kc_r_squared",
+        "kc_regression"
+      ],
+      "framework": "1. 写 R²=SSR/SST；2. 也可用相关系数平方；3. 解读模型解释比例。"
+    },
+    {
+      "pt_id": "pt_regression_prediction",
+      "name": "回归预测",
+      "kc_ids": [
+        "kc_regression",
+        "kc_r_squared"
+      ],
+      "framework": "1. 写出拟合直线；2. 代入给定自变量；3. 得到预测值。"
+    },
+    {
+      "pt_id": "pt_bootstrap_resampling",
+      "name": "Bootstrap 重采样",
+      "kc_ids": [
+        "kc_bootstrap",
+        "kc_point_estimation"
+      ],
+      "framework": "1. 从原始样本有放回抽取；2. 保持样本量与原样本一致；3. 重复生成统计量。"
+    },
+    {
+      "pt_id": "pt_bootstrap_ci",
+      "name": "Bootstrap 置信区间",
+      "kc_ids": [
+        "kc_bootstrap",
+        "kc_confidence_interval"
+      ],
+      "framework": "1. 生成大量 bootstrap 统计量；2. 取对应百分位；3. 构造百分位置信区间。"
+    },
+    {
+      "pt_id": "pt_bootstrap_consistency",
+      "name": "Bootstrap 次数",
+      "kc_ids": [
+        "kc_bootstrap"
+      ],
+      "framework": "1. 理解 Monte Carlo 误差随次数变化；2. 增加重复次数 B；3. 降低模拟误差。"
+    },
+    {
+      "pt_id": "pt_excel_descriptive",
+      "name": "Excel 描述统计",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_point_estimation"
+      ],
+      "framework": "1. 明确要计算的统计量；2. 选择对应 Excel 函数；3. 将数据区域作为参数。"
+    },
+    {
+      "pt_id": "pt_excel_distribution",
+      "name": "Excel 分布函数",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_confidence_interval"
+      ],
+      "framework": "1. 确认分布与尾概率方向；2. 选择分布函数；3. 填写概率和自由度参数。"
+    },
+    {
+      "pt_id": "pt_excel_regression",
+      "name": "Excel 回归分析",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_regression"
+      ],
+      "framework": "1. 选择回归分析工具；2. 指定 Y 与 X 数据区域；3. 读取斜率、截距和 R²。"
+    },
+    {
+      "pt_id": "pt_excel_simulation",
+      "name": "Excel 随机模拟",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_bootstrap"
+      ],
+      "framework": "1. 生成随机数；2. 按模型计算统计量；3. 重复并汇总模拟结果。"
+    },
+    {
+      "pt_id": "pt_continuous_joint_distribution",
+      "name": "二维连续联合分布",
+      "kc_ids": [
+        "kc_joint_distribution",
+        "kc_continuous_density"
+      ],
+      "framework": "1. 明确二维联合密度的支撑区域；2. 通过二重积分等于 1 或面积比求常数与概率；3. 检查密度非负且结果位于 [0,1]。"
+    },
+    {
+      "pt_id": "pt_gaussian_process_moment",
+      "name": "高斯过程数字特征",
+      "kc_ids": [
+        "kc_gaussian_process"
+      ],
+      "framework": "1. 读取高斯过程的均值函数；2. 利用期望的线性性；3. 代入时间参数并化简。"
+    },
+    {
+      "pt_id": "pt_stationary_increment",
+      "name": "平稳增量过程",
+      "kc_ids": [
+        "kc_stationary_increment"
+      ],
+      "framework": "1. 比较增量 X_{t+h}-X_t 与平移后的增量分布；2. 判断是否只依赖时间差 h；3. 明确起点 t 不影响分布。"
+    },
+    {
+      "pt_id": "pt_markov_reversibility",
+      "name": "马尔可夫链可逆性",
+      "kc_ids": [
+        "kc_reversibility",
+        "kc_stationary_distribution"
+      ],
+      "framework": "1. 求平稳分布 π；2. 检查细致平衡 π_i p_{ij}=π_j p_{ji}；3. 判断链是否可逆。"
+    },
+    {
+      "pt_id": "pt_arma_mean",
+      "name": "ARMA 均值",
+      "kc_ids": [
+        "kc_arma_model",
+        "kc_expectation"
+      ],
+      "framework": "1. 对 ARMA 方程取期望；2. 利用零均值白噪声消去噪声项；3. 在平稳条件下解 μ=φμ 并得到均值。"
+    },
+    {
+      "pt_id": "pt_regression_degrees_of_freedom",
+      "name": "回归自由度",
+      "kc_ids": [
+        "kc_regression"
+      ],
+      "framework": "1. 识别模型估计的参数个数；2. 简单线性回归残差自由度为 n-2；3. 与总自由度 n-1 做核对。"
+    },
+    {
+      "pt_id": "pt_bootstrap_standard_error",
+      "name": "Bootstrap 标准误",
+      "kc_ids": [
+        "kc_bootstrap",
+        "kc_point_estimation"
+      ],
+      "framework": "1. 生成 B 个 Bootstrap 统计量；2. 计算重复统计量的样本标准差；3. 将其作为原统计量标准误的估计。"
+    },
+    {
+      "pt_id": "pt_time_series_bootstrap",
+      "name": "时间序列 Bootstrap",
+      "kc_ids": [
+        "kc_bootstrap",
+        "kc_time_series"
+      ],
+      "framework": "1. 检查序列是否存在时间依赖；2. 普通重采样会破坏顺序与依赖结构；3. 改用 block、stationary 或 sieve 等依赖感知方法。"
+    }
+  ]
+}
