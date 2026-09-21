@@ -1,0 +1,5039 @@
+{
+  "asset": "problems",
+  "rev": "problems-2026.09.21.1",
+  "title": "概率论与数理统计首版题库",
+  "items": [
+    {
+      "prob_id": "prob_event_expression_001",
+      "stem": "设 A、B 为两个事件，用 A、B 表示“A 发生且 B 不发生”。",
+      "expected": "A ∩ B^c",
+      "kc_ids": [
+        "kc_event_operation"
+      ],
+      "pt_id": "pt_event_operations",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "A 发生用事件 A 表示，B 不发生用 B 的补事件表示。",
+            "formula": "A；B^c"
+          },
+          {
+            "explanation": "把“且”对应为事件交运算。",
+            "formula": "A ∩ B^c"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "事件运算与事件关系：关键步骤为“A ∩ B^c”，答案为“A ∩ B^c”。"
+      }
+    },
+    {
+      "prob_id": "prob_classical_dice_002",
+      "stem": "同时投掷两枚公平骰子，求两枚点数之和不小于 10 的概率。",
+      "expected": "1/6",
+      "kc_ids": [
+        "kc_classical_probability",
+        "kc_event_operation"
+      ],
+      "pt_id": "pt_classical_counting",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "两枚骰子共有 36 个等可能结果。",
+            "formula": "n(S)=6×6=36"
+          },
+          {
+            "explanation": "点数和至少为 10 的有 (4,6)、(5,5)、(5,6)、(6,4)、(6,5)、(6,6)，共 6 个。",
+            "formula": "P=6/36"
+          },
+          {
+            "explanation": "约分得到所求概率。",
+            "formula": "P=1/6"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "古典概型计数：关键步骤为“P=1/6”，答案为“1/6”。"
+      }
+    },
+    {
+      "prob_id": "prob_hypergeometric_balls_003",
+      "stem": "袋中有 4 个红球和 6 个蓝球，不放回抽取 3 个，求恰有 2 个红球的概率。",
+      "expected": "3/10",
+      "kc_ids": [
+        "kc_classical_probability",
+        "kc_conditional_probability"
+      ],
+      "pt_id": "pt_hypergeometric_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "红球中选 2 个，有 C(4,2) 种方式；蓝球中选 1 个，有 C(6,1) 种方式。",
+            "formula": "C(4,2)C(6,1)=36"
+          },
+          {
+            "explanation": "从 10 个球中选 3 个共有 C(10,3) 种方式。",
+            "formula": "C(10,3)=120"
+          },
+          {
+            "explanation": "按古典概型相除并约分。",
+            "formula": "P=36/120=3/10"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "不放回抽样概率：关键步骤为“P=36/120=3/10”，答案为“3/10”。"
+      }
+    },
+    {
+      "prob_id": "prob_complement_coins_004",
+      "stem": "连续投掷 4 枚公平硬币，求至少出现一次正面的概率。",
+      "expected": "15/16",
+      "kc_ids": [
+        "kc_event_operation",
+        "kc_classical_probability"
+      ],
+      "pt_id": "pt_complement",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "先求“没有正面”的对立事件概率。",
+            "formula": "P(无正面)=(1/2)^4=1/16"
+          },
+          {
+            "explanation": "用 1 减去对立事件概率。",
+            "formula": "P(至少一次正面)=1-1/16"
+          },
+          {
+            "explanation": "化简得到结果。",
+            "formula": "P=15/16"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "对立事件求概率：关键步骤为“P=15/16”，答案为“15/16”。"
+      }
+    },
+    {
+      "prob_id": "prob_conditional_basic_005",
+      "stem": "已知 P(A)=0.5，P(B)=0.3，P(AB)=0.2，求 P(A|B)。",
+      "expected": "2/3",
+      "kc_ids": [
+        "kc_conditional_probability",
+        "kc_event_operation"
+      ],
+      "pt_id": "pt_conditional_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写出条件概率公式。",
+            "formula": "P(A|B)=P(AB)/P(B)"
+          },
+          {
+            "explanation": "代入题给概率。",
+            "formula": "P(A|B)=0.2/0.3"
+          },
+          {
+            "explanation": "化简为分数。",
+            "formula": "P(A|B)=2/3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "条件概率计算：关键步骤为“P(A|B)=2/3”，答案为“2/3”。"
+      }
+    },
+    {
+      "prob_id": "prob_independence_union_006",
+      "stem": "设 A、B 相互独立，P(A)=0.4，P(B)=0.5，求 P(A∪B)。",
+      "expected": "0.7",
+      "kc_ids": [
+        "kc_independence",
+        "kc_event_operation"
+      ],
+      "pt_id": "pt_independence_check",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "由独立性得到交事件概率。",
+            "formula": "P(AB)=P(A)P(B)=0.4×0.5=0.2"
+          },
+          {
+            "explanation": "使用加法公式。",
+            "formula": "P(A∪B)=P(A)+P(B)-P(AB)"
+          },
+          {
+            "explanation": "代入数值。",
+            "formula": "P(A∪B)=0.4+0.5-0.2=0.7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "独立性判断：关键步骤为“P(A∪B)=0.4+0.5-0.2=0.7”，答案为“0.7”。"
+      }
+    },
+    {
+      "prob_id": "prob_multiplication_draws_007",
+      "stem": "盒中有 5 个白球和 3 个黑球，不放回连续取两个，求两次都是白球的概率。",
+      "expected": "5/14",
+      "kc_ids": [
+        "kc_conditional_probability",
+        "kc_classical_probability"
+      ],
+      "pt_id": "pt_multiplication_rule",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "第一次抽到白球的概率为 5/8。",
+            "formula": "P1=5/8"
+          },
+          {
+            "explanation": "抽走一个白球后，第二次仍抽到白球的概率为 4/7。",
+            "formula": "P2=4/7"
+          },
+          {
+            "explanation": "连续事件使用乘法公式。",
+            "formula": "P=P1P2=5/14"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "乘法公式与连续抽取：关键步骤为“P=P1P2=5/14”，答案为“5/14”。"
+      }
+    },
+    {
+      "prob_id": "prob_total_probability_factory_008",
+      "stem": "某产品来自两条生产线，甲线占 60%，废品率 2%；乙线占 40%，废品率 5%。随机取一件产品，求它是废品的概率。",
+      "expected": "0.032",
+      "kc_ids": [
+        "kc_total_probability",
+        "kc_conditional_probability"
+      ],
+      "pt_id": "pt_total_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "把产品按照来源生产线分成完备事件组。",
+            "formula": "P(A)=0.6；P(B)=0.4"
+          },
+          {
+            "explanation": "写出各生产线对应的废品条件概率。",
+            "formula": "P(D|A)=0.02；P(D|B)=0.05"
+          },
+          {
+            "explanation": "使用全概率公式加权求和。",
+            "formula": "P(D)=0.6×0.02+0.4×0.05=0.032"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "全概率公式：关键步骤为“P(D)=0.6×0.02+0.4×0.05=0.032”，答案为“0.032”。"
+      }
+    },
+    {
+      "prob_id": "prob_bayes_factory_009",
+      "stem": "某产品来自两条生产线，甲线占 60%，废品率 2%；乙线占 40%，废品率 5%。已知抽到一件产品是废品，求它来自甲线的概率。",
+      "expected": "0.375",
+      "kc_ids": [
+        "kc_bayes_formula",
+        "kc_total_probability",
+        "kc_conditional_probability"
+      ],
+      "pt_id": "pt_bayes_formula",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "先由全概率公式得到废品总概率。",
+            "formula": "P(D)=0.6×0.02+0.4×0.05=0.032"
+          },
+          {
+            "explanation": "写出贝叶斯公式。",
+            "formula": "P(A|D)=P(D|A)P(A)/P(D)"
+          },
+          {
+            "explanation": "代入数据并化简。",
+            "formula": "P(A|D)=0.012/0.032=0.375"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "贝叶斯公式：关键步骤为“P(A|D)=0.012/0.032=0.375”，答案为“0.375”。"
+      }
+    },
+    {
+      "prob_id": "prob_pmf_normalize_010",
+      "stem": "离散随机变量 X 取 0、1、2，概率分别为 c、2c、3c，求 c。",
+      "expected": "1/6",
+      "kc_ids": [
+        "kc_discrete_pmf",
+        "kc_random_variable"
+      ],
+      "pt_id": "pt_discrete_pmf",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "离散分布列的所有概率之和必须为 1。",
+            "formula": "c+2c+3c=1"
+          },
+          {
+            "explanation": "合并同类项。",
+            "formula": "6c=1"
+          },
+          {
+            "explanation": "解出参数。",
+            "formula": "c=1/6"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "离散型随机变量分布列：关键步骤为“c=1/6”，答案为“1/6”。"
+      }
+    },
+    {
+      "prob_id": "prob_distribution_function_011",
+      "stem": "X 的分布列为 P(0)=0.2，P(1)=0.5，P(2)=0.3，求 F(1.5)。",
+      "expected": "0.7",
+      "kc_ids": [
+        "kc_distribution_function",
+        "kc_random_variable"
+      ],
+      "pt_id": "pt_distribution_function",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "F(1.5) 表示 X 不超过 1.5 的概率。",
+            "formula": "F(1.5)=P(X≤1.5)"
+          },
+          {
+            "explanation": "可能的取值只有 0 和 1。",
+            "formula": "P(X=0)+P(X=1)"
+          },
+          {
+            "explanation": "累加分布列概率。",
+            "formula": "F(1.5)=0.2+0.5=0.7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "分布函数计算：关键步骤为“F(1.5)=0.2+0.5=0.7”，答案为“0.7”。"
+      }
+    },
+    {
+      "prob_id": "prob_binomial_tail_012",
+      "stem": "设 X~B(8,0.25)，求 P(X=2)，用分数表示。",
+      "expected": "5103/16384",
+      "kc_ids": [
+        "kc_binomial_distribution",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_binomial_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "二项分布概率公式为 C(n,k)p^k(1-p)^(n-k)。",
+            "formula": "P(X=2)=C(8,2)(0.25)^2(0.75)^6"
+          },
+          {
+            "explanation": "计算组合数和幂。",
+            "formula": "C(8,2)=28，(0.25)^2=1/16，(0.75)^6=729/4096"
+          },
+          {
+            "explanation": "相乘并约分。",
+            "formula": "P(X=2)=5103/16384"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "二项分布概率：关键步骤为“P(X=2)=5103/16384”，答案为“5103/16384”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_zero_013",
+      "stem": "设 X 服从参数为 2.5 的泊松分布，求 P(X=0)，保留四位小数。",
+      "expected": "0.0821",
+      "kc_ids": [
+        "kc_poisson_distribution",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_poisson_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "泊松分布概率公式为 P(X=k)=exp(-λ)λ^k/k!。",
+            "formula": "P(X=0)=exp(-2.5)"
+          },
+          {
+            "explanation": "代入 λ=2.5 并使用计算器。",
+            "formula": "P(X=0)=0.0820849986"
+          },
+          {
+            "explanation": "保留四位小数。",
+            "formula": "P(X=0)=0.0821"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松分布概率：关键步骤为“P(X=0)=0.0821”，答案为“0.0821”。"
+      }
+    },
+    {
+      "prob_id": "prob_geometric_third_014",
+      "stem": "某次试验成功概率为 0.2，独立重复至第一次成功。求第三次试验才成功的概率。",
+      "expected": "0.128",
+      "kc_ids": [
+        "kc_geometric_distribution",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_geometric_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "第三次才成功表示前两次失败、第三次成功。",
+            "formula": "P=0.8^2×0.2"
+          },
+          {
+            "explanation": "计算前两次失败概率和第三次成功概率的乘积。",
+            "formula": "0.64×0.2=0.128"
+          },
+          {
+            "explanation": "写出结果。",
+            "formula": "P(X=3)=0.128"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "几何分布概率：关键步骤为“P(X=3)=0.128”，答案为“0.128”。"
+      }
+    },
+    {
+      "prob_id": "prob_density_constant_015",
+      "stem": "随机变量 X 的密度函数为 f(x)=c x，0<x<2，其他位置为 0。求 c。",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_continuous_density",
+        "kc_random_variable"
+      ],
+      "pt_id": "pt_density_normalization",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "密度函数在整个支撑上的积分必须等于 1。",
+            "formula": "∫0^2 c x dx=1"
+          },
+          {
+            "explanation": "计算积分。",
+            "formula": "c×[x^2/2]0^2=2c"
+          },
+          {
+            "explanation": "解方程。",
+            "formula": "c=1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "连续型密度归一化：关键步骤为“c=1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_density_tail_016",
+      "stem": "设随机变量 X 的密度函数为 f(x)=1/2 x（0<x<2），其他位置为 0，求 P(X>1)。",
+      "expected": "3/4",
+      "kc_ids": [
+        "kc_continuous_density",
+        "kc_distribution_function"
+      ],
+      "pt_id": "pt_continuous_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "连续型随机变量的区间概率等于密度函数积分。",
+            "formula": "P(X>1)=∫1^2(1/2)x dx"
+          },
+          {
+            "explanation": "计算原函数。",
+            "formula": "(1/2)×[x^2/2]1^2"
+          },
+          {
+            "explanation": "代入上下限。",
+            "formula": "P(X>1)=(1/2)(2-1/2)=3/4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "连续型区间概率：关键步骤为“P(X>1)=(1/2)(2-1/2)=3/4”，答案为“3/4”。"
+      }
+    },
+    {
+      "prob_id": "prob_exponential_tail_017",
+      "stem": "设 X 服从参数 λ=0.4 的指数分布，求 P(X>5)，保留四位小数。",
+      "expected": "0.1353",
+      "kc_ids": [
+        "kc_exponential_distribution",
+        "kc_continuous_density"
+      ],
+      "pt_id": "pt_exponential_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "指数分布的尾概率为 P(X>x)=exp(-λx)。",
+            "formula": "P(X>5)=exp(-0.4×5)"
+          },
+          {
+            "explanation": "化简指数。",
+            "formula": "P(X>5)=exp(-2)"
+          },
+          {
+            "explanation": "保留四位小数。",
+            "formula": "P(X>5)=0.1353"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "指数分布概率：关键步骤为“P(X>5)=0.1353”，答案为“0.1353”。"
+      }
+    },
+    {
+      "prob_id": "prob_normal_interval_018",
+      "stem": "设 X~N(10,4)，求 P(8<X<14)，保留四位小数。",
+      "expected": "0.8186",
+      "kc_ids": [
+        "kc_normal_distribution",
+        "kc_continuous_density"
+      ],
+      "pt_id": "pt_normal_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "对区间端点进行标准化。",
+            "formula": "P(8<X<14)=P((8-10)/2<Z<(14-10)/2)"
+          },
+          {
+            "explanation": "化为标准正态分布函数之差。",
+            "formula": "P(-1<Z<2)=Φ(2)-Φ(-1)"
+          },
+          {
+            "explanation": "代入标准正态表值。",
+            "formula": "0.9772-0.1587=0.8186"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "正态分布区间概率：关键步骤为“0.9772-0.1587=0.8186”，答案为“0.8186”。"
+      }
+    },
+    {
+      "prob_id": "prob_joint_normalize_019",
+      "stem": "二维离散变量 (X,Y) 的联合分布为 P(0,0)=0.2，P(0,1)=0.3，P(1,0)=0.1，P(1,1)=a。求 a。",
+      "expected": "0.4",
+      "kc_ids": [
+        "kc_joint_distribution",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_joint_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "二维联合分布的所有概率之和为 1。",
+            "formula": "0.2+0.3+0.1+a=1"
+          },
+          {
+            "explanation": "合并已知概率。",
+            "formula": "0.6+a=1"
+          },
+          {
+            "explanation": "解出未知概率。",
+            "formula": "a=0.4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "二维离散联合分布：关键步骤为“a=0.4”，答案为“0.4”。"
+      }
+    },
+    {
+      "prob_id": "prob_marginal_x0_020",
+      "stem": "二维离散变量 (X,Y) 的联合分布为 P(0,0)=0.2，P(0,1)=0.3，P(1,0)=0.1，P(1,1)=0.4。求 P(X=0)。",
+      "expected": "0.5",
+      "kc_ids": [
+        "kc_marginal_distribution",
+        "kc_joint_distribution"
+      ],
+      "pt_id": "pt_marginal_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "求 X=0 的边缘概率，需要对 Y 求和。",
+            "formula": "P(X=0)=P(0,0)+P(0,1)"
+          },
+          {
+            "explanation": "代入联合分布。",
+            "formula": "P(X=0)=0.2+0.3"
+          },
+          {
+            "explanation": "得到结果。",
+            "formula": "P(X=0)=0.5"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "边缘分布：关键步骤为“P(X=0)=0.5”，答案为“0.5”。"
+      }
+    },
+    {
+      "prob_id": "prob_conditional_y_021",
+      "stem": "二维离散变量 (X,Y) 的联合分布为 P(0,0)=0.2，P(0,1)=0.3，P(1,0)=0.1，P(1,1)=0.4。求 P(Y=1|X=0)。",
+      "expected": "0.6",
+      "kc_ids": [
+        "kc_conditional_distribution",
+        "kc_joint_distribution"
+      ],
+      "pt_id": "pt_conditional_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "使用条件概率公式。",
+            "formula": "P(Y=1|X=0)=P(X=0,Y=1)/P(X=0)"
+          },
+          {
+            "explanation": "代入联合概率和边缘概率。",
+            "formula": "P(Y=1|X=0)=0.3/0.5"
+          },
+          {
+            "explanation": "化简。",
+            "formula": "P(Y=1|X=0)=0.6"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "条件分布：关键步骤为“P(Y=1|X=0)=0.6”，答案为“0.6”。"
+      }
+    },
+    {
+      "prob_id": "prob_independence_joint_022",
+      "stem": "二维离散变量 (X,Y) 的联合分布为 P(0,0)=0.2，P(0,1)=0.3，P(1,0)=0.1，P(1,1)=0.4。判断 X 与 Y 是否相互独立，并说明理由。",
+      "expected": "不独立，因为 P(X=0,Y=1)=0.3，而 P(X=0)P(Y=1)=0.2。",
+      "kc_ids": [
+        "kc_independent_random_variables",
+        "kc_joint_distribution",
+        "kc_marginal_distribution"
+      ],
+      "pt_id": "pt_independence_joint",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "分别求出所需边缘概率。",
+            "formula": "P(X=0)=0.5；P(Y=1)=0.4"
+          },
+          {
+            "explanation": "计算边缘概率乘积。",
+            "formula": "P(X=0)P(Y=1)=0.2"
+          },
+          {
+            "explanation": "与联合概率比较。",
+            "formula": "0.3≠0.2，因此 X 与 Y 不独立。"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "随机变量独立性判断：关键步骤为“0.3≠0.2，因此 X 与 Y 不独立”，答案为“不独立，因为 P(X=0,Y=1)=0.3，而 P(X=0)P(Y=1)=0.2”。"
+      }
+    },
+    {
+      "prob_id": "prob_function_square_023",
+      "stem": "X 等可能地取 -1、0、1，令 Y=X²，求 P(Y=0)。",
+      "expected": "1/3",
+      "kc_ids": [
+        "kc_function_distribution",
+        "kc_random_variable"
+      ],
+      "pt_id": "pt_function_transform",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "Y=X²，因此 Y=0 当且仅当 X=0。",
+            "formula": "Y=0 ⇔ X=0"
+          },
+          {
+            "explanation": "X 在 -1、0、1 中等可能取值。",
+            "formula": "P(X=0)=1/3"
+          },
+          {
+            "explanation": "直接得到 Y=0 的概率。",
+            "formula": "P(Y=0)=1/3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "随机变量函数分布：关键步骤为“P(Y=0)=1/3”，答案为“1/3”。"
+      }
+    },
+    {
+      "prob_id": "prob_normal_sum_024",
+      "stem": "X~N(1,4)，Y~N(2,9)，X 与 Y 独立，求 X+Y 的方差。",
+      "expected": "13",
+      "kc_ids": [
+        "kc_normal_sum",
+        "kc_normal_distribution",
+        "kc_linear_combination_variance"
+      ],
+      "pt_id": "pt_normal_sum",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "独立正态变量的和仍为正态变量，方差可以直接相加。",
+            "formula": "Var(X+Y)=Var(X)+Var(Y)"
+          },
+          {
+            "explanation": "代入题给方差。",
+            "formula": "Var(X+Y)=4+9"
+          },
+          {
+            "explanation": "计算结果。",
+            "formula": "Var(X+Y)=13"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "正态变量线性组合：关键步骤为“Var(X+Y)=13”，答案为“13”。"
+      }
+    },
+    {
+      "prob_id": "prob_expectation_discrete_025",
+      "stem": "离散随机变量 X 的分布列为 P(0)=0.2，P(1)=0.5，P(2)=0.3，求 E(X)。",
+      "expected": "1.1",
+      "kc_ids": [
+        "kc_expectation",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_expectation_discrete",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写出离散期望公式。",
+            "formula": "E(X)=ΣxP(X=x)"
+          },
+          {
+            "explanation": "代入取值和概率。",
+            "formula": "E(X)=0×0.2+1×0.5+2×0.3"
+          },
+          {
+            "explanation": "计算得到结果。",
+            "formula": "E(X)=1.1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "离散期望：关键步骤为“E(X)=1.1”，答案为“1.1”。"
+      }
+    },
+    {
+      "prob_id": "prob_variance_discrete_026",
+      "stem": "离散随机变量 X 的分布列为 P(0)=0.2，P(1)=0.5，P(2)=0.3，求 Var(X)。",
+      "expected": "0.49",
+      "kc_ids": [
+        "kc_variance",
+        "kc_expectation",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_variance_discrete",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "先计算二阶矩。",
+            "formula": "E(X²)=0²×0.2+1²×0.5+2²×0.3=1.7"
+          },
+          {
+            "explanation": "前面已求得 E(X)=1.1。",
+            "formula": "E(X)=1.1"
+          },
+          {
+            "explanation": "使用方差公式。",
+            "formula": "Var(X)=1.7-1.1²=0.49"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "离散方差：关键步骤为“Var(X)=1.7-1.1²=0.49”，答案为“0.49”。"
+      }
+    },
+    {
+      "prob_id": "prob_correlation_027",
+      "stem": "已知 Var(X)=4，Var(Y)=9，Cov(X,Y)=3，求 X、Y 的相关系数。",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_covariance",
+        "kc_correlation",
+        "kc_variance"
+      ],
+      "pt_id": "pt_covariance_correlation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写出相关系数公式。",
+            "formula": "ρ=Cov(X,Y)/(σXσY)"
+          },
+          {
+            "explanation": "由方差得到标准差。",
+            "formula": "σX=2；σY=3"
+          },
+          {
+            "explanation": "代入数值。",
+            "formula": "ρ=3/(2×3)=1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "协方差与相关系数：关键步骤为“ρ=3/(2×3)=1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_linear_variance_028",
+      "stem": "X、Y 相互独立，Var(X)=4，Var(Y)=9，求 Var(2X-3Y)。",
+      "expected": "97",
+      "kc_ids": [
+        "kc_linear_combination_variance",
+        "kc_variance",
+        "kc_covariance"
+      ],
+      "pt_id": "pt_linear_combination_variance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "独立变量线性组合的方差公式。",
+            "formula": "Var(2X-3Y)=2²Var(X)+(-3)²Var(Y)"
+          },
+          {
+            "explanation": "代入方差。",
+            "formula": "=4×4+9×9"
+          },
+          {
+            "explanation": "计算得到结果。",
+            "formula": "=16+81=97"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "线性组合方差：关键步骤为“=16+81=97”，答案为“97”。"
+      }
+    },
+    {
+      "prob_id": "prob_chebyshev_bound_029",
+      "stem": "随机变量 X 满足 E(X)=10、Var(X)=4。用切比雪夫不等式估计 P(|X-10|≥5) 的上界。",
+      "expected": "4/25",
+      "kc_ids": [
+        "kc_chebyshev_inequality",
+        "kc_variance"
+      ],
+      "pt_id": "pt_chebyshev_inequality",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写出切比雪夫不等式。",
+            "formula": "P(|X-μ|≥ε)≤Var(X)/ε²"
+          },
+          {
+            "explanation": "代入 μ=10、Var(X)=4、ε=5。",
+            "formula": "P(|X-10|≥5)≤4/25"
+          },
+          {
+            "explanation": "得到概率上界。",
+            "formula": "上界为 4/25"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "切比雪夫不等式：关键步骤为“上界为 4/25”，答案为“4/25”。"
+      }
+    },
+    {
+      "prob_id": "prob_clt_binomial_030",
+      "stem": "100 次独立公平抛硬币中，用中心极限定理近似 P(正面次数<45)，保留四位小数。",
+      "expected": "0.1357",
+      "kc_ids": [
+        "kc_central_limit_theorem",
+        "kc_normal_approximation"
+      ],
+      "pt_id": "pt_central_limit_approximation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 4,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "正面次数 S 服从 B(100,0.5)，均值和方差为 50 和 25。",
+            "formula": "E(S)=50；Var(S)=25"
+          },
+          {
+            "explanation": "对 P(S<45) 使用连续性修正。",
+            "formula": "P(S≤44)≈P(Z≤(44.5-50)/5)"
+          },
+          {
+            "explanation": "标准化后使用标准正态分布。",
+            "formula": "P(Z≤-1.1)=0.1357"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "中心极限定理近似：关键步骤为“P(Z≤-1.1)=0.1357”，答案为“0.1357”。"
+      }
+    },
+    {
+      "prob_id": "prob_event_operations_031",
+      "stem": "设 A、B、C 为三个事件，用 A、B、C 表示“至少有一个事件不发生”。",
+      "expected": "A^c ∪ B^c ∪ C^c（等价于 (ABC)^c）",
+      "kc_ids": [
+        "kc_event_operation"
+      ],
+      "pt_id": "pt_event_operations",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "“至少一个不发生”等价于并非三个事件全部发生。",
+            "formula": "(ABC)^c"
+          },
+          {
+            "explanation": "对交事件取补并使用德摩根律。",
+            "formula": "A^c ∪ B^c ∪ C^c"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "事件运算与事件关系：关键步骤为“A^c ∪ B^c ∪ C^c”，答案为“A^c ∪ B^c ∪ C^c（等价于 (ABC)^c）”。"
+      }
+    },
+    {
+      "prob_id": "prob_classical_even_sum_032",
+      "stem": "从 1 到 9 中不放回地取两个不同整数，求两数之和为偶数的概率。",
+      "expected": "4/9",
+      "kc_ids": [
+        "kc_classical_probability"
+      ],
+      "pt_id": "pt_classical_counting",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "两数和为偶数当且仅当两数同奇偶。",
+            "formula": "奇数：C(5,2)=10；偶数：C(4,2)=6"
+          },
+          {
+            "explanation": "总取法为 C(9,2)=36。",
+            "formula": "有利取法=16"
+          },
+          {
+            "explanation": "相除并约分。",
+            "formula": "P=16/36=4/9"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "古典概型计数：关键步骤为“P=16/36=4/9”，答案为“4/9”。"
+      }
+    },
+    {
+      "prob_id": "prob_complement_red_033",
+      "stem": "袋中有 3 个红球和 2 个白球，任取两个，求至少取到 1 个红球的概率。",
+      "expected": "9/10",
+      "kc_ids": [
+        "kc_event_operation",
+        "kc_classical_probability"
+      ],
+      "pt_id": "pt_complement",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "先求两个都不是红球，即全是白球的对立事件。",
+            "formula": "P(全白)=C(2,2)/C(5,2)=1/10"
+          },
+          {
+            "explanation": "用 1 减去对立事件概率。",
+            "formula": "P=1-1/10"
+          },
+          {
+            "explanation": "化简。",
+            "formula": "P=9/10"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "对立事件求概率：关键步骤为“P=9/10”，答案为“9/10”。"
+      }
+    },
+    {
+      "prob_id": "prob_multiplication_aces_034",
+      "stem": "从一副 52 张牌中不放回依次取 4 张，求 4 张全是 A 的概率。",
+      "expected": "1/270725",
+      "kc_ids": [
+        "kc_conditional_probability",
+        "kc_classical_probability"
+      ],
+      "pt_id": "pt_multiplication_rule",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 4,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "第一次抽到 A 的概率为 4/52。",
+            "formula": "P1=4/52"
+          },
+          {
+            "explanation": "之后每次牌数减少，A 的数量也减少。",
+            "formula": "P2=3/51；P3=2/50；P4=1/49"
+          },
+          {
+            "explanation": "连续抽取相乘。",
+            "formula": "P=4/52×3/51×2/50×1/49=1/270725"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "乘法公式与连续抽取：关键步骤为“P=4/52×3/51×2/50×1/49=1/270725”，答案为“1/270725”。"
+      }
+    },
+    {
+      "prob_id": "prob_total_probability_bags_035",
+      "stem": "两个外观相同的袋子各以 1/2 概率被选中。袋 1 中有 2 红 3 蓝，袋 2 中有 1 红 4 蓝。求取到红球的概率。",
+      "expected": "3/10",
+      "kc_ids": [
+        "kc_total_probability",
+        "kc_conditional_probability"
+      ],
+      "pt_id": "pt_total_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "选到袋 1 并抽红的概率为 1/2×2/5。",
+            "formula": "P1=1/5"
+          },
+          {
+            "explanation": "选到袋 2 并抽红的概率为 1/2×1/5。",
+            "formula": "P2=1/10"
+          },
+          {
+            "explanation": "用全概率公式相加。",
+            "formula": "P=1/5+1/10=3/10"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "全概率公式：关键步骤为“P=1/5+1/10=3/10”，答案为“3/10”。"
+      }
+    },
+    {
+      "prob_id": "prob_bayes_bags_036",
+      "stem": "两个外观相同的袋子各以 1/2 概率被选中。袋 1 中有 2 个红球、3 个蓝球；袋 2 中有 1 个红球、4 个蓝球。已知取到红球，求它来自袋 1 的概率。",
+      "expected": "2/3",
+      "kc_ids": [
+        "kc_bayes_formula",
+        "kc_total_probability",
+        "kc_conditional_probability"
+      ],
+      "pt_id": "pt_bayes_formula",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "红球总概率为先验加权结果。",
+            "formula": "P(R)=3/10"
+          },
+          {
+            "explanation": "使用贝叶斯公式。",
+            "formula": "P(B1|R)=P(R|B1)P(B1)/P(R)"
+          },
+          {
+            "explanation": "代入并化简。",
+            "formula": "P= (1/2×2/5)/(3/10)=2/3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "贝叶斯公式：关键步骤为“P= (1/2×2/5)/(3/10)=2/3”，答案为“2/3”。"
+      }
+    },
+    {
+      "prob_id": "prob_pmf_parameter_037",
+      "stem": "离散随机变量 X 取 -1、0、1，概率分别为 0.2、a、0.3。求 a。",
+      "expected": "0.5",
+      "kc_ids": [
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_discrete_pmf",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "分布列概率和为 1。",
+            "formula": "0.2+a+0.3=1"
+          },
+          {
+            "explanation": "合并已知项。",
+            "formula": "a+0.5=1"
+          },
+          {
+            "explanation": "解方程。",
+            "formula": "a=0.5"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "离散型随机变量分布列：关键步骤为“a=0.5”，答案为“0.5”。"
+      }
+    },
+    {
+      "prob_id": "prob_distribution_function_038",
+      "stem": "随机变量 X 的分布列为 P(1)=0.1、P(2)=0.3、P(3)=0.6，求 F(2.5)。",
+      "expected": "0.4",
+      "kc_ids": [
+        "kc_distribution_function"
+      ],
+      "pt_id": "pt_distribution_function",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "F(2.5) 表示 X 不超过 2.5 的概率。",
+            "formula": "F(2.5)=P(X≤2.5)"
+          },
+          {
+            "explanation": "可用取值只有 1 和 2。",
+            "formula": "P(X=1)+P(X=2)"
+          },
+          {
+            "explanation": "累加概率。",
+            "formula": "0.1+0.3=0.4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "分布函数计算：关键步骤为“0.1+0.3=0.4”，答案为“0.4”。"
+      }
+    },
+    {
+      "prob_id": "prob_binomial_tail_039",
+      "stem": "设 X~B(6,0.4)，求 P(X≥5)，用分数表示。",
+      "expected": "128/3125",
+      "kc_ids": [
+        "kc_binomial_distribution",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_binomial_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "P(X≥5)=P(X=5)+P(X=6)。",
+            "formula": "C(6,5)p⁵(1-p)+p⁶"
+          },
+          {
+            "explanation": "代入 p=0.4。",
+            "formula": "6×0.4⁵×0.6+0.4⁶"
+          },
+          {
+            "explanation": "计算并化简。",
+            "formula": "0.04096=128/3125"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "二项分布概率：关键步骤为“0.04096=128/3125”，答案为“128/3125”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_positive_040",
+      "stem": "设 X 服从参数为 3 的泊松分布，求 P(X≥1)，保留四位小数。",
+      "expected": "0.9502",
+      "kc_ids": [
+        "kc_poisson_distribution",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_poisson_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "使用对立事件求 P(X≥1)。",
+            "formula": "P(X≥1)=1-P(X=0)"
+          },
+          {
+            "explanation": "泊松分布 P(X=0)=exp(-3)。",
+            "formula": "P(X≥1)=1-exp(-3)"
+          },
+          {
+            "explanation": "计算并保留四位小数。",
+            "formula": "0.9502"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松分布概率：关键步骤为“0.9502”，答案为“0.9502”。"
+      }
+    },
+    {
+      "prob_id": "prob_geometric_atmost4_041",
+      "stem": "某次试验成功概率为 0.4，独立重复试验，求 4 次以内首次成功的概率。",
+      "expected": "0.8704",
+      "kc_ids": [
+        "kc_geometric_distribution",
+        "kc_discrete_pmf"
+      ],
+      "pt_id": "pt_geometric_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "“4 次以内成功”的对立事件是前 4 次都失败。",
+            "formula": "P=1-0.6⁴"
+          },
+          {
+            "explanation": "计算失败概率。",
+            "formula": "0.6⁴=0.1296"
+          },
+          {
+            "explanation": "相减得到结果。",
+            "formula": "P=0.8704"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "几何分布概率：关键步骤为“P=0.8704”，答案为“0.8704”。"
+      }
+    },
+    {
+      "prob_id": "prob_exponential_less2_042",
+      "stem": "设 X 服从参数 λ=0.5 的指数分布，求 P(X<2)，保留四位小数。",
+      "expected": "0.6321",
+      "kc_ids": [
+        "kc_exponential_distribution",
+        "kc_continuous_density"
+      ],
+      "pt_id": "pt_exponential_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "指数分布累积概率为 1-exp(-λx)。",
+            "formula": "P(X<2)=1-exp(-0.5×2)"
+          },
+          {
+            "explanation": "化简指数。",
+            "formula": "P(X<2)=1-exp(-1)"
+          },
+          {
+            "explanation": "保留四位小数。",
+            "formula": "0.6321"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "指数分布概率：关键步骤为“0.6321”，答案为“0.6321”。"
+      }
+    },
+    {
+      "prob_id": "prob_joint_triangle_043",
+      "stem": "设二维连续变量 (X,Y) 在区域 0<y<x<1 上具有常数密度 c，求 c。",
+      "expected": "2",
+      "kc_ids": [
+        "kc_joint_distribution",
+        "kc_continuous_density"
+      ],
+      "pt_id": "pt_continuous_joint_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "联合密度的积分必须等于 1。",
+            "formula": "∫∫_D c dxdy=1"
+          },
+          {
+            "explanation": "区域 D 的面积为 1/2。",
+            "formula": "c/2=1"
+          },
+          {
+            "explanation": "解出常数。",
+            "formula": "c=2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "二维连续联合分布：关键步骤为“c=2”，答案为“2”。"
+      }
+    },
+    {
+      "prob_id": "prob_joint_unit_square_044",
+      "stem": "设 (X,Y) 在单位正方形 [0,1]×[0,1] 上均匀分布，求 P(X+Y<1)。",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_joint_distribution",
+        "kc_continuous_density"
+      ],
+      "pt_id": "pt_continuous_joint_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "均匀分布的概率等于目标面积除以总面积。",
+            "formula": "P=Area({x+y<1})/Area([0,1]²)"
+          },
+          {
+            "explanation": "目标区域是单位正方形内的三角形。",
+            "formula": "Area=1/2"
+          },
+          {
+            "explanation": "总面积等于 1。",
+            "formula": "P=1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "二维连续联合分布：关键步骤为“P=1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_marginal_discrete_045",
+      "stem": "联合分布为 P(X=0,Y=0)=0.1，P(X=0,Y=1)=0.2，P(X=1,Y=0)=0.3，P(X=1,Y=1)=0.4，求 P(X=1)。",
+      "expected": "0.7",
+      "kc_ids": [
+        "kc_marginal_distribution",
+        "kc_joint_distribution"
+      ],
+      "pt_id": "pt_marginal_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "求 X=1 的边缘概率，需要对 Y 求和。",
+            "formula": "P(X=1)=P(1,0)+P(1,1)"
+          },
+          {
+            "explanation": "代入联合分布。",
+            "formula": "P(X=1)=0.3+0.4"
+          },
+          {
+            "explanation": "得到结果。",
+            "formula": "P(X=1)=0.7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "边缘分布：关键步骤为“P(X=1)=0.7”，答案为“0.7”。"
+      }
+    },
+    {
+      "prob_id": "prob_conditional_discrete_046",
+      "stem": "二维离散变量 (X,Y) 的联合分布为 P(0,0)=0.1，P(0,1)=0.2，P(1,0)=0.3，P(1,1)=0.4。求 P(Y=0|X=1)。",
+      "expected": "3/7",
+      "kc_ids": [
+        "kc_conditional_distribution",
+        "kc_joint_distribution"
+      ],
+      "pt_id": "pt_conditional_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "使用条件概率公式。",
+            "formula": "P(Y=0|X=1)=P(X=1,Y=0)/P(X=1)"
+          },
+          {
+            "explanation": "代入联合概率和边缘概率。",
+            "formula": "P(Y=0|X=1)=0.3/0.7"
+          },
+          {
+            "explanation": "化简。",
+            "formula": "P(Y=0|X=1)=3/7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "条件分布：关键步骤为“P(Y=0|X=1)=3/7”，答案为“3/7”。"
+      }
+    },
+    {
+      "prob_id": "prob_independence_discrete_047",
+      "stem": "二维离散变量 (X,Y) 的联合分布为 P(0,0)=0.1，P(0,1)=0.2，P(1,0)=0.3，P(1,1)=0.4。判断 X 与 Y 是否独立，并给出一个反例。",
+      "expected": "不独立，因为 P(X=0,Y=0)=0.1，而 P(X=0)P(Y=0)=0.12。",
+      "kc_ids": [
+        "kc_independent_random_variables",
+        "kc_joint_distribution",
+        "kc_marginal_distribution"
+      ],
+      "pt_id": "pt_independence_joint",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "若独立，必须对所有取值满足联合概率等于边缘概率乘积。",
+            "formula": "P(X=0)P(Y=0)=0.4×0.3=0.12"
+          },
+          {
+            "explanation": "与联合概率比较。",
+            "formula": "P(X=0,Y=0)=0.1"
+          },
+          {
+            "explanation": "两个方面不等，因此不独立。",
+            "formula": "0.1≠0.12"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "随机变量独立性判断：关键步骤为“0.1≠0.12”，答案为“不独立，因为 P(X=0,Y=0)=0.1，而 P(X=0)P(Y=0)=0.12”。"
+      }
+    },
+    {
+      "prob_id": "prob_uniform_function_048",
+      "stem": "设 X~U(0,1)，令 Y=2X，求 P(Y<1)。",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_function_distribution",
+        "kc_uniform_distribution"
+      ],
+      "pt_id": "pt_function_transform",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "Y=2X，所以 Y<1 等价于 X<1/2。",
+            "formula": "Y<1 ⇔ X<1/2"
+          },
+          {
+            "explanation": "X 在 (0,1) 上均匀分布。",
+            "formula": "P(X<1/2)=1/2"
+          },
+          {
+            "explanation": "得到结果。",
+            "formula": "P(Y<1)=1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "随机变量函数分布：关键步骤为“P(Y<1)=1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_uniform_expectation_049",
+      "stem": "设 X~U(0,1)，求 E(X)。",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_expectation",
+        "kc_uniform_distribution"
+      ],
+      "pt_id": "pt_expectation_continuous",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "均匀分布区间为 (0,1)。",
+            "formula": "f(x)=1"
+          },
+          {
+            "explanation": "计算期望积分。",
+            "formula": "E(X)=∫0¹x dx"
+          },
+          {
+            "explanation": "代入原函数。",
+            "formula": "E(X)=1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "连续型期望：关键步骤为“E(X)=1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_uniform_variance_050",
+      "stem": "设 X~U(0,1)，求 Var(X)。",
+      "expected": "1/12",
+      "kc_ids": [
+        "kc_variance",
+        "kc_uniform_distribution"
+      ],
+      "pt_id": "pt_variance_continuous",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "先求二阶矩。",
+            "formula": "E(X²)=∫0¹x² dx=1/3"
+          },
+          {
+            "explanation": "再使用方差公式。",
+            "formula": "Var(X)=1/3-(1/2)²"
+          },
+          {
+            "explanation": "计算得到结果。",
+            "formula": "Var(X)=1/12"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "连续型方差：关键步骤为“Var(X)=1/12”，答案为“1/12”。"
+      }
+    },
+    {
+      "prob_id": "prob_moment_bernoulli_051",
+      "stem": "设 X~B(1,0.3)，求 E(X²)。",
+      "expected": "0.3",
+      "kc_ids": [
+        "kc_moment",
+        "kc_expectation"
+      ],
+      "pt_id": "pt_moments",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "伯努利变量只取 0 和 1。",
+            "formula": "X²=X"
+          },
+          {
+            "explanation": "对 0、1 变量 X² 与 X 的期望相同。",
+            "formula": "E(X²)=E(X)"
+          },
+          {
+            "explanation": "代入成功概率。",
+            "formula": "E(X²)=0.3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "随机变量矩：关键步骤为“E(X²)=0.3”，答案为“0.3”。"
+      }
+    },
+    {
+      "prob_id": "prob_covariance_direct_052",
+      "stem": "已知 E(X)=1、E(Y)=2、E(XY)=3，求 Cov(X,Y)。",
+      "expected": "1",
+      "kc_ids": [
+        "kc_covariance"
+      ],
+      "pt_id": "pt_covariance_correlation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写出协方差公式。",
+            "formula": "Cov(X,Y)=E(XY)-E(X)E(Y)"
+          },
+          {
+            "explanation": "代入题目数据。",
+            "formula": "Cov=3-1×2"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "Cov(X,Y)=1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "协方差与相关系数：关键步骤为“Cov(X,Y)=1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_covariance_from_corr_053",
+      "stem": "已知 σX=2、σY=5、ρXY=0.4，求 Cov(X,Y)。",
+      "expected": "4",
+      "kc_ids": [
+        "kc_covariance",
+        "kc_correlation"
+      ],
+      "pt_id": "pt_covariance_correlation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写相关系数公式。",
+            "formula": "ρ=Cov/(σXσY)"
+          },
+          {
+            "explanation": "代入已知量。",
+            "formula": "0.4=Cov/(2×5)"
+          },
+          {
+            "explanation": "解出协方差。",
+            "formula": "Cov=4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "协方差与相关系数：关键步骤为“Cov=4”，答案为“4”。"
+      }
+    },
+    {
+      "prob_id": "prob_linear_variance_cov_054",
+      "stem": "已知 Var(X)=9、Var(Y)=16、Cov(X,Y)=3，求 Var(X+Y)。",
+      "expected": "31",
+      "kc_ids": [
+        "kc_linear_combination_variance",
+        "kc_variance",
+        "kc_covariance"
+      ],
+      "pt_id": "pt_linear_combination_variance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写出含协方差的方差公式。",
+            "formula": "Var(X+Y)=VarX+VarY+2Cov"
+          },
+          {
+            "explanation": "代入数值。",
+            "formula": "=9+16+2×3"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "=31"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "线性组合方差：关键步骤为“=31”，答案为“31”。"
+      }
+    },
+    {
+      "prob_id": "prob_chebyshev_bound_055",
+      "stem": "随机变量 X 的方差为 9，用切比雪夫不等式估计 P(|X-E(X)|≥6) 的上界。",
+      "expected": "1/4",
+      "kc_ids": [
+        "kc_chebyshev_inequality",
+        "kc_variance"
+      ],
+      "pt_id": "pt_chebyshev_inequality",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "写出切比雪夫不等式。",
+            "formula": "P(|X-μ|≥6)≤Var(X)/6²"
+          },
+          {
+            "explanation": "代入方差。",
+            "formula": "≤9/36"
+          },
+          {
+            "explanation": "化简。",
+            "formula": "≤1/4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "切比雪夫不等式：关键步骤为“≤1/4”，答案为“1/4”。"
+      }
+    },
+    {
+      "prob_id": "prob_lln_mean_bound_056",
+      "stem": "X₁,…,X₄₀₀ 独立同分布，均值 10、方差 4。用大数定律和切比雪夫不等式给出 P(|样本均值-10|≥1) 的上界。",
+      "expected": "1/100",
+      "kc_ids": [
+        "kc_law_large_numbers",
+        "kc_sample_mean",
+        "kc_chebyshev_inequality"
+      ],
+      "pt_id": "pt_law_large_numbers",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本均值方差等于总体方差除以样本量。",
+            "formula": "Var(X̄)=4/400=1/100"
+          },
+          {
+            "explanation": "对样本均值应用切比雪夫不等式。",
+            "formula": "P(|X̄-10|≥1)≤Var(X̄)/1²"
+          },
+          {
+            "explanation": "代入并化简。",
+            "formula": "上界=1/100"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "大数定律与样本均值界：关键步骤为“上界=1/100”，答案为“1/100”。"
+      }
+    },
+    {
+      "prob_id": "prob_clt_sample_mean_057",
+      "stem": "X₁,…,X₁₄₄ 独立同分布，均值 5、方差 9。用中心极限定理近似 P(样本均值>5.5)，保留四位小数。",
+      "expected": "0.0228",
+      "kc_ids": [
+        "kc_central_limit_theorem",
+        "kc_sample_mean",
+        "kc_normal_approximation"
+      ],
+      "pt_id": "pt_central_limit_approximation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 4,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本均值标准差为 3/√144=1/4。",
+            "formula": "σX̄=1/4"
+          },
+          {
+            "explanation": "标准化 5.5。",
+            "formula": "z=(5.5-5)/(1/4)=2"
+          },
+          {
+            "explanation": "查标准正态尾概率。",
+            "formula": "P≈0.0228"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "中心极限定理近似：关键步骤为“P≈0.0228”，答案为“0.0228”。"
+      }
+    },
+    {
+      "prob_id": "prob_normal_approx_binomial_058",
+      "stem": "设 S~B(400,0.5)，用连续性修正近似 P(S≤190)，保留四位小数。",
+      "expected": "0.1711",
+      "kc_ids": [
+        "kc_normal_approximation",
+        "kc_central_limit_theorem"
+      ],
+      "pt_id": "pt_central_limit_approximation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 4,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "S~B(400,0.5)，均值和方差为 200 和 100。",
+            "formula": "μ=200；σ=10"
+          },
+          {
+            "explanation": "对 S≤190 使用连续性修正。",
+            "formula": "z=(190.5-200)/10=-0.95"
+          },
+          {
+            "explanation": "查标准正态分布。",
+            "formula": "P≈0.1711"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "中心极限定理近似：关键步骤为“P≈0.1711”，答案为“0.1711”。"
+      }
+    },
+    {
+      "prob_id": "prob_sample_mean_variance_059",
+      "stem": "X₁,…,X₂₅ 独立同分布，总体方差为 4，求样本均值的方差。",
+      "expected": "4/25",
+      "kc_ids": [
+        "kc_sample_mean",
+        "kc_variance"
+      ],
+      "pt_id": "pt_sample_mean_variance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本独立同分布。",
+            "formula": "Var(X̄)=Var(X)/n"
+          },
+          {
+            "explanation": "代入总体方差和样本量。",
+            "formula": "=4/25"
+          },
+          {
+            "explanation": "得到结果。",
+            "formula": "4/25"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "样本均值方差：关键步骤为“4/25”，答案为“4/25”。"
+      }
+    },
+    {
+      "prob_id": "prob_normal_sample_mean_060",
+      "stem": "X₁,…,X₄ 独立同分布且 Xᵢ~N(2,9)，求样本均值大于 3.5 的概率，保留四位小数。",
+      "expected": "0.1587",
+      "kc_ids": [
+        "kc_sample_mean",
+        "kc_normal_distribution",
+        "kc_normal_sum"
+      ],
+      "pt_id": "pt_sample_mean_variance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 4,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本均值服从正态分布。",
+            "formula": "X̄~N(2,9/4)"
+          },
+          {
+            "explanation": "计算标准差并标准化。",
+            "formula": "σX̄=3/2；z=(3.5-2)/1.5=1"
+          },
+          {
+            "explanation": "使用标准正态尾概率。",
+            "formula": "P≈0.1587"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "样本均值方差：关键步骤为“P≈0.1587”，答案为“0.1587”。"
+      }
+    },
+    {
+      "prob_id": "prob_rp_type_061",
+      "stem": "判断计数过程 N(t) 的取值状态和时间参数分别是离散还是连续。",
+      "expected": "非负整数状态、连续时间",
+      "kc_ids": [
+        "kc_random_process_basic"
+      ],
+      "pt_id": "pt_random_process_classification",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "计数过程的取值是非负整数。",
+            "formula": "状态空间={0,1,2,…}"
+          },
+          {
+            "explanation": "计数过程的时间参数可连续变化。",
+            "formula": "时间 t∈[0,∞)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "随机过程类型判断：关键步骤为“时间 t∈[0,∞)”，答案为“非负整数状态、连续时间”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_count_062",
+      "stem": "泊松过程强度为 2，求 N(3)=4 的概率，保留四位小数。",
+      "expected": "0.1339",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "pt_id": "pt_poisson_count_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "N(3) 的均值为 3λ。",
+            "formula": "λt=2×3=6"
+          },
+          {
+            "explanation": "泊松概率公式。",
+            "formula": "P(N(3)=4)=exp(-6)6⁴/4!"
+          },
+          {
+            "explanation": "数值计算。",
+            "formula": "≈0.1339"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松计数概率：关键步骤为“≈0.1339”，答案为“0.1339”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_zero_063",
+      "stem": "泊松过程强度为 0.5，求 N(2)=0 的概率，保留四位小数。",
+      "expected": "0.3679",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "pt_id": "pt_poisson_count_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "区间均值为 λt。",
+            "formula": "0.5×2=1"
+          },
+          {
+            "explanation": "令 N(2)=0。",
+            "formula": "P=exp(-1)"
+          },
+          {
+            "explanation": "数值计算。",
+            "formula": "≈0.3679"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松计数概率：关键步骤为“≈0.3679”，答案为“0.3679”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_increment_064",
+      "stem": "泊松过程强度为 2，求 N(5)-N(2)=2 的概率，保留四位小数。",
+      "expected": "0.0446",
+      "kc_ids": [
+        "kc_poisson_process",
+        "kc_stationary_increment"
+      ],
+      "pt_id": "pt_poisson_increment",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "增量区间长度为 3。",
+            "formula": "λ(t-s)=2×3=6"
+          },
+          {
+            "explanation": "增量服从泊松分布。",
+            "formula": "P(N(5)-N(2)=2)=exp(-6)6²/2!"
+          },
+          {
+            "explanation": "数值计算。",
+            "formula": "≈0.0446"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松过程增量：关键步骤为“≈0.0446”，答案为“0.0446”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_wait_065",
+      "stem": "泊松过程强度为 0.25，求首次到达时间 T₁>4 的概率，保留四位小数。",
+      "expected": "0.3679",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "pt_id": "pt_poisson_arrival_time",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "首次到达时间服从指数分布。",
+            "formula": "P(T₁>4)=exp(-λ×4)"
+          },
+          {
+            "explanation": "代入 λ=0.25。",
+            "formula": "exp(-1)"
+          },
+          {
+            "explanation": "保留四位小数。",
+            "formula": "≈0.3679"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松到达时间：关键步骤为“≈0.3679”，答案为“0.3679”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_gamma_mean_066",
+      "stem": "泊松过程强度为 0.5，求第 4 次到达时间 T₄ 的期望。",
+      "expected": "8",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "pt_id": "pt_poisson_arrival_time",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "第 4 次到达时间服从 Gamma(4,λ)。",
+            "formula": "E(T₄)=4/λ"
+          },
+          {
+            "explanation": "代入 λ=0.5。",
+            "formula": "E(T₄)=8"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松到达时间：关键步骤为“E(T₄)=8”，答案为“8”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_mean_067",
+      "stem": "泊松过程强度为 3，求 N(4) 的均值。",
+      "expected": "12",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "pt_id": "pt_poisson_mean_variance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "泊松过程 N(t) 的均值为 λt。",
+            "formula": "E[N(4)]=3×4"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "12"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松过程均值方差：关键步骤为“12”，答案为“12”。"
+      }
+    },
+    {
+      "prob_id": "prob_poisson_var_068",
+      "stem": "泊松过程强度为 3，求 N(4) 的方差。",
+      "expected": "12",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "pt_id": "pt_poisson_mean_variance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "泊松计数分布的方差也为 λt。",
+            "formula": "Var[N(4)]=3×4"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "12"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松过程均值方差：关键步骤为“12”，答案为“12”。"
+      }
+    },
+    {
+      "prob_id": "prob_brownian_sign_069",
+      "stem": "标准布朗运动 W(t) 在 t=3 时为正的概率是多少？",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_brownian_motion"
+      ],
+      "pt_id": "pt_brownian_moment",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "布朗运动 W(3) 服从均值为 0 的正态分布。",
+            "formula": "W(3)~N(0,3)"
+          },
+          {
+            "explanation": "连续对称分布取正的概率为 1/2。",
+            "formula": "P(W(3)>0)=1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "布朗运动数字特征：关键步骤为“P(W(3)>0)=1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_brownian_increment_var_070",
+      "stem": "求标准布朗运动增量 W(5)-W(2) 的方差。",
+      "expected": "3",
+      "kc_ids": [
+        "kc_brownian_motion",
+        "kc_stationary_increment"
+      ],
+      "pt_id": "pt_brownian_increment",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "布朗运动增量服从均值为 0 的正态分布。",
+            "formula": "W(5)-W(2)~N(0,5-2)"
+          },
+          {
+            "explanation": "方差等于时间差。",
+            "formula": "Var=3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "布朗运动增量：关键步骤为“Var=3”，答案为“3”。"
+      }
+    },
+    {
+      "prob_id": "prob_brownian_cov_071",
+      "stem": "设 0<s<t，标准布朗运动满足 Cov(W(s),W(t))=s。取 s=2、t=5，求协方差。",
+      "expected": "2",
+      "kc_ids": [
+        "kc_brownian_motion"
+      ],
+      "pt_id": "pt_brownian_moment",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "对 0<s<t，布朗运动协方差等于较小时间。",
+            "formula": "Cov(W(s),W(t))=s"
+          },
+          {
+            "explanation": "代入 s=2。",
+            "formula": "Cov=2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "布朗运动数字特征：关键步骤为“Cov=2”，答案为“2”。"
+      }
+    },
+    {
+      "prob_id": "prob_white_noise_var_072",
+      "stem": "零均值白噪声的方差为 4，求其滞后 0 的自协方差。",
+      "expected": "4",
+      "kc_ids": [
+        "kc_white_noise"
+      ],
+      "pt_id": "pt_white_noise_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "白噪声的自协方差在滞后 0 处等于方差。",
+            "formula": "γ(0)=σ²"
+          },
+          {
+            "explanation": "代入 σ²=4。",
+            "formula": "γ(0)=4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "白噪声性质：关键步骤为“γ(0)=4”，答案为“4”。"
+      }
+    },
+    {
+      "prob_id": "prob_white_noise_cov1_073",
+      "stem": "零均值、方差有限的白噪声在滞后 1 时的自协方差是多少？",
+      "expected": "0",
+      "kc_ids": [
+        "kc_white_noise",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_white_noise_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "白噪声不同时刻互不相关。",
+            "formula": "Cov(ε_t,ε_{t+1})=0"
+          },
+          {
+            "explanation": "因此滞后 1 自协方差为 0。",
+            "formula": "γ(1)=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "白噪声性质：关键步骤为“γ(1)=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_gaussian_linear_mean_074",
+      "stem": "设 X_t 是均值恒为 1 的高斯过程，求 E(2X_t-3)。",
+      "expected": "-1",
+      "kc_ids": [
+        "kc_gaussian_process"
+      ],
+      "pt_id": "pt_gaussian_process_moment",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "期望是线性运算。",
+            "formula": "E(2X_t-3)=2E(X_t)-3"
+          },
+          {
+            "explanation": "高斯过程均值恒为 1。",
+            "formula": "=2×1-3"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "=-1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "高斯过程数字特征：关键步骤为“=-1”，答案为“-1”。"
+      }
+    },
+    {
+      "prob_id": "prob_stationary_increment_075",
+      "stem": "平稳增量过程的增量 X_{t+h}-X_t 的分布依赖哪些参数？",
+      "expected": "只依赖时间差 h，不依赖起点 t",
+      "kc_ids": [
+        "kc_stationary_increment"
+      ],
+      "pt_id": "pt_stationary_increment",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "平稳增量意味着增量分布平移不变。",
+            "formula": "X_{t+h}-X_t 的分布不依赖 t"
+          },
+          {
+            "explanation": "只依赖时间间隔。",
+            "formula": "只依赖 h"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "平稳增量过程：关键步骤为“只依赖 h”，答案为“只依赖时间差 h，不依赖起点 t”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_stationary_076",
+      "stem": "转移矩阵 P=[[0.7,0.3],[0.4,0.6]] 的平稳分布中 π₁ 是多少？",
+      "expected": "4/7",
+      "kc_ids": [
+        "kc_transition_matrix",
+        "kc_stationary_distribution"
+      ],
+      "pt_id": "pt_markov_stationary_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "平稳分布满足 πP=π。",
+            "formula": "π₁=0.7π₁+0.4π₂"
+          },
+          {
+            "explanation": "使用归一化条件。",
+            "formula": "π₁+π₂=1"
+          },
+          {
+            "explanation": "联立求解。",
+            "formula": "π₁=4/7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫平稳分布：关键步骤为“π₁=4/7”，答案为“4/7”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_two_step_077",
+      "stem": "两状态马尔可夫链的转移矩阵为 P=[[0.7,0.3],[0.4,0.6]]，求从状态 1 经过 2 步转移到状态 2 的概率。",
+      "expected": "0.39",
+      "kc_ids": [
+        "kc_transition_matrix",
+        "kc_markov_property"
+      ],
+      "pt_id": "pt_markov_transition_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "两步转移矩阵为 P²。",
+            "formula": "(P²)₁₂=0.7×0.3+0.3×0.6"
+          },
+          {
+            "explanation": "计算两条中间状态的贡献。",
+            "formula": "0.21+0.18"
+          },
+          {
+            "explanation": "得到结果。",
+            "formula": "0.39"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫转移概率：关键步骤为“0.39”，答案为“0.39”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_one_step_dist_078",
+      "stem": "两状态马尔可夫链的转移矩阵为 P=[[0.7,0.3],[0.4,0.6]]，初始分布为 (1/2,1/2)，求一步后的第二个状态概率。",
+      "expected": "0.45",
+      "kc_ids": [
+        "kc_transition_matrix",
+        "kc_markov_property"
+      ],
+      "pt_id": "pt_markov_transition_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "用初始分布右乘转移矩阵。",
+            "formula": "π₁=0.5×0.7+0.5×0.4"
+          },
+          {
+            "explanation": "同时计算第二状态。",
+            "formula": "π₂=0.5×0.3+0.5×0.6=0.45"
+          },
+          {
+            "explanation": "输出状态 2 的概率。",
+            "formula": "0.45"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫转移概率：关键步骤为“0.45”，答案为“0.45”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_return_time_079",
+      "stem": "两状态马尔可夫链的平稳分布为 (4/7,3/7)，求状态 1 的平均返回时间。",
+      "expected": "7/4",
+      "kc_ids": [
+        "kc_stationary_distribution",
+        "kc_hitting_time"
+      ],
+      "pt_id": "pt_markov_hitting_time",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "平稳分布中的倒数给平均返回时间。",
+            "formula": "E(T₁)=1/π₁"
+          },
+          {
+            "explanation": "代入 π₁=4/7。",
+            "formula": "E(T₁)=7/4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫首达时间：关键步骤为“E(T₁)=7/4”，答案为“7/4”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_gambler_080",
+      "stem": "公平赌徒破产问题中，资产从 1 开始，边界为 0 和 4，求最终到达 4 的概率。",
+      "expected": "1/4",
+      "kc_ids": [
+        "kc_absorption_probability"
+      ],
+      "pt_id": "pt_markov_absorption_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "公平赌徒破产问题为鞅。",
+            "formula": "到达 4 的概率与初始资产成正比"
+          },
+          {
+            "explanation": "初始资产为 1，总区间长度为 4。",
+            "formula": "P=1/4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫吸收概率：关键步骤为“P=1/4”，答案为“1/4”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_period_081",
+      "stem": "两状态链的转移矩阵每一行都为正，求该链的周期。",
+      "expected": "1",
+      "kc_ids": [
+        "kc_periodicity",
+        "kc_transition_matrix"
+      ],
+      "pt_id": "pt_markov_period_classification",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "周期是返回路径长度的最大公约数。",
+            "formula": "存在长度为 1 的自环"
+          },
+          {
+            "explanation": "因此周期为 1。",
+            "formula": "d=1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫周期与类：关键步骤为“d=1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_irreducible_082",
+      "stem": "若马尔可夫链任意两个状态都互相可达，判断它是否不可约。",
+      "expected": "不可约",
+      "kc_ids": [
+        "kc_communication_classes",
+        "kc_markov_property"
+      ],
+      "pt_id": "pt_markov_period_classification",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "不可约要求所有状态互通。",
+            "formula": "任意两状态都互相可达"
+          },
+          {
+            "explanation": "所以该链不可约。",
+            "formula": "不可约"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫周期与类：关键步骤为“不可约”，答案为“不可约”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_uniform_stationary_083",
+      "stem": "转移矩阵每行均为 (0.5,0.5)，求平稳分布。",
+      "expected": "(1/2,1/2)",
+      "kc_ids": [
+        "kc_stationary_distribution",
+        "kc_transition_matrix"
+      ],
+      "pt_id": "pt_markov_stationary_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "每行相同，试取均匀分布。",
+            "formula": "(1/2,1/2)P=(1/2,1/2)"
+          },
+          {
+            "explanation": "分布和为 1。",
+            "formula": "满足平稳性"
+          },
+          {
+            "explanation": "结论。",
+            "formula": "(1/2,1/2)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫平稳分布：关键步骤为“(1/2,1/2)”，答案为“(1/2,1/2)”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_mean_return_084",
+      "stem": "某状态平稳概率为 0.2，求该状态的平均返回时间。",
+      "expected": "5",
+      "kc_ids": [
+        "kc_stationary_distribution",
+        "kc_hitting_time"
+      ],
+      "pt_id": "pt_markov_hitting_time",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "平均返回时间等于平稳概率的倒数。",
+            "formula": "E(T)=1/π"
+          },
+          {
+            "explanation": "代入 π=0.2。",
+            "formula": "E(T)=5"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫首达时间：关键步骤为“E(T)=5”，答案为“5”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_birthdeath_085",
+      "stem": "两状态生灭链中 p=0.6、q=0.4，平稳分布中 π₂ 是多少？",
+      "expected": "0.6",
+      "kc_ids": [
+        "kc_stationary_distribution",
+        "kc_transition_matrix"
+      ],
+      "pt_id": "pt_markov_stationary_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "两状态生灭链平稳比满足 π₂/π₁=p/q。",
+            "formula": "π₂/π₁=0.6/0.4=1.5"
+          },
+          {
+            "explanation": "归一化 π₁+π₂=1。",
+            "formula": "π₂=1.5/(2.5)"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "π₂=0.6"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫平稳分布：关键步骤为“π₂=0.6”，答案为“0.6”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_absorbing_086",
+      "stem": "状态 0 满足 P₀₀=1，求从状态 0 离开的概率。",
+      "expected": "0",
+      "kc_ids": [
+        "kc_absorption_probability",
+        "kc_transition_matrix"
+      ],
+      "pt_id": "pt_markov_absorption_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "状态 0 是吸收状态。",
+            "formula": "P₀₀=1"
+          },
+          {
+            "explanation": "离开状态 0 的概率为 1-P₀₀。",
+            "formula": "1-1=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫吸收概率：关键步骤为“1-1=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_hit_two_087",
+      "stem": "两状态转移矩阵 P=[[0,1],[0.2,0.8]]，求从状态 2 首次到达状态 1 的期望步数。",
+      "expected": "5",
+      "kc_ids": [
+        "kc_hitting_time",
+        "kc_transition_matrix"
+      ],
+      "pt_id": "pt_markov_hitting_time",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "对首达时间列首步方程。",
+            "formula": "h₂=1+0.8h₂+0.2h₁"
+          },
+          {
+            "explanation": "状态 1 为目标状态。",
+            "formula": "h₁=0"
+          },
+          {
+            "explanation": "解方程。",
+            "formula": "0.2h₂=1，h₂=5"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫首达时间：关键步骤为“0.2h₂=1，h₂=5”，答案为“5”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_reversible_088",
+      "stem": "对称两状态链每行均为 (0.5,0.5)，判断其关于均匀分布是否可逆。",
+      "expected": "可逆",
+      "kc_ids": [
+        "kc_reversibility",
+        "kc_stationary_distribution"
+      ],
+      "pt_id": "pt_markov_reversibility",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "平稳分布为均匀分布。",
+            "formula": "π=(1/2,1/2)"
+          },
+          {
+            "explanation": "检查细致平衡。",
+            "formula": "π₁p₁₂=π₂p₂₁=1/4"
+          },
+          {
+            "explanation": "满足可逆条件。",
+            "formula": "可逆"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫链可逆性：关键步骤为“可逆”，答案为“可逆”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_all_rows_089",
+      "stem": "一个 10×10 转移矩阵每行概率和为 0.9，它是否是合法转移矩阵？",
+      "expected": "不是，每行概率和必须为 1",
+      "kc_ids": [
+        "kc_transition_matrix"
+      ],
+      "pt_id": "pt_markov_row_stochastic",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "转移矩阵每一行必须表示概率分布。",
+            "formula": "每行元素非负且和为 1"
+          },
+          {
+            "explanation": "题中行和为 0.9。",
+            "formula": "不合法"
+          },
+          {
+            "explanation": "结论。",
+            "formula": "不是转移矩阵"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫转移矩阵：关键步骤为“不是转移矩阵”，答案为“不是，每行概率和必须为 1”。"
+      }
+    },
+    {
+      "prob_id": "prob_markov_invariant_090",
+      "stem": "用一句话写出平稳分布 π 与转移矩阵 P 的矩阵关系。",
+      "expected": "πP=π，且 Σπ_i=1",
+      "kc_ids": [
+        "kc_stationary_distribution"
+      ],
+      "pt_id": "pt_markov_stationary_distribution",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "平稳分布左乘转移矩阵保持不变。",
+            "formula": "πP=π"
+          },
+          {
+            "explanation": "同时需要归一化。",
+            "formula": "Σπ_i=1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "马尔可夫平稳分布：关键步骤为“Σπ_i=1”，答案为“πP=π，且 Σπ_i=1”。"
+      }
+    },
+    {
+      "prob_id": "prob_wss_mean_091",
+      "stem": "宽平稳过程的一阶矩需要满足什么条件？",
+      "expected": "均值函数为常数",
+      "kc_ids": [
+        "kc_wide_sense_stationary"
+      ],
+      "pt_id": "pt_wss_mean_covariance",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "宽平稳的一阶矩与时间无关。",
+            "formula": "E(X_t)=μ"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "宽平稳过程：关键步骤为“E(X_t)=μ”，答案为“均值函数为常数”。"
+      }
+    },
+    {
+      "prob_id": "prob_autocorr_zero_092",
+      "stem": "非退化平稳过程在滞后 0 处的自相关系数是多少？",
+      "expected": "1",
+      "kc_ids": [
+        "kc_autocorrelation",
+        "kc_wide_sense_stationary"
+      ],
+      "pt_id": "pt_autocorrelation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "自相关为自协方差除以方差。",
+            "formula": "ρ(h)=γ(h)/γ(0)"
+          },
+          {
+            "explanation": "当 h=0 时分子分母相同。",
+            "formula": "ρ(0)=1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "自相关函数：关键步骤为“ρ(0)=1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_autocov_wn0_093",
+      "stem": "白噪声方差为 4，求滞后 0 的自协方差。",
+      "expected": "4",
+      "kc_ids": [
+        "kc_white_noise",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_white_noise_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "白噪声滞后 0 自协方差等于方差。",
+            "formula": "γ(0)=σ²"
+          },
+          {
+            "explanation": "代入 σ²=4。",
+            "formula": "4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "白噪声性质：关键步骤为“4”，答案为“4”。"
+      }
+    },
+    {
+      "prob_id": "prob_autocov_wn1_094",
+      "stem": "零均值白噪声在滞后 1 处的自协方差是多少？",
+      "expected": "0",
+      "kc_ids": [
+        "kc_white_noise",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_white_noise_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "白噪声不同时刻互不相关。",
+            "formula": "γ(1)=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "白噪声性质：关键步骤为“γ(1)=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_mean_095",
+      "stem": "AR(1) 模型 X_t=0.5X_{t-1}+ε_t，其中 ε_t 为零均值白噪声，求均值。",
+      "expected": "0",
+      "kc_ids": [
+        "kc_ar1_process",
+        "kc_forecasting"
+      ],
+      "pt_id": "pt_ar1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "取期望并令平稳。",
+            "formula": "μ=0.5μ+0"
+          },
+          {
+            "explanation": "解得 μ=0。",
+            "formula": "μ=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 过程性质：关键步骤为“μ=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_var_096",
+      "stem": "AR(1) 模型 X_t=0.5X_{t-1}+ε_t，ε_t 方差为 1，求平稳方差。",
+      "expected": "4/3",
+      "kc_ids": [
+        "kc_ar1_process",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_ar1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "平稳方差满足 γ(0)=φ²γ(0)+σ²。",
+            "formula": "γ(0)=0.25γ(0)+1"
+          },
+          {
+            "explanation": "移项。",
+            "formula": "0.75γ(0)=1"
+          },
+          {
+            "explanation": "解出。",
+            "formula": "γ(0)=4/3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 过程性质：关键步骤为“γ(0)=4/3”，答案为“4/3”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_acov1_097",
+      "stem": "AR(1) 模型 X_t=0.5X_{t-1}+ε_t，其中 ε_t 为零均值、方差为 1 的白噪声。求平稳过程滞后 1 的自协方差。",
+      "expected": "2/3",
+      "kc_ids": [
+        "kc_ar1_process",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_ar1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "AR(1) 的滞后 1 自协方差为 φγ(0)。",
+            "formula": "γ(1)=0.5×(4/3)"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "γ(1)=2/3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 过程性质：关键步骤为“γ(1)=2/3”，答案为“2/3”。"
+      }
+    },
+    {
+      "prob_id": "prob_ma1_mean_098",
+      "stem": "MA(1) 模型 X_t=ε_t+0.5ε_{t-1}，其中 ε_t 为零均值白噪声，求 E(X_t)。",
+      "expected": "0",
+      "kc_ids": [
+        "kc_ma1_process",
+        "kc_forecasting"
+      ],
+      "pt_id": "pt_ma1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "取期望。",
+            "formula": "E(X_t)=E(ε_t)+0.5E(ε_{t-1})"
+          },
+          {
+            "explanation": "白噪声均值为 0。",
+            "formula": "E(X_t)=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "MA(1) 过程性质：关键步骤为“E(X_t)=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_ma1_var_099",
+      "stem": "MA(1) 模型 X_t=ε_t+0.5ε_{t-1}，其中 ε_t 为零均值、方差为 1 的白噪声。求 X_t 的方差。",
+      "expected": "5/4",
+      "kc_ids": [
+        "kc_ma1_process",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_ma1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "展开方差并利用白噪声不相关。",
+            "formula": "Var(X_t)=Var(ε_t)+0.5²Var(ε_{t-1})"
+          },
+          {
+            "explanation": "噪声方差为 1。",
+            "formula": "Var=1+0.25"
+          },
+          {
+            "explanation": "结果。",
+            "formula": "5/4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "MA(1) 过程性质：关键步骤为“5/4”，答案为“5/4”。"
+      }
+    },
+    {
+      "prob_id": "prob_ma1_cov1_100",
+      "stem": "MA(1) 模型 X_t=ε_t+0.5ε_{t-1}，其中 ε_t 为零均值、方差为 1 的白噪声。求滞后 1 的自协方差。",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_ma1_process",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_ma1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "滞后 1 只剩 θ Var(ε_t)。",
+            "formula": "γ(1)=0.5×1"
+          },
+          {
+            "explanation": "结果。",
+            "formula": "1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "MA(1) 过程性质：关键步骤为“1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_ma1_cov2_101",
+      "stem": "MA(1) 模型 X_t=ε_t+0.5ε_{t-1}，其中 ε_t 为零均值白噪声。求滞后 2 的自协方差。",
+      "expected": "0",
+      "kc_ids": [
+        "kc_ma1_process",
+        "kc_autocovariance"
+      ],
+      "pt_id": "pt_ma1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "MA(1) 的依赖最多跨越 1 个滞后。",
+            "formula": "γ(2)=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "MA(1) 过程性质：关键步骤为“γ(2)=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_autocov_symmetry_102",
+      "stem": "若 γ(1)=2/3，利用自协方差函数的偶对称性求 γ(-1)。",
+      "expected": "2/3",
+      "kc_ids": [
+        "kc_autocovariance",
+        "kc_wide_sense_stationary"
+      ],
+      "pt_id": "pt_wss_mean_covariance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "实值平稳过程自协方差为偶函数。",
+            "formula": "γ(-h)=γ(h)"
+          },
+          {
+            "explanation": "代入 h=1。",
+            "formula": "γ(-1)=2/3"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "宽平稳过程：关键步骤为“γ(-1)=2/3”，答案为“2/3”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_autocorr3_103",
+      "stem": "AR(1) 过程 X_t=0.5X_{t-1}+ε_t，求滞后 3 的自相关系数。",
+      "expected": "1/8",
+      "kc_ids": [
+        "kc_ar1_process",
+        "kc_autocorrelation"
+      ],
+      "pt_id": "pt_ar1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "AR(1) 自相关为 φ^k。",
+            "formula": "ρ(3)=0.5³"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "1/8"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 过程性质：关键步骤为“1/8”，答案为“1/8”。"
+      }
+    },
+    {
+      "prob_id": "prob_ergodic_mean_104",
+      "stem": "样本时间平均是否收敛到过程均值可作为什么性质的判据？",
+      "expected": "遍历性",
+      "kc_ids": [
+        "kc_ergodicity"
+      ],
+      "pt_id": "pt_ergodicity",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "遍历性判断时间平均是否收敛到集合平均。",
+            "formula": "样本时间平均→E(X_t)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "遍历性判断：关键步骤为“样本时间平均→E(X_t)”，答案为“遍历性”。"
+      }
+    },
+    {
+      "prob_id": "prob_random_phase_sinusoid_105",
+      "stem": "随机相位正弦波 X_t=A cos(ωt+Θ)，Θ 在 [0,2π) 均匀分布，求均值函数。",
+      "expected": "0",
+      "kc_ids": [
+        "kc_wide_sense_stationary"
+      ],
+      "pt_id": "pt_wss_mean_covariance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "对均匀相位取期望。",
+            "formula": "E[X_t]=A E[cos(ωt+Θ)]"
+          },
+          {
+            "explanation": "一个周期上的余弦平均为 0。",
+            "formula": "E[X_t]=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "宽平稳过程：关键步骤为“E[X_t]=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_time_series_difference_106",
+      "stem": "随机游走经过一次差分后得到的序列是什么？",
+      "expected": "白噪声序列",
+      "kc_ids": [
+        "kc_time_series",
+        "kc_difference_stationarity",
+        "kc_white_noise"
+      ],
+      "pt_id": "pt_time_series_difference",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "随机游走满足 X_t-X_{t-1}=ε_t。",
+            "formula": "ΔX_t=ε_t"
+          },
+          {
+            "explanation": "ε_t 为零均值白噪声。",
+            "formula": "一阶差分是白噪声"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "时间序列差分：关键步骤为“一阶差分是白噪声”，答案为“白噪声序列”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_forecast1_107",
+      "stem": "AR(1) 模型 X_t=0.5X_{t-1}+ε_t，已知 X_t=10，求一步预测值。",
+      "expected": "5",
+      "kc_ids": [
+        "kc_forecasting",
+        "kc_ar1_process"
+      ],
+      "pt_id": "pt_ar1_forecast",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "一步预测取条件期望。",
+            "formula": "E[X_{t+1}|X_t]=0.5X_t"
+          },
+          {
+            "explanation": "代入 X_t=10。",
+            "formula": "预测值=5"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 预测：关键步骤为“预测值=5”，答案为“5”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_forecast2_108",
+      "stem": "AR(1) 模型 X_t=0.5X_{t-1}+ε_t，其中 ε_t 为零均值白噪声，且已知 X_t=10。求 X_{t+2} 的两步预测值。",
+      "expected": "2.5",
+      "kc_ids": [
+        "kc_forecasting",
+        "kc_ar1_process"
+      ],
+      "pt_id": "pt_ar1_forecast",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "两步预测对一步预测继续递推。",
+            "formula": "E[X_{t+2}|X_t]=0.5²X_t"
+          },
+          {
+            "explanation": "代入 10。",
+            "formula": "2.5"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 预测：关键步骤为“2.5”，答案为“2.5”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_forecast_error_109",
+      "stem": "AR(1) 白噪声方差为 1，求一步预测误差方差。",
+      "expected": "1",
+      "kc_ids": [
+        "kc_forecasting",
+        "kc_ar1_process"
+      ],
+      "pt_id": "pt_ar1_forecast",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "一步预测误差等于未来白噪声。",
+            "formula": "e_{t+1}=ε_{t+1}"
+          },
+          {
+            "explanation": "方差为 1。",
+            "formula": "1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 预测：关键步骤为“1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_ma1_forecast1_110",
+      "stem": "MA(1) 模型 X_t=ε_t+0.5ε_{t-1}，已知 ε_t=0.4，求一步预测值。",
+      "expected": "0.2",
+      "kc_ids": [
+        "kc_forecasting",
+        "kc_ma1_process"
+      ],
+      "pt_id": "pt_ma1_forecast",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "一步预测只保留已知噪声项。",
+            "formula": "X̂_{t+1|t}=0.5ε_t"
+          },
+          {
+            "explanation": "代入 ε_t=0.4。",
+            "formula": "0.2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "MA(1) 预测：关键步骤为“0.2”，答案为“0.2”。"
+      }
+    },
+    {
+      "prob_id": "prob_ma1_forecast2_111",
+      "stem": "MA(1) 模型 X_t=ε_t+0.5ε_{t-1}，其中 ε_t 为零均值白噪声，且已知 ε_t=0.4。求 X_{t+2} 的两步预测值。",
+      "expected": "0",
+      "kc_ids": [
+        "kc_forecasting",
+        "kc_ma1_process"
+      ],
+      "pt_id": "pt_ma1_forecast",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "未来两个噪声项条件期望都为 0。",
+            "formula": "X̂_{t+2|t}=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "MA(1) 预测：关键步骤为“X̂_{t+2|t}=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_ma1_acf1_112",
+      "stem": "MA(1) 模型 X_t=ε_t+0.5ε_{t-1}，求滞后 1 的自相关系数。",
+      "expected": "0.4",
+      "kc_ids": [
+        "kc_ma1_process",
+        "kc_autocorrelation"
+      ],
+      "pt_id": "pt_ma1_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "MA(1) 的滞后 1 自协方差为 θσ²。",
+            "formula": "γ(1)=0.5"
+          },
+          {
+            "explanation": "方差为 (1+θ²)σ²。",
+            "formula": "γ(0)=1.25"
+          },
+          {
+            "explanation": "求比值。",
+            "formula": "ρ(1)=0.4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "MA(1) 过程性质：关键步骤为“ρ(1)=0.4”，答案为“0.4”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_pacf1_113",
+      "stem": "AR(1) 模型 X_t=0.6X_{t-1}+ε_t，求滞后 1 的偏自相关系数。",
+      "expected": "0.6",
+      "kc_ids": [
+        "kc_ar1_process",
+        "kc_yule_walker"
+      ],
+      "pt_id": "pt_yule_walker",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "AR(1) 的滞后 1 偏自相关等于系数 φ。",
+            "formula": "φ=0.6"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Yule-Walker 方程：关键步骤为“φ=0.6”，答案为“0.6”。"
+      }
+    },
+    {
+      "prob_id": "prob_wn_acf_nonzero_114",
+      "stem": "白噪声在非零滞后处的自相关函数值是多少？",
+      "expected": "0",
+      "kc_ids": [
+        "kc_white_noise",
+        "kc_autocorrelation"
+      ],
+      "pt_id": "pt_white_noise_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "白噪声非零滞后互不相关。",
+            "formula": "ρ(h)=0，h≠0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "白噪声性质：关键步骤为“ρ(h)=0，h≠0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_ar1_stationary_115",
+      "stem": "AR(1) 模型 X_t=φX_{t-1}+ε_t 的平稳性条件是什么？",
+      "expected": "|φ|<1",
+      "kc_ids": [
+        "kc_ar1_process",
+        "kc_wide_sense_stationary"
+      ],
+      "pt_id": "pt_ar1_properties",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "AR(1) 特征方程根在单位圆外。",
+            "formula": "|φ|<1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "AR(1) 过程性质：关键步骤为“|φ|<1”，答案为“|φ|<1”。"
+      }
+    },
+    {
+      "prob_id": "prob_random_walk_diff_var_116",
+      "stem": "随机游走 X_t=X_{t-1}+ε_t，白噪声方差为 σ²，求 ΔX_t 的方差。",
+      "expected": "σ²",
+      "kc_ids": [
+        "kc_difference_stationarity",
+        "kc_time_series"
+      ],
+      "pt_id": "pt_time_series_difference",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "随机游走差分等于白噪声。",
+            "formula": "ΔX_t=ε_t"
+          },
+          {
+            "explanation": "取方差。",
+            "formula": "Var(ΔX_t)=σ²"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "时间序列差分：关键步骤为“Var(ΔX_t)=σ²”，答案为“σ²”。"
+      }
+    },
+    {
+      "prob_id": "prob_arma_mean_117",
+      "stem": "不含常数项的 ARMA(1,1) 过程 X_t=φX_{t-1}+ε_t+θε_{t-1} 在平稳条件下均值是多少？",
+      "expected": "0",
+      "kc_ids": [
+        "kc_arma_model",
+        "kc_expectation"
+      ],
+      "pt_id": "pt_arma_mean",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "取期望并利用白噪声均值为 0。",
+            "formula": "μ=φμ"
+          },
+          {
+            "explanation": "平稳条件下 |φ|<1。",
+            "formula": "μ=0"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "ARMA 均值：关键步骤为“μ=0”，答案为“0”。"
+      }
+    },
+    {
+      "prob_id": "prob_yw_ar1_rho1_118",
+      "stem": "AR(1) 模型 X_t=0.7X_{t-1}+ε_t，求滞后 1 的自相关系数。",
+      "expected": "0.7",
+      "kc_ids": [
+        "kc_yule_walker",
+        "kc_ar1_process"
+      ],
+      "pt_id": "pt_yule_walker",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "Yule-Walker 对 AR(1) 给出 ρ₁=φ。",
+            "formula": "ρ₁=0.7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Yule-Walker 方程：关键步骤为“ρ₁=0.7”，答案为“0.7”。"
+      }
+    },
+    {
+      "prob_id": "prob_sample_acf0_119",
+      "stem": "样本自相关函数在滞后 0 处的值通常取多少？",
+      "expected": "1",
+      "kc_ids": [
+        "kc_autocorrelation",
+        "kc_time_series"
+      ],
+      "pt_id": "pt_autocorrelation",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本自相关在零滞后归一化为 1。",
+            "formula": "ρ̂(0)=1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "自相关函数：关键步骤为“ρ̂(0)=1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_model_aic_120",
+      "stem": "若两个候选时间序列模型的 AIC 分别为 210 和 205，哪个模型更优？",
+      "expected": "AIC 为 205 的模型更优",
+      "kc_ids": [
+        "kc_time_series",
+        "kc_arma_model"
+      ],
+      "pt_id": "pt_model_identification",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "AIC 越小模型越优。",
+            "formula": "205<210"
+          },
+          {
+            "explanation": "因此 AIC 为 205 的模型更优。",
+            "formula": "选择 AIC=205 的模型"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "ARMA 模型辨识：关键步骤为“选择 AIC=205 的模型”，答案为“AIC 为 205 的模型更优”。"
+      }
+    },
+    {
+      "prob_id": "prob_uniform_interval_121",
+      "stem": "设 X~U(0,10)，求 P(2<X<5)。",
+      "expected": "3/10",
+      "kc_ids": [
+        "kc_uniform_distribution",
+        "kc_continuous_density"
+      ],
+      "pt_id": "pt_uniform_probability",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "均匀分布的概率等于目标区间长度除以支撑区间长度。",
+            "formula": "P(2<X<5)=(5-2)/(10-0)"
+          },
+          {
+            "explanation": "计算长度并化简。",
+            "formula": "P=3/10"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "利用均匀分布的区间长度比直接得到概率。"
+      }
+    },
+    {
+      "prob_id": "prob_population_122",
+      "stem": "总体参数与样本统计量的主要区别是什么？",
+      "expected": "总体参数是固定的未知量，样本统计量是随样本变化的随机变量",
+      "kc_ids": [
+        "kc_population_sample",
+        "kc_sample_statistic"
+      ],
+      "pt_id": "pt_population_sample",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "总体参数描述整个总体且通常是固定的未知量。",
+            "formula": "θ"
+          },
+          {
+            "explanation": "样本统计量由随机样本计算，随抽样变化。",
+            "formula": "T=T(X₁,…,Xₙ)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "总体与样本：关键步骤为“T=T(X₁,…,Xₙ)”，答案为“总体参数是固定的未知量，样本统计量是随样本变化的随机变量”。"
+      }
+    },
+    {
+      "prob_id": "prob_sample_mean_unbiased_123",
+      "stem": "若 X₁,…,Xₙ 同分布且 E(Xᵢ)=μ，判断样本均值是否为 μ 的无偏估计。",
+      "expected": "是无偏估计，因为 E(样本均值)=μ",
+      "kc_ids": [
+        "kc_sampling_distribution_mean",
+        "kc_unbiased_estimator"
+      ],
+      "pt_id": "pt_unbiased_mean",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "对样本均值取期望。",
+            "formula": "E(X̄)=(1/n)ΣE(Xᵢ)"
+          },
+          {
+            "explanation": "各观测期望均为 μ。",
+            "formula": "=(1/n)nμ=μ"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "样本均值无偏性：关键步骤为“=(1/n)nμ=μ”，答案为“是无偏估计，因为 E(样本均值)=μ”。"
+      }
+    },
+    {
+      "prob_id": "prob_sample_variance_unbiased_124",
+      "stem": "正态总体下，样本方差 S² 的期望等于什么？",
+      "expected": "总体方差 σ²",
+      "kc_ids": [
+        "kc_sampling_distribution_variance",
+        "kc_unbiased_estimator"
+      ],
+      "pt_id": "pt_unbiased_variance",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本方差使用离差平方和除以 n-1。",
+            "formula": "S²=Σ(Xᵢ-X̄)²/(n-1)"
+          },
+          {
+            "explanation": "在正态总体下其期望为总体方差。",
+            "formula": "E(S²)=σ²"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "样本方差无偏性：关键步骤为“E(S²)=σ²”，答案为“总体方差 σ²”。"
+      }
+    },
+    {
+      "prob_id": "prob_standard_error_125",
+      "stem": "总体标准差 σ=6，样本量 n=36，求样本均值的标准误。",
+      "expected": "1",
+      "kc_ids": [
+        "kc_sampling_distribution_mean",
+        "kc_sample_statistic"
+      ],
+      "pt_id": "pt_standard_error_mean",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本均值标准误为 σ/√n。",
+            "formula": "SE=6/√36"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "SE=1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "均值标准误：关键步骤为“SE=1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_chisq_df_126",
+      "stem": "正态总体样本量 n=10，样本方差对应的卡方统计量自由度为多少？",
+      "expected": "9",
+      "kc_ids": [
+        "kc_chi_square_distribution",
+        "kc_sampling_distribution_variance"
+      ],
+      "pt_id": "pt_chi_square_sampling",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本方差对应自由度为 n-1。",
+            "formula": "df=10-1"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "9"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "卡方抽样分布：关键步骤为“9”，答案为“9”。"
+      }
+    },
+    {
+      "prob_id": "prob_t_df_127",
+      "stem": "正态总体样本量 n=15，σ 未知时单样本 t 统计量的自由度是多少？",
+      "expected": "14",
+      "kc_ids": [
+        "kc_t_distribution",
+        "kc_sampling_distribution_variance"
+      ],
+      "pt_id": "pt_t_distribution_sampling",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "单样本 t 统计量自由度为 n-1。",
+            "formula": "df=15-1"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "14"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "t 分布抽样：关键步骤为“14”，答案为“14”。"
+      }
+    },
+    {
+      "prob_id": "prob_f_df_128",
+      "stem": "F 统计量由自由度 3 和 10 的两个独立卡方量组成，写出其自由度对。",
+      "expected": "(3,10)",
+      "kc_ids": [
+        "kc_f_distribution",
+        "kc_anova"
+      ],
+      "pt_id": "pt_f_distribution_sampling",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "F 的两个自由度来自分子和分母卡方量。",
+            "formula": "(df₁,df₂)=(3,10)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "F 分布抽样：关键步骤为“(df₁,df₂)=(3,10)”，答案为“(3,10)”。"
+      }
+    },
+    {
+      "prob_id": "prob_chisq_n_129",
+      "stem": "5 个独立标准正态变量的平方和服从什么分布？",
+      "expected": "χ²(5)",
+      "kc_ids": [
+        "kc_chi_square_distribution",
+        "kc_sampling_distribution_mean"
+      ],
+      "pt_id": "pt_chi_square_sampling",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "n 个独立标准正态变量平方和服从卡方分布。",
+            "formula": "ΣZᵢ²~χ²(n)"
+          },
+          {
+            "explanation": "代入 n=5。",
+            "formula": "χ²(5)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "卡方抽样分布：关键步骤为“χ²(5)”，答案为“χ²(5)”。"
+      }
+    },
+    {
+      "prob_id": "prob_sample_mean_var_130",
+      "stem": "总体方差为 4，样本量为 25，求样本均值的方差。",
+      "expected": "4/25",
+      "kc_ids": [
+        "kc_sampling_distribution_mean",
+        "kc_sampling_distribution_variance"
+      ],
+      "pt_id": "pt_standard_error_mean",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本均值方差为总体方差除以 n。",
+            "formula": "Var(X̄)=4/25"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "均值标准误：关键步骤为“Var(X̄)=4/25”，答案为“4/25”。"
+      }
+    },
+    {
+      "prob_id": "prob_clt_mean_131",
+      "stem": "大样本下，样本均值标准化后近似服从什么分布？",
+      "expected": "标准正态分布 N(0,1)",
+      "kc_ids": [
+        "kc_sampling_distribution_mean",
+        "kc_sample_statistic"
+      ],
+      "pt_id": "pt_standard_error_mean",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "标准化样本均值。",
+            "formula": "(X̄-μ)/(σ/√n)"
+          },
+          {
+            "explanation": "大样本近似服从标准正态分布。",
+            "formula": "N(0,1)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "均值标准误：关键步骤为“N(0,1)”，答案为“标准正态分布 N(0,1)”。"
+      }
+    },
+    {
+      "prob_id": "prob_sample_var_expect_132",
+      "stem": "样本方差期望为 9，则总体方差是多少？",
+      "expected": "9",
+      "kc_ids": [
+        "kc_sampling_distribution_variance",
+        "kc_unbiased_estimator"
+      ],
+      "pt_id": "pt_unbiased_variance",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "无偏样本方差的期望等于总体方差。",
+            "formula": "E(S²)=σ²"
+          },
+          {
+            "explanation": "已知 E(S²)=9。",
+            "formula": "σ²=9"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "样本方差无偏性：关键步骤为“σ²=9”，答案为“9”。"
+      }
+    },
+    {
+      "prob_id": "prob_stat_vs_parameter_133",
+      "stem": "样本均值是参数还是统计量？",
+      "expected": "统计量",
+      "kc_ids": [
+        "kc_sample_statistic",
+        "kc_population_sample"
+      ],
+      "pt_id": "pt_population_sample",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本均值由样本计算。",
+            "formula": "X̄"
+          },
+          {
+            "explanation": "因此它是统计量。",
+            "formula": "统计量"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "总体与样本：关键步骤为“统计量”，答案为“统计量”。"
+      }
+    },
+    {
+      "prob_id": "prob_sample_mean_estimate_134",
+      "stem": "样本为 2、4、6、8、10，求总体均值的样本均值估计。",
+      "expected": "6",
+      "kc_ids": [
+        "kc_point_estimation",
+        "kc_sample_statistic"
+      ],
+      "pt_id": "pt_method_moments",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "均值的样本矩为算术平均。",
+            "formula": "x̄=(2+4+6+8+10)/5"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "x̄=6"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "矩估计：关键步骤为“x̄=6”，答案为“6”。"
+      }
+    },
+    {
+      "prob_id": "prob_mle_bernoulli_135",
+      "stem": "做 10 次伯努利试验成功 7 次，求成功概率的极大似然估计。",
+      "expected": "0.7",
+      "kc_ids": [
+        "kc_maximum_likelihood",
+        "kc_point_estimation"
+      ],
+      "pt_id": "pt_mle_bernoulli",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "伯努利成功概率的 MLE 为成功次数除以试验次数。",
+            "formula": "p̂=7/10"
+          },
+          {
+            "explanation": "结果。",
+            "formula": "0.7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "伯努利参数最大似然：关键步骤为“0.7”，答案为“0.7”。"
+      }
+    },
+    {
+      "prob_id": "prob_mle_poisson_136",
+      "stem": "泊松样本为 1、3、2、4，求参数 λ 的极大似然估计。",
+      "expected": "2.5",
+      "kc_ids": [
+        "kc_maximum_likelihood",
+        "kc_point_estimation"
+      ],
+      "pt_id": "pt_mle_poisson",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "泊松参数 MLE 为样本均值。",
+            "formula": "λ̂=(1+3+2+4)/4"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "2.5"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "泊松参数最大似然：关键步骤为“2.5”，答案为“2.5”。"
+      }
+    },
+    {
+      "prob_id": "prob_mle_exponential_137",
+      "stem": "指数样本为 2、4、6，求速率参数 λ 的极大似然估计。",
+      "expected": "1/4",
+      "kc_ids": [
+        "kc_maximum_likelihood",
+        "kc_point_estimation"
+      ],
+      "pt_id": "pt_mle_exponential",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "指数速率参数 MLE 为样本均值的倒数。",
+            "formula": "λ̂=1/x̄"
+          },
+          {
+            "explanation": "x̄=4，所以 λ̂=1/4。",
+            "formula": "1/4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "指数参数最大似然：关键步骤为“1/4”，答案为“1/4”。"
+      }
+    },
+    {
+      "prob_id": "prob_unbiased_variance_138",
+      "stem": "样本为 1、2、3，求样本方差 S²。",
+      "expected": "1",
+      "kc_ids": [
+        "kc_sampling_distribution_variance",
+        "kc_unbiased_estimator"
+      ],
+      "pt_id": "pt_unbiased_variance_estimate",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本均值 x̄=2。",
+            "formula": "x̄=2"
+          },
+          {
+            "explanation": "平方和 Σ(xᵢ-x̄)²=2。",
+            "formula": "S²=2/(3-1)"
+          },
+          {
+            "explanation": "结果。",
+            "formula": "S²=1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "无偏方差估计：关键步骤为“S²=1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_mom_uniform_139",
+      "stem": "U(0,θ) 的总体均值为 θ/2，样本均值为 3，用矩估计求 θ。",
+      "expected": "6",
+      "kc_ids": [
+        "kc_method_of_moments",
+        "kc_point_estimation"
+      ],
+      "pt_id": "pt_method_moments",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "均匀分布均值为 θ/2。",
+            "formula": "E(X)=θ/2"
+          },
+          {
+            "explanation": "用样本均值替代总体均值。",
+            "formula": "3=θ/2"
+          },
+          {
+            "explanation": "解得。",
+            "formula": "θ=6"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "矩估计：关键步骤为“θ=6”，答案为“6”。"
+      }
+    },
+    {
+      "prob_id": "prob_ci_mean_140",
+      "stem": "样本均值 10，σ=2，n=16，求总体均值的 95% 置信区间（用 1.96），写成 [下界,上界]。",
+      "expected": "[9.02,10.98]",
+      "kc_ids": [
+        "kc_confidence_interval",
+        "kc_sampling_distribution_mean"
+      ],
+      "pt_id": "pt_confidence_interval_mean",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 3,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "标准误为 2/√16=0.5。",
+            "formula": "SE=0.5"
+          },
+          {
+            "explanation": "95% 区间半宽为 1.96×0.5=0.98。",
+            "formula": "10±0.98"
+          },
+          {
+            "explanation": "得到区间。",
+            "formula": "[9.02,10.98]"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "均值置信区间：关键步骤为“[9.02,10.98]”，答案为“[9.02,10.98]”。"
+      }
+    },
+    {
+      "prob_id": "prob_ci_margin_141",
+      "stem": "样本均值 10，总体标准差 σ=2，样本量 n=16，求总体均值 95% 置信区间的半宽（用 1.96）。",
+      "expected": "0.98",
+      "kc_ids": [
+        "kc_confidence_interval",
+        "kc_sampling_distribution_mean"
+      ],
+      "pt_id": "pt_confidence_interval_mean",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "标准误为 0.5。",
+            "formula": "SE=2/√16"
+          },
+          {
+            "explanation": "半宽为 1.96×SE。",
+            "formula": "1.96×0.5=0.98"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "均值置信区间：关键步骤为“1.96×0.5=0.98”，答案为“0.98”。"
+      }
+    },
+    {
+      "prob_id": "prob_estimator_estimate_142",
+      "stem": "估计量与估计值有什么区别？",
+      "expected": "估计量是随机变量，估计值是代入具体样本后的数值",
+      "kc_ids": [
+        "kc_point_estimation",
+        "kc_sample_statistic"
+      ],
+      "pt_id": "pt_estimator_properties",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "估计量是样本的函数。",
+            "formula": "T=T(X₁,…,Xₙ)"
+          },
+          {
+            "explanation": "估计值是把样本数值代入后的确定结果。",
+            "formula": "t=T(x₁,…,xₙ)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "估计量性质：关键步骤为“t=T(x₁,…,xₙ)”，答案为“估计量是随机变量，估计值是代入具体样本后的数值”。"
+      }
+    },
+    {
+      "prob_id": "prob_consistency_143",
+      "stem": "样本量趋大时估计量依概率收敛到真参数，这一性质叫什么？",
+      "expected": "一致性",
+      "kc_ids": [
+        "kc_point_estimation",
+        "kc_unbiased_estimator"
+      ],
+      "pt_id": "pt_estimator_properties",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "大样本下估计量依概率收敛到参数。",
+            "formula": "θ̂→P θ"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "估计量性质：关键步骤为“θ̂→P θ”，答案为“一致性”。"
+      }
+    },
+    {
+      "prob_id": "prob_mle_invariance_144",
+      "stem": "若 θ 的极大似然估计为 θ̂，则 θ² 的极大似然估计是什么？",
+      "expected": "θ̂²",
+      "kc_ids": [
+        "kc_maximum_likelihood",
+        "kc_point_estimation"
+      ],
+      "pt_id": "pt_estimator_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "极大似然估计具有不变性。",
+            "formula": "g(θ) 的 MLE 为 g(θ̂)"
+          },
+          {
+            "explanation": "取 g(θ)=θ²。",
+            "formula": "θ̂²"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "估计量性质：关键步骤为“θ̂²”，答案为“θ̂²”。"
+      }
+    },
+    {
+      "prob_id": "prob_relative_efficiency_145",
+      "stem": "两个无偏估计量方差分别为 4 和 2，前一个相对后一个的效率是多少？",
+      "expected": "1/2",
+      "kc_ids": [
+        "kc_point_estimation",
+        "kc_unbiased_estimator"
+      ],
+      "pt_id": "pt_estimator_properties",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "相对效率为方差较小估计量方差与另一估计量方差之比。",
+            "formula": "2/4"
+          },
+          {
+            "explanation": "结果。",
+            "formula": "1/2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "估计量性质：关键步骤为“1/2”，答案为“1/2”。"
+      }
+    },
+    {
+      "prob_id": "prob_hypothesis_def_146",
+      "stem": "假设检验中 H₀ 通常表示什么？",
+      "expected": "原假设或待检验的零假设",
+      "kc_ids": [
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_hypothesis_error",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "原假设通常表示无差异或待检验的基准。",
+            "formula": "H₀"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "假设检验错误：关键步骤为“H₀”，答案为“原假设或待检验的零假设”。"
+      }
+    },
+    {
+      "prob_id": "prob_type1_error_147",
+      "stem": "显著性水平 α=0.05 对应第一类错误的概率上限是多少？",
+      "expected": "0.05",
+      "kc_ids": [
+        "kc_type_error",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_hypothesis_error",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "第一类错误是 H₀ 为真时拒绝 H₀。",
+            "formula": "P(第一类错误)≤α"
+          },
+          {
+            "explanation": "α=0.05。",
+            "formula": "0.05"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "假设检验错误：关键步骤为“0.05”，答案为“0.05”。"
+      }
+    },
+    {
+      "prob_id": "prob_type2_error_148",
+      "stem": "第二类错误概率 β=0.2，求检验功效。",
+      "expected": "0.8",
+      "kc_ids": [
+        "kc_type_error",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_hypothesis_error",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "功效为 1-β。",
+            "formula": "1-0.2=0.8"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "假设检验错误：关键步骤为“1-0.2=0.8”，答案为“0.8”。"
+      }
+    },
+    {
+      "prob_id": "prob_power_definition_149",
+      "stem": "检验功效的定义是什么？",
+      "expected": "原假设为假时正确拒绝 H₀ 的概率，即 1-β",
+      "kc_ids": [
+        "kc_type_error",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_hypothesis_error",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "功效是被检验效应存在时拒绝 H₀ 的概率。",
+            "formula": "Power=1-β"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "假设检验错误：关键步骤为“Power=1-β”，答案为“原假设为假时正确拒绝 H₀ 的概率，即 1-β”。"
+      }
+    },
+    {
+      "prob_id": "prob_z_statistic_150",
+      "stem": "x̄=52，μ₀=50，σ=10，n=25，求单样本 Z 检验统计量。",
+      "expected": "1",
+      "kc_ids": [
+        "kc_z_test",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_z_test",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "Z=(x̄-μ₀)/(σ/√n)。",
+            "formula": "(52-50)/(10/5)"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Z 检验：关键步骤为“1”，答案为“1”。"
+      }
+    },
+    {
+      "prob_id": "prob_p_two_sided_151",
+      "stem": "Z 统计量绝对值为 1.96 时，双侧近似 P 值是多少？",
+      "expected": "0.05",
+      "kc_ids": [
+        "kc_p_value",
+        "kc_z_test"
+      ],
+      "pt_id": "pt_p_value",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "双侧 P=2P(Z>|z|)。",
+            "formula": "2P(Z>1.96)"
+          },
+          {
+            "explanation": "标准正态结果。",
+            "formula": "约 0.05"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "P 值：关键步骤为“约 0.05”，答案为“0.05”。"
+      }
+    },
+    {
+      "prob_id": "prob_p_one_sided_152",
+      "stem": "Z=1.64 时的右侧近似 P 值是多少（四舍五入）？",
+      "expected": "0.0505",
+      "kc_ids": [
+        "kc_p_value",
+        "kc_z_test"
+      ],
+      "pt_id": "pt_p_value",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "右侧 P=P(Z>1.64)。",
+            "formula": "1-Φ(1.64)"
+          },
+          {
+            "explanation": "计算。",
+            "formula": "约 0.0505"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "P 值：关键步骤为“约 0.0505”，答案为“0.0505”。"
+      }
+    },
+    {
+      "prob_id": "prob_reject_pvalue_153",
+      "stem": "P 值为 0.03，显著性水平为 0.05，应拒绝还是不能拒绝 H₀？",
+      "expected": "拒绝 H₀",
+      "kc_ids": [
+        "kc_p_value",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_p_value",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "比较 P 值与显著性水平。",
+            "formula": "0.03<0.05"
+          },
+          {
+            "explanation": "因此拒绝 H₀。",
+            "formula": "拒绝 H₀"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "P 值：关键步骤为“拒绝 H₀”，答案为“拒绝 H₀”。"
+      }
+    },
+    {
+      "prob_id": "prob_ttest_df_154",
+      "stem": "单样本 t 检验中 n=20，求自由度。",
+      "expected": "19",
+      "kc_ids": [
+        "kc_t_test",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_t_test_df",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "单样本 t 检验 df=n-1。",
+            "formula": "20-1=19"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "t 检验自由度：关键步骤为“20-1=19”，答案为“19”。"
+      }
+    },
+    {
+      "prob_id": "prob_ci_test_duality_155",
+      "stem": "若 μ₀ 落在双侧 95% 置信区间之外，则 α=0.05 的检验结论是什么？",
+      "expected": "拒绝 H₀",
+      "kc_ids": [
+        "kc_confidence_interval",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_ci_test_duality",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "α=0.05 双侧检验与 95% 置信区间对偶。",
+            "formula": "μ₀ 在区间外 ⇔ 拒绝 H₀"
+          },
+          {
+            "explanation": "结论。",
+            "formula": "拒绝 H₀"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "置信区间与检验对偶：关键步骤为“拒绝 H₀”，答案为“拒绝 H₀”。"
+      }
+    },
+    {
+      "prob_id": "prob_bonferroni_156",
+      "stem": "同时做 4 次检验，希望总体第一类错误不超过 0.05，使用 Bonferroni 校正后的单次阈值是多少？",
+      "expected": "0.0125",
+      "kc_ids": [
+        "kc_multiple_testing",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_multiple_testing",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "校正阈值为 α/m。",
+            "formula": "0.05/4"
+          },
+          {
+            "explanation": "结果。",
+            "formula": "0.0125"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "多重检验校正：关键步骤为“0.0125”，答案为“0.0125”。"
+      }
+    },
+    {
+      "prob_id": "prob_power_sample_157",
+      "stem": "样本量增大且其他条件不变，检验功效通常如何变化？",
+      "expected": "通常增大",
+      "kc_ids": [
+        "kc_type_error",
+        "kc_hypothesis_testing"
+      ],
+      "pt_id": "pt_hypothesis_error",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "增加样本量降低标准误。",
+            "formula": "SE下降"
+          },
+          {
+            "explanation": "检验更容易发现真实差异。",
+            "formula": "功效增大"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "假设检验错误：关键步骤为“功效增大”，答案为“通常增大”。"
+      }
+    },
+    {
+      "prob_id": "prob_anova_decomp_158",
+      "stem": "单因素方差分析中总平方和如何分解？",
+      "expected": "SST=SSB+SSW",
+      "kc_ids": [
+        "kc_anova",
+        "kc_sampling_distribution_variance"
+      ],
+      "pt_id": "pt_anova_decomposition",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "总平方和分解为组间和组内。",
+            "formula": "SST=SSB+SSW"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "方差分解：关键步骤为“SST=SSB+SSW”，答案为“SST=SSB+SSW”。"
+      }
+    },
+    {
+      "prob_id": "prob_anova_df_between_159",
+      "stem": "单因素方差分析有 3 组，求组间自由度。",
+      "expected": "2",
+      "kc_ids": [
+        "kc_anova"
+      ],
+      "pt_id": "pt_anova_df",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "组间自由度为 k-1。",
+            "formula": "3-1=2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "方差分析自由度：关键步骤为“3-1=2”，答案为“2”。"
+      }
+    },
+    {
+      "prob_id": "prob_anova_df_within_160",
+      "stem": "单因素方差分析有 3 组、总样本量 30，求组内自由度。",
+      "expected": "27",
+      "kc_ids": [
+        "kc_anova"
+      ],
+      "pt_id": "pt_anova_df",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "组内自由度为 N-k。",
+            "formula": "30-3=27"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "方差分析自由度：关键步骤为“30-3=27”，答案为“27”。"
+      }
+    },
+    {
+      "prob_id": "prob_anova_f_formula_161",
+      "stem": "方差分析 F 统计量等于什么？",
+      "expected": "组间均方 MSB / 组内均方 MSW",
+      "kc_ids": [
+        "kc_anova",
+        "kc_f_distribution"
+      ],
+      "pt_id": "pt_anova_f",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "F 为两个均方之比。",
+            "formula": "F=MSB/MSW"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "方差分析 F 统计量：关键步骤为“F=MSB/MSW”，答案为“组间均方 MSB / 组内均方 MSW”。"
+      }
+    },
+    {
+      "prob_id": "prob_anova_large_f_162",
+      "stem": "若组间差异很大，F 统计量通常会怎样？",
+      "expected": "F 通常较大，倾向拒绝各组均值相等",
+      "kc_ids": [
+        "kc_anova"
+      ],
+      "pt_id": "pt_anova_f",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "组间均方越大，F 越大。",
+            "formula": "F=MSB/MSW"
+          },
+          {
+            "explanation": "大 F 倾向拒绝均值相等。",
+            "formula": "结论：拒绝 H₀"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "方差分析 F 统计量：关键步骤为“结论：拒绝 H₀”，答案为“F 通常较大，倾向拒绝各组均值相等”。"
+      }
+    },
+    {
+      "prob_id": "prob_regression_slope_163",
+      "stem": "Cov(X,Y)=0.6，Var(X)=0.25，求简单线性回归斜率。",
+      "expected": "2.4",
+      "kc_ids": [
+        "kc_regression"
+      ],
+      "pt_id": "pt_regression_slope",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "斜率 β₁=Cov(X,Y)/Var(X)。",
+            "formula": "0.6/0.25=2.4"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "回归斜率：关键步骤为“0.6/0.25=2.4”，答案为“2.4”。"
+      }
+    },
+    {
+      "prob_id": "prob_regression_intercept_164",
+      "stem": "斜率 1.5，x̄=2，ȳ=5，求回归截距。",
+      "expected": "2",
+      "kc_ids": [
+        "kc_regression"
+      ],
+      "pt_id": "pt_regression_intercept",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "回归线经过均值点。",
+            "formula": "β₀=ȳ-β₁x̄"
+          },
+          {
+            "explanation": "代入 5-1.5×2。",
+            "formula": "β₀=2"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "回归截距：关键步骤为“β₀=2”，答案为“2”。"
+      }
+    },
+    {
+      "prob_id": "prob_r2_corr_165",
+      "stem": "相关系数 r=0.8，求决定系数 R²。",
+      "expected": "0.64",
+      "kc_ids": [
+        "kc_r_squared",
+        "kc_regression"
+      ],
+      "pt_id": "pt_r_squared",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "简单线性回归中 R²=r²。",
+            "formula": "0.8²=0.64"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "决定系数：关键步骤为“0.8²=0.64”，答案为“0.64”。"
+      }
+    },
+    {
+      "prob_id": "prob_regression_df_166",
+      "stem": "简单线性回归样本量 n=20，求残差自由度。",
+      "expected": "18",
+      "kc_ids": [
+        "kc_regression"
+      ],
+      "pt_id": "pt_regression_degrees_of_freedom",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "简单回归残差自由度为 n-2。",
+            "formula": "20-2=18"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "回归自由度：关键步骤为“20-2=18”，答案为“18”。"
+      }
+    },
+    {
+      "prob_id": "prob_regression_predict_167",
+      "stem": "回归方程 ŷ=1+2x，求 x=3 时的预测值。",
+      "expected": "7",
+      "kc_ids": [
+        "kc_regression"
+      ],
+      "pt_id": "pt_regression_prediction",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "代入回归方程。",
+            "formula": "ŷ=1+2×3"
+          },
+          {
+            "explanation": "结果。",
+            "formula": "7"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "回归预测：关键步骤为“7”，答案为“7”。"
+      }
+    },
+    {
+      "prob_id": "prob_r2_range_168",
+      "stem": "决定系数 R² 的合理取值范围是什么？",
+      "expected": "[0,1]",
+      "kc_ids": [
+        "kc_r_squared"
+      ],
+      "pt_id": "pt_r_squared",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "决定系数表示解释比例。",
+            "formula": "0≤R²≤1"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "决定系数：关键步骤为“0≤R²≤1”，答案为“[0,1]”。"
+      }
+    },
+    {
+      "prob_id": "prob_r2_ratio_169",
+      "stem": "回归平方和为 64，总平方和为 80，求 R²。",
+      "expected": "0.8",
+      "kc_ids": [
+        "kc_r_squared",
+        "kc_regression"
+      ],
+      "pt_id": "pt_r_squared",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "R²=SSR/SST。",
+            "formula": "64/80=0.8"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "决定系数：关键步骤为“64/80=0.8”，答案为“0.8”。"
+      }
+    },
+    {
+      "prob_id": "prob_bootstrap_def_170",
+      "stem": "Bootstrap 的基本重采样方式是什么？",
+      "expected": "从原始样本中有放回地抽取",
+      "kc_ids": [
+        "kc_bootstrap"
+      ],
+      "pt_id": "pt_bootstrap_resampling",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "Bootstrap 从原始样本抽同样大小的新样本。",
+            "formula": "抽样方式：有放回"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Bootstrap 重采样：关键步骤为“抽样方式：有放回”，答案为“从原始样本中有放回地抽取”。"
+      }
+    },
+    {
+      "prob_id": "prob_bootstrap_n_171",
+      "stem": "Bootstrap 样本的通常规模与什么相同？",
+      "expected": "与原始样本量相同",
+      "kc_ids": [
+        "kc_bootstrap"
+      ],
+      "pt_id": "pt_bootstrap_resampling",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "标准非参数 Bootstrap 保持样本量。",
+            "formula": "n*=n"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Bootstrap 重采样：关键步骤为“n*=n”，答案为“与原始样本量相同”。"
+      }
+    },
+    {
+      "prob_id": "prob_bootstrap_se_172",
+      "stem": "Bootstrap 标准误通常用什么统计量估计？",
+      "expected": "Bootstrap 统计量重复值的样本标准差",
+      "kc_ids": [
+        "kc_bootstrap",
+        "kc_point_estimation"
+      ],
+      "pt_id": "pt_bootstrap_standard_error",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "对大量 Bootstrap 统计量取标准差。",
+            "formula": "SÊ=sd(θ̂*₁,…,θ̂*_B)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Bootstrap 标准误：关键步骤为“SÊ=sd(θ̂*₁,…,θ̂*_B)”，答案为“Bootstrap 统计量重复值的样本标准差”。"
+      }
+    },
+    {
+      "prob_id": "prob_bootstrap_ci_173",
+      "stem": "百分位 Bootstrap 置信区间使用重复统计量的哪些分位点？",
+      "expected": "通常取 2.5% 和 97.5% 分位点",
+      "kc_ids": [
+        "kc_bootstrap",
+        "kc_confidence_interval"
+      ],
+      "pt_id": "pt_bootstrap_ci",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "百分位法取分布尾部百分位。",
+            "formula": "[q₂.₅%,q₉₇.₅%]"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Bootstrap 置信区间：关键步骤为“[q₂.₅%,q₉₇.₅%]”，答案为“通常取 2.5% 和 97.5% 分位点”。"
+      }
+    },
+    {
+      "prob_id": "prob_bootstrap_b_174",
+      "stem": "增大 Bootstrap 重复次数 B 的主要作用是什么？",
+      "expected": "减小 Monte Carlo 模拟误差",
+      "kc_ids": [
+        "kc_bootstrap"
+      ],
+      "pt_id": "pt_bootstrap_consistency",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "B 越大，Monte Carlo 随机波动越小。",
+            "formula": "B↑ ⇒ 模拟误差↓"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Bootstrap 次数：关键步骤为“B↑ ⇒ 模拟误差↓”，答案为“减小 Monte Carlo 模拟误差”。"
+      }
+    },
+    {
+      "prob_id": "prob_bootstrap_dependence_175",
+      "stem": "对强时间相关序列直接做普通 Bootstrap 的主要问题是什么？",
+      "expected": "破坏时间依赖结构，普通重采样通常无效",
+      "kc_ids": [
+        "kc_bootstrap",
+        "kc_time_series"
+      ],
+      "pt_id": "pt_time_series_bootstrap",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "普通 Bootstrap 假设样本可交换。",
+            "formula": "时间相关序列不满足"
+          },
+          {
+            "explanation": "会破坏依赖结构。",
+            "formula": "需 block bootstrap 等方法"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "时间序列 Bootstrap：关键步骤为“需 block bootstrap 等方法”，答案为“破坏时间依赖结构，普通重采样通常无效”。"
+      }
+    },
+    {
+      "prob_id": "prob_excel_average_176",
+      "stem": "Excel 中计算算术平均值的常用函数是什么？",
+      "expected": "AVERAGE",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_sample_statistic"
+      ],
+      "pt_id": "pt_excel_descriptive",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "Excel 平均值函数。",
+            "formula": "=AVERAGE(range)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Excel 描述统计：关键步骤为“=AVERAGE(range)”，答案为“AVERAGE”。"
+      }
+    },
+    {
+      "prob_id": "prob_excel_vars_177",
+      "stem": "Excel 中计算样本方差的常用函数是什么？",
+      "expected": "VAR.S",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_sampling_distribution_variance"
+      ],
+      "pt_id": "pt_excel_descriptive",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "样本方差函数。",
+            "formula": "=VAR.S(range)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Excel 描述统计：关键步骤为“=VAR.S(range)”，答案为“VAR.S”。"
+      }
+    },
+    {
+      "prob_id": "prob_excel_norm_178",
+      "stem": "Excel 中 NORM.S.INV(0.975) 约等于多少？",
+      "expected": "1.96",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_confidence_interval"
+      ],
+      "pt_id": "pt_excel_distribution",
+      "gradable": true,
+      "answer_kind": "value",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "标准正态 97.5% 分位数。",
+            "formula": "NORM.S.INV(0.975)≈1.96"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Excel 分布函数：关键步骤为“NORM.S.INV(0.975)≈1.96”，答案为“1.96”。"
+      }
+    },
+    {
+      "prob_id": "prob_excel_chisq_179",
+      "stem": "Excel 中用于返回右尾卡方临界值的函数是什么？",
+      "expected": "CHISQ.INV.RT",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_chi_square_distribution"
+      ],
+      "pt_id": "pt_excel_distribution",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 1,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "右尾卡方临界值函数。",
+            "formula": "=CHISQ.INV.RT(alpha,df)"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Excel 分布函数：关键步骤为“=CHISQ.INV.RT(alpha,df)”，答案为“CHISQ.INV.RT”。"
+      }
+    },
+    {
+      "prob_id": "prob_excel_regression_180",
+      "stem": "Excel “数据分析”中的回归工具可直接输出哪三类核心结果？",
+      "expected": "回归系数、统计显著性和 R²",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_regression"
+      ],
+      "pt_id": "pt_excel_regression",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "回归工具输出系数估计。",
+            "formula": "斜率、截距"
+          },
+          {
+            "explanation": "同时输出显著性和拟合优度。",
+            "formula": "t/P 值、R²"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Excel 回归分析：关键步骤为“t/P 值、R²”，答案为“回归系数、统计显著性和 R²”。"
+      }
+    },
+    {
+      "prob_id": "prob_excel_simulation_181",
+      "stem": "在 Excel 中做随机模拟通常要组合哪两类操作？",
+      "expected": "随机数生成与批量重复计算",
+      "kc_ids": [
+        "kc_excel_statistics",
+        "kc_bootstrap"
+      ],
+      "pt_id": "pt_excel_simulation",
+      "gradable": false,
+      "answer_kind": "text",
+      "difficulty": 2,
+      "solution": {
+        "steps": [
+          {
+            "explanation": "先产生随机数。",
+            "formula": "RAND()/RANDBETWEEN()"
+          },
+          {
+            "explanation": "再复制公式并汇总统计量。",
+            "formula": "重复计算与汇总"
+          }
+        ],
+        "cite_id": null,
+        "explanation": "Excel 随机模拟：关键步骤为“重复计算与汇总”，答案为“随机数生成与批量重复计算”。"
+      }
+    }
+  ]
+}
