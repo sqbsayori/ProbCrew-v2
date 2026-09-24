@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/events.schema.json",
   "title": "答疑事件协议（SSE Frame · 14 类）",
   "description": "答疑链路（`POST /api/chat`）的流式事件协议：**帧信封 + 14 类事件的 payload 形状**。★ `docs/02 §6.5` 把「14 类」这件事推给了本契约（「帧格式与 14 类事件由 `events.schema.json` 定义（A3）」），因此**本文件是事件词汇表的唯一权威**。★ 本文件是**重写**（`ADR-0003` 决策 1 的搬运清单里只有 `user.schema.json`）；相对旧仓有三处**必须**改名，各带依据（见 `x-rename-from-old`）。★ 帧形状与旧仓**根本不同**：旧仓是**扁平**的（`type` + `ts` + 二十多个可选字段平铺顶层），v2 是 `docs/02 §4.2` 写死的**嵌套 payload**。",
-  "version": "v1.1",
+  "version": "v1.2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -481,25 +481,7 @@
                   "minItems": 3,
                   "description": "★ **`minItems: 3` 就是 F2 的结构断言**（「步骤数 ≥ 3」）。它只出现在本 kind 里 —— 讲解类（`explanation`）走另一支，因此**不会**被这条约束误判。",
                   "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "explanation",
-                      "formula"
-                    ],
-                    "description": "★ 每步的**两个字段都必须非空**（F2 的「每步含 {说明, 式子} 两字段非空」）。契约把它们命名为 `explanation` / `formula`（`docs/01` F2 与 `docs/02 §4.2-7` 里的「说明 / 式子」是中文简称）。",
-                    "properties": {
-                      "explanation": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 300
-                      },
-                      "formula": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 300
-                      }
-                    }
+                    "$ref": "#/definitions/solutionStep"
                   }
                 },
                 "cite_id": {
@@ -788,6 +770,99 @@
           "maxLength": 64
         }
       }
+    },
+    "solutionStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "explanation",
+        "formula"
+      ],
+      "description": "★ **F2 的步骤形状 —— 一个形状，两处落点**：① SSE 解答事件的 `artifact.payload.steps[]`（`minItems: 3` 留在那一支）· ② `GET /api/runs/{id}` 的 `runSnapshot.steps[]`（`docs/02 §4.2-7` ②）。每步的**两个字段都必须非空**（F2 的「每步含 {说明, 式子} 两字段非空」）。契约把「说明 / 式子」命名为 `explanation` / `formula`（`docs/01` F2 与 `docs/02 §4.2-7` 里的中文是**简称**）。★ **抽成独立定义是 v1.2 做的**（见 `x-changelog`）：此前它内联在 `artifactPayload` 里，而 F2 的第二处落点若再写一份，同一件事就会有两份**可以各自漂移**的定义。",
+      "properties": {
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "formula": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      },
+      "examples": [
+        {
+          "explanation": "由全概率公式展开",
+          "formula": "P(B) = P(B|A)P(A) + P(B|¬A)P(¬A)"
+        }
+      ]
+    },
+    "runSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "status",
+        "steps",
+        "updated_at"
+      ],
+      "description": "★ **`GET /api/runs/{id}` 的响应 —— F2 结构断言的第二处落点**（`docs/02 §4.2-7` ②：「解答步骤以 `steps[]` 出现在两处」）。★ **2026-09-24 落进契约**（`docs/04 §9` 缺口 8）：此前本契约的 `definitions` **恰好 14 个、全部是 SSE 事件的 payload**，本端点被正文与覆盖表引用却**没有形状** —— 而校验④只比 path 在不在覆盖表里，因此它**永远绿**。★ **run 只存在于进程内存**（`docs/02 §5.1` 的图检查点）：进程重启后本端点返回 **404 `not_found`**、**不做持久化**（已裁定 —— 与「服务端不做重放缓冲、断流即重新发起」自洽：客户端本来就不能靠 run 续传）。★ 三处**复用**不另立形状：`steps[]` 用 `#/definitions/solutionStep`（与解答事件同一个形状）· `hitl` 用 `#/definitions/hitlRequestPayload`（`docs/04 §9` 缺口 8 的**建议形状**写的是 `{question, options[]}`，此处**刻意偏离**：同一件挂起事实只能有一个形状，否则 SSE 的 `hitl.request` 与本端点会各写一份、各自漂移；若 W3 / 域3 认为需要独立的 `question` 字段，按 `docs/04 §6` 提案加一个**可选字段**即可）· `verification` 跨文件 `$ref` 到 `verification.schema.json`（与 `verificationReportPayload.report` 同一个权威）。",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "running",
+            "hitl_pending",
+            "done",
+            "error"
+          ],
+          "description": "run 的当前状态。★ **建议取值（2026-09-24 起草 —— ★ 待 W3 / 域3 确认）**：`running`（生产中）· `hitl_pending`（图在 `interrupt()` 处挂起 ⇒ `hitl` 必须存在）· `done`（正常终帧）· `error`（错误终帧，`code` 见 `error.schema.json`）。★ 它与 SSE 的 `done` / `error` / `hitl.request` **必须一致**：同一时刻只能有一个权威状态（两处打架时前端无法判断该显示进度条还是终态）。"
+        },
+        "steps": {
+          "type": "array",
+          "description": "**已完成**的解答步骤 —— 与 SSE 的 `artifact.payload.steps[]` **同一个形状**（同一个 `$ref`）。★ **这里刻意不设 `minItems: 3`**：本端点可以在**运行中**查询（`status: running`，此时步骤可能一步都没完成）；F2 的「步骤数 ≥ 3」由 `kind=\"solution\"` 的事件承担。★ **但 `status: done` 且这是 solve 类解答时，本字段必须与该次解答事件的 `payload.steps` 逐值一致** —— 两处是**同一次生成的同一份数据**，不是各生成一次；**这就是 F2「两处落点」的可断言形式**。",
+          "items": {
+            "$ref": "#/definitions/solutionStep"
+          }
+        },
+        "hitl": {
+          "$ref": "#/definitions/hitlRequestPayload"
+        },
+        "verification": {
+          "$ref": "verification.schema.json"
+        },
+        "updated_at": {
+          "type": "number",
+          "description": "快照更新时刻（epoch 秒，float）—— 与 SSE 帧的 `ts` 同口径。"
+        }
+      },
+      "examples": [
+        {
+          "run_id": "run_5f2c9a1b",
+          "status": "done",
+          "steps": [
+            {
+              "explanation": "记 A 为「患病」、B 为「检测阳性」",
+              "formula": "P(A) = 0.01"
+            },
+            {
+              "explanation": "由贝叶斯公式代入灵敏度与特异度",
+              "formula": "P(A|B) = P(B|A)P(A) / P(B)"
+            },
+            {
+              "explanation": "代入数值得到后验概率",
+              "formula": "P(A|B) ≈ 0.0833"
+            }
+          ],
+          "updated_at": 1789543902.44
+        }
+      ]
     }
   },
   "x-rename-from-old": {
@@ -895,6 +970,15 @@
   "x-changelog": {
     "description": "★ 契约变更记录（`docs/04 §6` 第 4 步：新增枚举值属兼容变更，但必须记账）。**v2 不另设 `contracts/CHANGELOG.md`** —— 记录就在契约文件里，历史由 git log 承担。",
     "entries": [
+      {
+        "version": "v1.2",
+        "date": "2026-09-24",
+        "type": "兼容增量",
+        "change": "新增 `definitions.runSnapshot`（`GET /api/runs/{id}` 的响应）· 把 `artifactPayload(kind=\"solution\").steps.items` 的内联形状抽成 `#/definitions/solutionStep`，两处 `$ref` 同一个形状",
+        "why": "★ **F2 的结构断言有第二处落点**（`docs/02 §4.2-7` ②：`GET /api/runs/{id}` 的 `steps: [{说明, 式子}]`），而本契约的 `definitions` 此前**恰好 14 个、全部是 SSE 事件的 payload** —— 该端点被 `docs/04 §3` 的覆盖表引用，**形状却不存在**（`docs/04 §9` 缺口 8）；而校验④只比 path 在不在覆盖表里，因此这一条**永远绿**。★ 抽 `solutionStep` 是因为：两处落点若各写一份形状，F2 的断言就变成两条**可以各自漂移**的定义 —— 那正是本仓反复禁止的「同一件事两处记载」。",
+        "compat": "新增定义 + 同形状抽取 ⇒ **`oneOf` 分支未增删、`type` 枚举仍是 14 类**（`x-type-count` 不变）、既有 payload 的校验结果**逐字不变**（内联块与 `solutionStep` 的字段/约束一一对应）；且本端点**尚未实现**（W3 属阶段 B）⇒ 不存在已发布客户端。",
+        "pending_confirmation": "★ `runSnapshot.status` 的 4 个取值（`running` / `hitl_pending` / `done` / `error`）是 **2026-09-24 起草的建议值 —— 待 W3 / 域3 确认**（`docs/04 §9` 缺口 8 的建议形状只给了字段名，没给取值集合）；`docs/04 §5` 允许「新增枚举值」属兼容变更，确认后若要增删，按 `docs/04 §6` 再走一次提案即可。★ 与建议形状的另一处偏差（`hitl` 复用 `hitlRequestPayload` 而不另立 `{question, options[]}`）写在 `runSnapshot` 的 `description` 里。"
+      },
       {
         "version": "v1.1",
         "date": "2026-09-16",
