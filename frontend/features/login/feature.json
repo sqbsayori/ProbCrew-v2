@@ -1,0 +1,11 @@
+{
+  "id": "login",
+  "dir": "login",
+  "title": "登录",
+  "icon": "🔑",
+  "route": "login",
+  "group": "账号",
+  "order": 5,
+  "class": "product",
+  "subtitle": "账号与令牌（F15 · N6）"
+}

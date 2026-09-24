@@ -50,6 +50,7 @@
     import { role, token } from './core/auth.js'
     import { emptyState, notice } from './components/index.js'
     import './features/home/index.js'
+    import './features/login/index.js'
 
     /** 骨架版本号（广播进 `app:ready`，便于确认"跑的是哪一版外壳"）。 */
     const SHELL_VERSION = 'w0a'
@@ -57,9 +58,11 @@
     /**
      * 页面清单（route 与 `docs/03 §5.2` 的 7 个 v2 页面一一对应）。
      * ★ W1–W4 在这里把占位换成各 feature 的 `index.js`（一人一页，`frontend/features/<x>/`）。
+     * ★ **某个页面真正上线时，必须把它的那一行从这里删掉**（`docs/03 §7④` 第 3 步）——
+     *   `router.register` 是**后注册者生效**，而本清单在 feature 的 `import` **之后**注册，
+     *   不删就会用占位盖住真页面（`#/login` 已于 W1 ④ 上线，故不在本清单里）。
      */
     const PAGES = [
-      { path: '#/login', title: '登录', subtitle: '账号与令牌（F15 · N6）' },
       { path: '#/practice', title: '练习', subtitle: '答疑与刷题（#/practice?kc=&item=&hint=）' },
       { path: '#/wrong', title: '错题本', subtitle: '错题复习（#/wrong?kc=&cursor=）' },
       { path: '#/knowledge', title: '知识点', subtitle: '知识图谱（#/knowledge?kc=&view=）' },
@@ -118,11 +121,21 @@
       main.prepend(notice({ message, tone }))
     })
 
-    /** 统一错误体：401 一律回登录页（清令牌在 core/api.js 里做，跳转是外壳的决定）。 */
+    /**
+     * 统一错误体：**跳转是外壳的决定**（清令牌在 `core/api.js` 里做）。
+     * 两条动作来自 `docs/02 §6.3` 的**前端行为列**：
+     *   - `401 unauthenticated` ⇒ 回登录页；
+     *   - `403 must_change_pw` ⇒ **强制跳设置页改密，且不清本地令牌**（令牌本身有效）——
+     *     ★ 它是"去做一件事"，不是报错，因此提示用 `warn` 而不是 `danger`。
+     */
     on(EVENTS.API_ERROR, (error) => {
       const detail = error instanceof ApiError ? `（${error.code}）` : ''
       if (error?.status === 401) navigate('#/login')
-      emit(EVENTS.NOTICE, { message: `${error?.message ?? '请求失败'}${detail}`, tone: 'danger' })
+      else if (error?.code === 'must_change_pw') navigate('#/settings?tab=model')
+      emit(EVENTS.NOTICE, {
+        message: `${error?.message ?? '请求失败'}${detail}`,
+        tone: error?.code === 'must_change_pw' ? 'warn' : 'danger',
+      })
     })
 
     paintSession()
