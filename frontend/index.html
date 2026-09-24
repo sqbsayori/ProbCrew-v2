@@ -42,11 +42,11 @@
 
   <script type="module">
     // 六个 core 模块全部在此 import —— 这就是"六个模块可被 import"的落点（docs/03 §5.1）
-    import { el, mount, qs, setText } from './core/dom.js'
+    import { el, mount, qs, setText, txt } from './core/dom.js'
     import { EVENTS, emit, on } from './core/bus.js'
     import { store } from './core/store.js'
     import { register, setFallback, start, navigate } from './core/router.js'
-    import { ApiError } from './core/api.js'
+    import { ApiError, get, post } from './core/api.js'
     import { role, token } from './core/auth.js'
     import { emptyState, notice } from './components/index.js'
     import './features/home/index.js'
@@ -100,12 +100,69 @@
       }))
     })
 
+    /**
+     * ★ **N15 首告（MUST）—— 外壳级的"数据外传告知"**（域1 的页面/外壳面；域2 的 `#/settings` 仍随时可查）。
+     *
+     * 三条口径全部来自别处，本段只执行：
+     *   - **判据是去向（`egress`），不是部署形态**（`docs/02 §1.5①`）：单机形态也包含远程端点；
+     *   - **文案由服务端一处组合**进 `noticeStatus.message`，契约里标 `must_render`（R-I 的落点）⇒
+     *     前端**只渲染，不自己拼文案**（否则"实际去向"与"展示的去向"会变成两个来源）；
+     *   - 确认后 `POST /api/me/notice` 置位 `{ack:true}`（`noticeAckRequest` 只允许 `true`），
+     *     服务端记 `notice_ack_at` —— **换设备仍须告知**。
+     *
+     * ★ 端点未就绪（W3 尚未交付）或读取失败时**静默跳过**：既不伪造告知，也不在每次登录后报红。
+     * ★ 它挂在 `#app-main` 之外？—— 不，页面渲染会 `replaceChildren(#app-main)`，
+     *   因此改为**每次路由变化后重新挂上**（见下面的 `ROUTE_CHANGED`），这样切页不会把告知抹掉。
+     */
+    let egressBanner = null
+
+    function buildEgressBanner(status) {
+      const ack = el('button', {
+        class: 'button button--primary',
+        type: 'button',
+        text: '我知道了',
+        onclick: async () => {
+          ack.disabled = true
+          try {
+            await post('/api/me/notice', { ack: true })
+          } catch {
+            /* 置位失败不阻塞用户：下次进来会再问一次（不假装已确认） */
+          }
+          egressBanner?.remove()
+          egressBanner = null
+        },
+      })
+      return el('div', {
+        class: 'notice notice--warn notice--ack',
+        role: 'region',
+        'aria-label': '数据外传告知',
+        dataset: { block: 'notice-egress' },
+      }, [
+        el('p', { class: 'notice__message' }, [txt(status.message)]),
+        el('div', { class: 'notice__actions' }, [ack]),
+      ])
+    }
+
+    async function announceIfNeeded() {
+      if (!token()) return
+      try {
+        const status = await get('/api/me/notice')
+        if (!status?.ask) return
+        egressBanner = buildEgressBanner(status)
+        main.prepend(egressBanner)
+      } catch {
+        /* ★ 静默：`GET /api/me/notice` 属 W3，未就绪时不该在每次登录后弹一条红提示 */
+      }
+    }
+
     /** 顶栏登录态：读 core/auth.js，变化由 auth:changed 驱动（不轮询、不各存一份）。 */
     function paintSession() {
       setText(sessionBadge, token() ? `已登录 · ${role() ?? '角色待取回'}` : '未登录')
     }
 
     on(EVENTS.AUTH_CHANGED, paintSession)
+    /** 登录成功后（含换账号）问一次"这次要不要告知" —— N15 的触发粒度是**每账号一次**。 */
+    on(EVENTS.AUTH_CHANGED, ({ token: nextToken } = {}) => { if (nextToken) announceIfNeeded() })
 
     /** 导航高亮 + 当前路由进 store（跨页面临时态的唯一去处，docs/02 §7.4）。 */
     on(EVENTS.ROUTE_CHANGED, (route) => {
@@ -114,6 +171,9 @@
         if (link.getAttribute('href') === `#${route.path}`) link.setAttribute('aria-current', 'page')
         else link.removeAttribute('aria-current')
       }
+      // ★ 页面渲染用的是 `mount(#app-main, …)`（= `replaceChildren`）⇒ 待确认的告知会被抹掉，
+      //   这里在每次路由变化后重新挂上（N15 是 MUST，不能因为切了一次页就消失）。
+      if (egressBanner) main.prepend(egressBanner)
     })
 
     /** 用户可见提示：外壳统一在这里落地（含 F17/F18 的**显式降级话术**）。 */
@@ -139,6 +199,9 @@
     })
 
     paintSession()
+    // ★ 刷新后令牌还在（`core/auth.js` 只把令牌落 localStorage）⇒ 也要问一次：
+    //   `notice_ack_at` 在**服务端**，所以"确认过就不再问"由服务端保证。
+    announceIfNeeded()
     start()
     emit(EVENTS.APP_READY, { version: SHELL_VERSION })
   </script>
