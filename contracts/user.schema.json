@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/user.schema.json",
   "title": "账号（Account）",
   "description": "登录账号的对外视图。**任何接口都不得返回 password_hash** —— 本契约用 additionalProperties:false 把这条钉死：往响应里加字段会直接违反契约。账号是权限的唯一来源（服务端 identity/），前端藏菜单不算权限。★ 本文件**搬运自旧仓 `contracts/user.schema.json`**（ADR-0003 决策 1 指定的唯一搬运契约），**形状逐字保留**，只做「只增不改」允许的增量 —— 增量清单见 `x-v2-deviations`。",
-  "version": "v1.2",
+  "version": "v1.3",
   "type": "object",
   "additionalProperties": false,
   "required": ["user_id", "username", "display_name", "role", "status", "created_at"],
@@ -400,6 +400,115 @@
           "const": "student"
         }
       }
+    },
+    "auditRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "audit_id",
+        "actor_id",
+        "actor_role",
+        "target_id",
+        "action",
+        "detail",
+        "created_at"
+      ],
+      "description": "★ **`GET /api/admin/audit` 的审计行 —— 2026-09-24 落进契约**（`docs/04 §9` 缺口 9）：此前本端点被覆盖表映射到「C3（审计行）」，而本文件的 `definitions` **恰好 10 个里没有审计行**（`audit` 只以 `deleteResult.audit_rows_retained`（计数）与 `adminPasswordResetResult.audit_written`（布尔）出现）—— 校验④只断言「每一条 path 都出现在覆盖表里」，而这条 path **在表里** ⇒ 它**永远绿**。★ 字段级**散文**权威仍是 `docs/02 §3.1` 的 `student_audit` 行（「谁在何时看了 / 改了谁的数据」），本契约只给**形状**。★ 它同时是 **R-J / R-M 的机检形式**：`detail` 用 `propertyNames` 排除敏感键名 —— 与 `error.detail` **同一个写法**，不另立一套。",
+      "properties": {
+        "audit_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "审计行标识。★ 必须**稳定且唯一** —— 它是排障时「指名一条审计」的引用锚点（`audit_id` **不承担分页**：审计列表的排序键是 `created_at`）。"
+        },
+        "actor_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "**谁**做的（化名 ID，N6）。★ 审计表天然跨用户：`actor_id` 与 `target_id` 都可能指向别人（`docs/02 §3.1`）。"
+        },
+        "actor_role": {
+          "type": "string",
+          "enum": [
+            "student",
+            "admin"
+          ],
+          "description": "动作发出时的角色。★ 取值集合与 `#/definitions/adminUserRow.role` **同源**（`student` / `admin`）—— 审计要能回答「**是管理员看的，还是学生删自己的**」，这决定了这条记录是不是监督证据。"
+        },
+        "target_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64,
+          "description": "被查看 / 被改动的账号。★ **必填但可空**（`null` = 该动作没有对象，如 `view_audit`）—— 这与 `qa-log.answer` 的写法同一个理由：「必填」是为了让写入方**显式表态**，而不是漏写一个字段让读方去猜。★ 看 / 改**自己**时写 `actor_id`（**不要**另立「null 表示自己」的第二套口径）。"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "view_students",
+            "view_users",
+            "view_audit",
+            "import_users",
+            "update_user",
+            "reset_password",
+            "delete_user",
+            "delete_own_data"
+          ],
+          "description": "★ **建议取值（2026-09-24 起草 —— ★ 待 W1 / 域2 确认）**，逐项对应一条**已发布**的动作：`view_students` = `GET /api/admin/students`（数据视图）· `view_users` = `GET /api/admin/users` · `view_audit` = `GET /api/admin/audit`（**看审计本身也要留痕**）· `import_users` = `POST /api/admin/users/import` · `update_user` = `PATCH /api/admin/users/{id}` 的其余字段（角色 / 状态 / 锁定）· `reset_password` = 同一个 `PATCH` 的**重置密码**分支（它同时写 `adminPasswordResetResult.audit_written`）· `delete_user` = `DELETE /api/admin/users/{id}` · `delete_own_data` = **学生自己**的 `DELETE /api/me/data`（`docs/02 §3.1` 已裁定「**删除动作本身必须写一条审计**（谁删的、删了几行）」⇒ 因此 `actor_role` 可以是 `student`）。★ **不含 `export_students`**：`ADR-0002` 的散文里提到管理员「导出 CSV」，但 v2 的 **25 条 path 里没有导出端点** ⇒ 按 `docs/04 §5` 口径 3「从未发布过的取值不进枚举」处理。★ **只增不改**：新增动作 = 加一个枚举值 + 记一笔（`docs/04 §6`）。"
+        },
+        "detail": {
+          "type": "object",
+          "description": "结构化补充（哪个字段变了、改前改后是什么）。★ **不得放敏感值** —— `propertyNames` 把常见敏感键名直接排除，这是「凭据不得进审计」的可机检形式（与 `error.detail` 同型）。★ 另一条纪律是 **R-O：只记 ID 与动作，不记内容** ⇒ **不得**出现提问原文 / 学生答案 / 教材片段 / 凭据。",
+          "propertyNames": {
+            "not": {
+              "pattern": "(?i)(key|token|secret|password|passwd|credential|authorization|api_?key)"
+            }
+          },
+          "additionalProperties": true,
+          "examples": [
+            {
+              "field": "status",
+              "from": "active",
+              "to": "locked"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "number",
+          "description": "动作时刻（epoch 秒，float）。★ 它是审计列表的**排序键**（`docs/02 §3.5` 的 `audit(actor_id, created_at)` 与 `audit(target_id, created_at)` 两个索引都按时间排）。"
+        }
+      },
+      "examples": [
+        {
+          "audit_id": "aud_7d1c2b3a4e5f",
+          "actor_id": "usr_9f8e7d6c5b4a",
+          "actor_role": "admin",
+          "target_id": "usr_ab12cd34ef56",
+          "action": "reset_password",
+          "detail": {
+            "must_change_pw": true,
+            "sessions_revoked": 2
+          },
+          "created_at": 1789544000.5
+        },
+        {
+          "audit_id": "aud_1a2b3c4d5e6f",
+          "actor_id": "usr_ab12cd34ef56",
+          "actor_role": "student",
+          "target_id": "usr_ab12cd34ef56",
+          "action": "delete_own_data",
+          "detail": {
+            "deleted_rows": {
+              "qa_log": 12,
+              "hint_log": 3,
+              "attempt": 9,
+              "mastery": 4
+            }
+          },
+          "created_at": 1789544200.75
+        }
+      ]
     }
   },
   "x-v2-deviations": {
@@ -413,7 +522,8 @@
       "definitions.deleteResult（F16 的四类处置 + 两条边界）",
       "definitions.adminUserRow / adminPasswordResetResult / adminImportRequest / adminImportResult（账号管理）",
       "username 的复用规则写进 description（口径澄清，非语义变更）",
-      "★ v1.2：noticeStatus.message（N15 告知文案的**显示字段**，标 must_render —— R-I 的落点）"
+      "★ v1.2：noticeStatus.message（N15 告知文案的**显示字段**，标 must_render —— R-I 的落点）",
+      "★ v1.3：definitions.auditRow（`GET /api/admin/audit` 的审计行 —— `docs/04 §9` 缺口 9 的落点；R-J / R-M 的机检形式写在它的 `detail.propertyNames`）"
     ],
     "not_used_in_v2": [
       "user_id 取值 usr_history —— v2 不迁旧数据",
@@ -425,6 +535,13 @@
       "why": "★ **R-I 的落点此前是空的**：`docs/02 §10` 的 N15 行写着「渲染（R-I `must_render`）」，而本契约里**没有任何 `must_render` 标记** —— 前端冒烟测试**无从断言**。N15 是 **MUST**（「必须显著告知」），不能只靠自觉。",
       "required_field_evaluation": "★ `docs/04 §5` 把「给已有对象**新增必填字段**」列为 ⚠️ 需评估。**评估结论：v2 尚未发布，不存在已发布客户端**，故可直接设为必填；若已有发布客户端，须先可选 + 双写一段时间再收紧。",
       "compat": "新增字段本身属兼容变更；本文件既有字段名与取值集合**一律未动**（「只增不改」）。`noticeStatus` 的其余字段（`egress` / `provider` / `model` / `payload_fields`）**全部保留** —— N16 验收③ 仍要靠 `payload_fields` 抓载荷比对。"
+    },
+    "increment_v1_3": {
+      "changed": "新增 `definitions.auditRow`（`GET /api/admin/audit` 的审计行），本文件 version 提到 v1.3",
+      "why": "★ **缺口的形态是「声明了、契约里没有」**：`docs/04 §3` 的覆盖表把该端点映射到「C3（审计行）」，而本文件的 `definitions` **恰好 10 个里没有审计行**（`audit` 只以 `deleteResult.audit_rows_retained` 的计数与 `adminPasswordResetResult.audit_written` 的布尔出现）。★ 而校验④只断言「每一条 path 都出现在覆盖表里」，这条 path **在表里** ⇒ 它**永远绿**（`docs/04 §9` 缺口 9 原文）。",
+      "enum_evaluation": "★ **`action` 的 8 个取值与 `target_id` 的两条口径是 2026-09-24 起草的建议值 —— 待 W1 / 域2 确认**（`docs/04 §9` 缺口 9 的建议形状只给了字段名与「枚举 / 对象」两类，没有给取值集合）。`docs/04 §5` 把「新增枚举值」列为兼容变更 ⇒ 确认后若要增删，按 `docs/04 §6` 再走一次提案即可，不构成破坏性变更。",
+      "shape_deviation": "★ 与 `docs/04 §9` 建议形状的**一处偏差**：`target_id` 在建议形状里标为可选（`target_id?`），本契约取为**必填但可空**（`[\"string\",\"null\"]`）—— 理由与 `qa-log.answer` 相同：「必填」是为了让写入方**显式表态**（没有对象就写 `null`），而不是漏写一个字段让读方去猜。",
+      "compat": "只新增一个 `definitions` 条目：**没有任何字段被删改、没有既有对象的形状被收紧** ⇒ 对既有消费方零影响；且 v2 尚未发布，不存在已发布客户端。"
     }
   },
   "examples": [
