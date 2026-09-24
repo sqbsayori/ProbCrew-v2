@@ -110,6 +110,13 @@
 .notice--warn { border-left-color: var(--color-warn); }
 .notice--danger { border-left-color: var(--color-danger); background: var(--color-danger-soft); }
 
+/* ★ 带确认按钮的提示条（N15 首告的外壳级 banner，域1）。
+   `.notice` 本来是横排（图标 + 文本），而 N15 的文案很长（去向 + 载荷范围 + 删除权边界句）
+   ⇒ 改为竖排：文案在上、确认按钮在下。 */
+.notice--ack { flex-direction: column; align-items: flex-start; }
+.notice__message { margin: 0; }
+.notice__actions { display: flex; gap: var(--space-2); }
+
 /* ---- 图表占位（W0a 只有占位：组件清单里的"图表"属后续工作包）------------ */
 
 .chart-placeholder {
