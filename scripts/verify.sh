@@ -632,6 +632,52 @@ def rd_hardcoded_colors() -> str:
     return f"{scanned} 个 CSS 文件（豁免：`tokens.css` · `vendor/` 第三方原件 {vendor_files} 件）"
 
 
+def frontend_smoke_static() -> str:
+    """前端冒烟的**静态面**（ADR-0006）：挂载点 · import 图闭合 · 路由监听 · 尺寸令牌被用。
+
+    ★ **渲染面不在这里** —— 真实点击尺寸（R-F①）· 键盘可达与语义标签（R-F②）· 哈希跳转**是否
+      真的发生**（R-G）· `must_render` 是否**真的上屏**（R-I）都要真跑 DOM，而 ADR-0006 决定
+      **不把无头浏览器带进门禁**（ADR-0001 的零安装前提）。那几条由 `docs/06 §14.5` 检查点
+      第 2 条"端到端走一遍并刷新页面"的人工验收覆盖，并在覆盖台账里逐条打印。
+    """
+    index = "frontend/index.html"
+    assert os.path.exists(index), "缺 `frontend/index.html`（同源托管的唯一入口）"
+    assert 'id="app-main"' in read(index), "`index.html` 里没有 DOM 挂载点 `#app-main`（`docs/03 §5.1`）"
+
+    seen: set[str] = {index}
+    queue = [index]
+    edges = 0
+    while queue:
+        current = queue.pop()
+        base = os.path.dirname(current)
+        for raw in re.findall(r"""(?:import|from)\s*\(?\s*["']([^"']+)["']""", read(current)):
+            if not raw.startswith("."):
+                continue
+            edges += 1
+            target = os.path.normpath(os.path.join(base, raw))
+            assert os.path.exists(target), (
+                f"{current} 引用了不存在的模块：{raw} —— 同源托管下它就是 404（白屏级故障）"
+            )
+            if target not in seen:
+                seen.add(target)
+                queue.append(target)
+
+    router = read("frontend/core/router.js")
+    for event in ("hashchange", "popstate"):
+        # ★ 认**注册**那一句，不认"词出现过" —— 第一版写成 `event in router` 时，"监听被删掉、
+        #   只剩注释与 removeEventListener" 照样通过（反向演示当场抓到）。
+        assert re.search(rf"addEventListener\(\s*[\"']{event}[\"']", router), (
+            f"`core/router.js` 里没有 `addEventListener('{event}', …)`（`docs/01` N11 的可寻址面）"
+        )
+
+    targets = [path for path in frontend_files() if path.endswith(".css") and "var(--target-min)" in read(path)]
+    shell = [path for path in targets if path.startswith(("frontend/styles/", "frontend/features/"))]
+    assert shell, "外壳与页面样式里没有一处使用 `var(--target-min)` —— N8① 的声明面没接上"
+    names = " · ".join(os.path.basename(os.path.dirname(path)) + "/" + os.path.basename(path)
+                       for path in targets)
+    return f"import 图 {len(seen)} 文件 / {edges} 条边闭合 · 挂载点 + hashchange/popstate · --target-min {len(targets)} 处（{names}）"
+
+
 def vendor_integrity() -> str:
     """`frontend/vendor/**` 的**本地化完整性**（N4 的实物）：许可 · 来源 · CSS 引用全部命中。
 
@@ -1082,11 +1128,15 @@ def coverage_ledger() -> str:
                          ("docs/04-契约层说明.md", "7")):
         assert has_section(path, number), f"覆盖台账引用的 `{path} §{number}` 不存在（指针烂了）"
     outside = ("R-C（责任人，`docs/05 §2.4`）· R-M⑥（无埋点 / 无导出路径，review）"
-               "· R-L · R-N（**只有用例**）· R-F①② / R-G / R-I（**前端冒烟**，要真跑页面）")
+               "· R-L · R-N（**只有用例**；`docs/06 §8` 的\"落在哪\"列就是这么写的）"
+               "· ★ **前端冒烟的渲染面**：R-F① 真实点击尺寸 · R-F② 键盘可达与语义标签 · "
+               "R-G 哈希跳转**是否真的发生** · R-I `must_render` **是否真的上屏**（静态面已在下一节，"
+               "渲染面按 ADR-0006 留人工 —— 要真跑 DOM，与零安装冲突）")
     later = ("`api/` 薄（对象未产出）· 启动校验七条（`docs/06 §4` 第 8 项，输入资产未齐）"
              "· 运维演练 ②③④ 与 `backup.py` / `load_test.py`（第 9 项）"
-             "· `content/eval/sample/**` 与 `scripts/eval_verify.py`（阶段 C）"
-             "· `frontend/vendor/` 本地化（N4 的实物，落地时要一并定 vendor 的 R-D 口径）")
+             "· ★ 样例集的**端到端执行**（格式与引用闭包已接）与 `scripts/eval_verify.py`（阶段 C）"
+             "· 冻结正式集与期望判据表（**不入主仓**，人工门禁）"
+             "· ★ vendor 里第三方代码的**审读**（本地化完整性已接，审读不是脚本的事）")
     return f"不在本脚本：{outside} ⇒ 批次 3 其余：{later}"
 
 
@@ -1142,6 +1192,9 @@ def main() -> int:
             ("后端模块依赖白名单", import_direction),
             ("前端 features / components 依赖互斥", frontend_import_direction),
             ("`api/` 薄（单函数 ≤ 40 行 · 无 SQL）", api_is_thin),
+        ]),
+        ("前端冒烟（ADR-0006：静态面在门禁 · 渲染面留人工）", [
+            ("静态面（挂载点 · import 图闭合 · 路由监听 · 尺寸令牌）", frontend_smoke_static),
         ]),
         ("覆盖台账（如实登记\"没查什么\"）", [
             ("不在本脚本 / 批次 3 其余部分", coverage_ledger),
