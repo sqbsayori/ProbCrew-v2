@@ -7,6 +7,12 @@
  * ★ N8 的载体（docs/06 §12.4 的补记）：本文件同时是"对比度 ≥ 4.5:1 只对**声明的色对**可自动"
  * 那份**色对清单**的落点 —— 下面每条前景色都注明了它与哪个背景成对、以及实测对比度口径。
  * ★ 渲染结果的对比度**不在本轮验收内**（要无头浏览器，与"零安装"冲突，docs/01 N8 已记账）。
+ *
+ * ★ **色对清单的机器可读形式（2026-09-27 补 · W5 的 R-F③ 落地时定）**：
+ *     `@contrast-pair: <前景令牌> on <背景令牌>`（阈值缺省 4.5:1；要别的写 `, min 3.0`）
+ *   —— scripts/verify.sh **逐对重算**对比度，且**只对本清单负责**。⇒ **新增一组"前景 on 背景"
+ *   的用法就补一行**：没写进清单的色对，门禁看不见它，而"没声明"与"达标"必须长得不一样
+ *   （docs/06 §14.4 的口径）。
  */
 
 :root {
@@ -30,6 +36,22 @@
   --color-danger-soft: #fbeceb;
 
   --color-focus: #0b57d0;           /* 键盘焦点环（N8② 键盘可达）*/
+
+  /* ★ **声明的色对**（R-F③ 的**唯一输入**；`scripts/verify.sh` 逐对重算 WCAG 对比度，
+   *   阈值缺省 4.5:1。新增一组"前景 on 背景"的用法时**必须在这里补一行**）：
+   *   @contrast-pair: --color-text on --color-bg
+   *   @contrast-pair: --color-text on --color-surface
+   *   @contrast-pair: --color-text-muted on --color-bg
+   *   @contrast-pair: --color-text-muted on --color-surface
+   *   @contrast-pair: --color-primary on --color-surface
+   *   @contrast-pair: --color-text-inverse on --color-primary
+   *   @contrast-pair: --color-text-inverse on --color-primary-hover
+   *   @contrast-pair: --color-text-inverse on --color-danger
+   *   @contrast-pair: --color-danger on --color-surface
+   *   @contrast-pair: --color-danger on --color-surface-muted
+   *   @contrast-pair: --color-warn on --color-surface
+   *   @contrast-pair: --color-success on --color-surface
+   */
 
   /* ---- 圆角 -------------------------------------------------------------- */
   --radius-sm: 4px;
