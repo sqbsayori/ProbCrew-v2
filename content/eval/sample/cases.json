@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {
+      "case_id": "sample_direction_reversed_01",
+      "item_id": "prob_conditional_basic_005",
+      "answer": "0.4",
+      "expected_conclusion": "判定为错；一级分类「方向颠倒」—— 把条件概率写成 P(B|A)=P(AB)/P(A)=0.2/0.5=0.4，而题目求的是 P(A|B)=2/3"
+    },
+    {
+      "case_id": "sample_n_times_wrong_02",
+      "item_id": "prob_complement_coins_004",
+      "answer": "1/2",
+      "expected_conclusion": "判定为错；一级分类「n 乘错」—— 把 4 次独立投掷的『至少出现一次正面』当成单次概率 1/2，忽略 n 次试验的独立性（正确为 15/16）"
+    },
+    {
+      "case_id": "sample_unit_confusion_03",
+      "item_id": "prob_chebyshev_bound_055",
+      "answer": "1/2",
+      "expected_conclusion": "判定为错；一级分类「单位错」—— 把方差 9 当成标准差用（3/6=1/2），切比雪夫上界应为 σ²/6²=9/36=1/4"
+    }
+  ]
+}
