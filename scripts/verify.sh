@@ -607,19 +607,61 @@ def rb_write_commit() -> str:
 
 
 def rd_hardcoded_colors() -> str:
-    """R-D：样式**禁硬编码色值** —— 唯一豁免 `frontend/styles/tokens.css`（`docs/02 §1.6`）。"""
+    """R-D：样式**禁硬编码色值** —— 两个豁免：`frontend/styles/tokens.css` 与 `frontend/vendor/**`。
+
+    ★ **为什么多一个豁免**（2026-09-27 · katex 本地化时定）：`vendor/` 是**第三方原件**
+      （`docs/03 §5.1` 判给架构与集成、`.gitattributes` 把它标成 binary）—— 它的色值
+      **不是我们的令牌面**，改它等于改第三方产物。⇒ 它由**许可 + 来源 + vendor 完整性一节**守，
+      不由 R-D 守。★ 豁免**逐件打印**（`vendor/` 几件），不静默跳过。
+    """
     pattern = re.compile(r"#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|oklab|color-mix)\(", re.I)
     scanned = 0
+    vendor_files = 0
     offenders: list[str] = []
     for path in frontend_files():
         if not path.endswith(".css") or path.endswith("styles/tokens.css"):
+            continue
+        if path.startswith("frontend/vendor/"):
+            vendor_files += 1
             continue
         scanned += 1
         for lineno, line in enumerate(read(path).splitlines(), 1):
             if pattern.search(line):
                 offenders.append(f"{path}:{lineno}")
     assert not offenders, "硬编码色值：" + "；".join(offenders[:5])
-    return f"{scanned} 个 CSS 文件（`tokens.css` 已豁免）"
+    return f"{scanned} 个 CSS 文件（豁免：`tokens.css` · `vendor/` 第三方原件 {vendor_files} 件）"
+
+
+def vendor_integrity() -> str:
+    """`frontend/vendor/**` 的**本地化完整性**（N4 的实物）：许可 · 来源 · CSS 引用全部命中。
+
+    ★ 这一节**替代不了**对第三方代码的审读；它守的是"**本地化这件事真的做完了**" ——
+      少一个字体文件，公式会回退到错误字形，而这件事在 CI 里**没有任何症状**。
+    """
+    packages = sorted(glob.glob("frontend/vendor/*"))
+    if not packages:
+        raise Skipped("`frontend/vendor/**` 未产出（N4 的实物 —— `docs/07 §2.2`）")
+    notes: list[str] = []
+    for folder in packages:
+        for required in ("LICENSE", "PROVENANCE.md"):
+            assert os.path.exists(os.path.join(folder, required)), (
+                f"{folder} 缺 `{required}` —— 开放许可素材须按许可署名、本地化须写明来源"
+            )
+        refs = 0
+        problems: list[str] = []
+        for css in walk_files(folder, (".css",)):
+            for raw in re.findall(r"url\(([^)]+)\)", read(css)):
+                target = raw.strip().strip("'\"")
+                if target.startswith(("data:", "http://", "https://", "//")):
+                    problems.append(f"{css}: 外部地址（N4 要本地化）{target[:40]}")
+                    continue
+                refs += 1
+                candidate = os.path.join(os.path.dirname(css), target.split("?")[0].split("#")[0])
+                if not os.path.exists(candidate):
+                    problems.append(f"{css}: 引用不存在 {target}")
+        assert not problems, "；".join(problems[:4])
+        notes.append(f"{os.path.basename(folder)}：LICENSE + 来源 + {refs} 个 CSS 引用全部命中")
+    return " · ".join(notes)
 
 
 def re_no_innerhtml() -> str:
@@ -1076,9 +1118,10 @@ def main() -> int:
             ("④ 25 条 path 覆盖完整", check_04_paths),
             ("⑤ 事件枚举与 x-type-count 一致", check_05_events),
         ]),
-        ("契约校验⑥⑦（docs/04 §7）· N8 的可自动面", [
+        ("契约校验⑥⑦（docs/04 §7）· N4 / N8 的可自动面", [
             ("⑥ content_rev 可复算 + MANIFEST 一致", check_06_manifest),
             ("⑦ 部署无关化 + 零依赖", check_07_deployment_agnostic),
+            ("`frontend/vendor/**` 本地化完整性（许可 · 来源 · 引用）", vendor_integrity),
             ("R-F③ 色对对比度 + N8① 点击目标（声明面）", rf_contrast_pairs),
         ]),
         ("内容资产与样例集（`docs/06 §7` · §11 的 W5 行）", [
