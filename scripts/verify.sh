@@ -6,10 +6,25 @@
 #
 #     bash scripts/verify.sh          # 在仓库根执行；全过退出码 0，任一失败非零
 #
-# ★ v0 的范围是**写死的**（`docs/06 §12.3` 卡 1、`docs/06 §12.7` 第三行）：
-#     R-P1 / R-P2 / R-P3（文档自洽）  +  `docs/04 §7` 的契约校验 ①–⑤
-#   ★ **⑥⑦ 不在 v0**：⑥ 要 `content/MANIFEST.json`（W4）、⑦ 要前端外壳（W5 的全量门禁）。
-#   ★ R-A / R-B / R-D / R-E / R-H / R-I / 依赖方向扫描等同样**不在 v0**（属 W5）。
+# ★ 范围是**写死的**，分两批（`docs/06 §12.3` 卡 1 · `docs/06 §12.7` 第三行 · `§11.2` 的批次 3）：
+#     **v0（批次 1 · W0a）**：R-P1 / R-P2 / R-P3（文档自洽） + `docs/04 §7` 的契约校验 ①–⑤
+#     **v1（批次 3 · W5 的第一批，2026-09-27 接上）**：
+#       · `docs/04 §7` 校验⑦（部署无关化 + 零依赖）· ⑥ 登记为"对象未产出"（见下）
+#       · R-A（字符串上界 · 禁嵌套量词）· R-B（写库显式 commit）· R-D（禁硬编码色值）
+#       · R-E（禁 innerHTML 赋值）· R-H（演示类 ≤ 产品页）· R-K（唯一出网口）
+#       · R-Q ①②（允许集合不得为 None · 成功标记不得硬编码）· R-J/R-O（日志写入点收敛）
+#       · 依赖方向（`docs/03 §3.1`，前端一并扫）· `api/` 薄（`docs/03 §3.2` 第 1 条）
+#       · R-F③ 对比度（**只对 `tokens.css` 里声明的色对**，N8 的载体）
+#   ★ **仍不在本脚本**（`docs/06 §8` 的"落在哪"列就是这么写的）：R-C（人）· R-M⑥（review）·
+#     R-L / R-N（**只有用例**）· R-F①② / R-G / R-I（**前端冒烟**，要真跑页面）；
+#     运维演练与 `backup.py` / `load_test.py` / 启动校验七条属批次 3 的其余部分。
+#
+# ★ **三态输出（v1 新增的制度）**：`[PASS]` / `[FAIL]` / **`[SKIP]`**。
+#   `[SKIP]` = **对象还没产出**（原因逐条打印，且**不计入通过数**，也不当成失败）。
+#   ★ 为什么必须有这一态：**"对象不存在"与"检查通过"在输出里必须长得不一样** ——
+#   `docs/06 §14.4` 的"别把门禁绿读成本轮的结构性纪律已合规"说的正是这件事；
+#   若用"干脆不写这条检查"来实现，门禁就会看起来比实际更强（README 与 `docs/05 §7.2`
+#   记过的那三次实测都是这个形态）。
 #
 # ★ 为什么全部**内联**在这一个文件里（不拆成 `scripts/*.py`）：
 #   `docs/03 §8.2` 写明"新增脚本 = 先改本清单 + 加 `docs/05 §3` 一行"，两处表都要动；
@@ -41,6 +56,7 @@ fi
 from __future__ import annotations
 
 import glob
+import hashlib
 import json
 import os
 import re
@@ -51,7 +67,7 @@ from collections import Counter
 ROOT = sys.argv[1]
 os.chdir(ROOT)
 
-RESULTS: list[tuple[str, bool, str]] = []
+RESULTS: list[tuple[str, "bool | None", str]] = []
 
 
 # --------------------------------------------------------------------------- #
@@ -102,10 +118,20 @@ def registered_target(adr_number: str, target_section: str):
     return None, None
 
 
+class Skipped(Exception):
+    """**对象未产出** —— 如实登记为未覆盖（不计入通过，也不是失败）。
+
+    只允许在"要查的东西还不存在"时抛出，且**必须写清原因与它在 `docs/07 §2.2` 里的登记**。
+    把"没检查"与"检查通过"分开，是本脚本 v1 唯一的制度变化（文件头的三态说明）。
+    """
+
+
 def check(name: str, fn) -> None:
     try:
         detail = fn() or ""
         RESULTS.append((name, True, detail))
+    except Skipped as exc:
+        RESULTS.append((name, None, str(exc)))  # None = 未覆盖（既不是 PASS，也不是 FAIL）
     except AssertionError as exc:
         RESULTS.append((name, False, str(exc)))
     except Exception as exc:  # 检查体自身出错的形态要看得见，不许当成"通过"
@@ -467,11 +493,450 @@ def check_05_events() -> str:
 
 
 # --------------------------------------------------------------------------- #
+# 通用扫描工具（v1）
+# --------------------------------------------------------------------------- #
+
+BACKEND = "backend/app"
+
+#: 嵌套量词：组里已经有量词，组外又跟一个量词（`(a+)+` 形态的灾难性回溯）。
+NESTED_QUANTIFIER = re.compile(r"\([^()]*[+*}][^()]*\)\s*(?:[+*]|\{\d*,?\d*\})")
+
+#: R-K 的出网模块名（顶层模块名）。
+NETWORK_MODULES = ("httpx", "requests", "urllib", "socket", "aiohttp", "urllib3", "http")
+
+
+def walk_files(root: str, suffixes: tuple[str, ...]) -> list[str]:
+    """递归取文件（跳过 `__pycache__`），**排序输出** —— 顺序稳定才可 diff、才可复现。"""
+    found: list[str] = []
+    for base, dirs, names in os.walk(root):
+        dirs[:] = sorted(d for d in dirs if d != "__pycache__")
+        found.extend(os.path.join(base, name) for name in sorted(names) if name.endswith(suffixes))
+    return sorted(found)
+
+
+def code_only(text: str) -> str:
+    """去掉注释与三引号块 —— 静态扫描只该看**代码**（散文里提到一个词不算实现）。"""
+    without_blocks = re.sub(r"\"\"\".*?\"\"\"|'''.*?'''", "", text, flags=re.S)
+    return "\n".join(line.split("#", 1)[0] for line in without_blocks.splitlines())
+
+
+def backend_files() -> list[str]:
+    return walk_files(BACKEND, (".py",))
+
+
+def frontend_files() -> list[str]:
+    return walk_files("frontend", (".js", ".css", ".html"))
+
+
+def imported_modules(path: str) -> set[str]:
+    """一个 Python 文件 import 的顶层模块名（`from app.core.errors import x` → `app`）。"""
+    found: set[str] = set()
+    for match in re.finditer(r"^\s*(?:from\s+([\w.]+)|import\s+([\w.,\s]+))", read(path), re.M):
+        first, second = match.groups()
+        if first:
+            found.add(first.split(".")[0])
+        else:
+            found.update(part.strip().split(" as ")[0].split(".")[0] for part in second.split(","))
+    return {name for name in found if name}
+
+
+def app_modules(path: str) -> set[str]:
+    """同一个文件里的**仓内** `from app.x…` import，收敛到两级（`app.core.errors` → `app.core`）。"""
+    return {
+        ".".join(match.group(1).split(".")[:2])
+        for match in re.finditer(r"^\s*from\s+(app(?:\.\w+)+)", read(path), re.M)
+    }
+
+
+# --------------------------------------------------------------------------- #
+# R-A…R-Q 静态扫描（规则内容 = `docs/02 §1.6`；落在哪 = `docs/06 §8`）
+# --------------------------------------------------------------------------- #
+
+def ra_string_bounds() -> str:
+    """R-A①：请求体的**字符串字段必须有上界**（Pydantic 字段声明须带 `max_length`）。"""
+    models = fields = 0
+    offenders: list[str] = []
+    for path in backend_files():
+        body = read(path)
+        for block in re.finditer(r"^class\s+\w+\([^)]*BaseModel[^)]*\):\n((?:[ \t].*\n|\n)*)", body, re.M):
+            models += 1
+            for line in block.group(1).splitlines():
+                hit = re.match(r"\s*(\w+)\s*:\s*str\b(.*)$", line)
+                if not hit:
+                    continue
+                fields += 1
+                if "max_length" not in hit.group(2):
+                    offenders.append(f"{path}:{hit.group(1)}")
+    assert not offenders, "字符串字段缺 max_length：" + "；".join(offenders[:5])
+    if models == 0:
+        raise Skipped("0 个请求体模型（`backend/app/api/**` 未产出 —— `docs/07 §2.2` 的 W1–W4）")
+    return f"{models} 个 BaseModel / {fields} 个 str 字段，全部带 max_length"
+
+
+def ra_regex_quantifiers() -> str:
+    """R-A②：判定用的正则**禁嵌套量词**（`docs/02 §8-6` 的灾难性回溯）。"""
+    compiled = 0
+    offenders: list[str] = []
+    for path in walk_files(f"{BACKEND}/domain", (".py",)) + walk_files(f"{BACKEND}/graph", (".py",)):
+        for match in re.finditer(r"re\.compile\(\s*r?([\"'])(.*?)\1", read(path), re.S):
+            compiled += 1
+            if NESTED_QUANTIFIER.search(match.group(2)):
+                offenders.append(f"{path}: {match.group(2)[:48]}")
+    assert not offenders, "出现嵌套量词（回溯风险）：" + "；".join(offenders)
+    if compiled == 0:
+        raise Skipped("0 条判定正则（`backend/app/domain/**` 未产出）")
+    return f"{compiled} 条 re.compile，无嵌套量词"
+
+
+def rb_write_commit() -> str:
+    """R-B：写库必须**显式 `commit()`**（`docs/02 §8-8` 的"写库静默回滚"）。"""
+    writes = 0
+    offenders: list[str] = []
+    for path in backend_files():
+        body = read(path)
+        count = len(re.findall(r"\.(?:execute|executemany)\(", body))
+        if not count:
+            continue
+        writes += count
+        if ".commit()" not in body:
+            offenders.append(path)
+    assert not offenders, "有 execute() 但整个文件没有 commit()：" + "；".join(offenders)
+    if writes == 0:
+        raise Skipped("0 个写库调用点（`backend/app/learning/**` · `identity/**` 未产出 —— W1）")
+    return f"{writes} 处 execute()，所在文件都有显式 commit()"
+
+
+def rd_hardcoded_colors() -> str:
+    """R-D：样式**禁硬编码色值** —— 唯一豁免 `frontend/styles/tokens.css`（`docs/02 §1.6`）。"""
+    pattern = re.compile(r"#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|oklab|color-mix)\(", re.I)
+    scanned = 0
+    offenders: list[str] = []
+    for path in frontend_files():
+        if not path.endswith(".css") or path.endswith("styles/tokens.css"):
+            continue
+        scanned += 1
+        for lineno, line in enumerate(read(path).splitlines(), 1):
+            if pattern.search(line):
+                offenders.append(f"{path}:{lineno}")
+    assert not offenders, "硬编码色值：" + "；".join(offenders[:5])
+    return f"{scanned} 个 CSS 文件（`tokens.css` 已豁免）"
+
+
+def re_no_innerhtml() -> str:
+    """R-E：前端**不得用 `innerHTML` 拼内容**（XSS 的唯一防线，`docs/02 §7.4`）。"""
+    pattern = re.compile(r"innerHTML\s*(?:\+=|=)")
+    scanned = 0
+    offenders: list[str] = []
+    for path in frontend_files():
+        if not path.endswith((".js", ".html")):
+            continue
+        scanned += 1
+        for lineno, line in enumerate(read(path).splitlines(), 1):
+            if pattern.search(line):
+                offenders.append(f"{path}:{lineno}")
+    assert not offenders, "innerHTML 赋值：" + "；".join(offenders)
+    return f"{scanned} 个前端文件，0 处 innerHTML 赋值"
+
+
+def rh_page_budget() -> str:
+    """R-H：演示类页面总行数 ≤ 产品功能页总行数（分组键 = `feature.json` 的 `class`）。"""
+    groups: dict[str, int] = {}
+    features = 0
+    for meta in sorted(glob.glob("frontend/features/*/feature.json")):
+        data = json.loads(read(meta))
+        kind = data.get("class")
+        assert kind in ("product", "demo"), (
+            f"{meta}: class={kind!r} 不在 product / demo 里（`docs/03 §5.2` 是它的唯一权威）"
+        )
+        folder = os.path.dirname(meta)
+        groups[kind] = groups.get(kind, 0) + sum(
+            len(read(os.path.join(folder, name)).splitlines())
+            for name in ("index.js", "styles.css", "feature.json")
+            if os.path.exists(os.path.join(folder, name))
+        )
+        features += 1
+    if features == 0:
+        raise Skipped("0 个 feature（`frontend/features/**` 未产出）")
+    demo, product = groups.get("demo", 0), groups.get("product", 0)
+    assert demo <= product, f"演示类 {demo} 行 > 产品功能页 {product} 行（`docs/01` 承诺 10 · R-H）"
+    return f"{features} 个 feature：product {product} 行 · demo {demo} 行"
+
+
+def rk_single_egress() -> str:
+    """R-K：**全仓只有一个运行期出网口** `backend/app/tools/llm.py`。"""
+    hits = 0
+    offenders: list[str] = []
+    for path in backend_files():
+        for match in re.finditer(r"^\s*(?:from|import)\s+([\w.]+)", read(path), re.M):
+            if match.group(1).split(".")[0] not in NETWORK_MODULES:
+                continue
+            hits += 1
+            if not path.endswith("tools/llm.py"):
+                offenders.append(f"{path}: {match.group(1)}")
+    assert not offenders, "出网模块出现在 `tools/llm.py` 之外：" + "；".join(offenders)
+    if hits == 0:
+        raise Skipped("0 处出网 import（`tools/llm.py` 尚未发真实请求 —— W3）")
+    return f"{hits} 处出网 import，全部在 `tools/llm.py`"
+
+
+def rq_tool_boundary() -> str:
+    """R-Q ①②：**允许集合不得为通配 / `None`**；**成功标记不得硬编码**（`docs/02 §1.6`）。"""
+    wildcard: list[str] = []
+    hardcoded: list[str] = []
+    for path in backend_files():
+        for lineno, line in enumerate(read(path).splitlines(), 1):
+            if re.search(r"(?<![\w_])allowed\s*[:=][^\n]*\bNone\b", line):
+                wildcard.append(f"{path}:{lineno}")
+            if re.search(r"(?<![\w_])ok\s*[:=]\s*True\b", line):
+                hardcoded.append(f"{path}:{lineno}")
+    assert not wildcard, "允许集合写成 None（R-Q ①）：" + "；".join(wildcard)
+    assert not hardcoded, "硬编码成功标记（R-Q ②）：" + "；".join(hardcoded)
+    return "0 处 allowed=None · 0 处硬编码 ok=True"
+
+
+def rj_ro_log_gate() -> str:
+    """R-J / R-O：日志写入点**收敛在 `core/logging.py` 的唯一口子**上，且无游离 `print`。
+
+    ★ 这是 v1 能做到的最强形态：`core/logging.py` 已经把 R-O 变成**构造约束**
+    （非 `*_id` / 非白名单键当场抛错）⇒ 静态面只需守住"**没有人绕过它**"。
+    """
+    log_writers: list[str] = []
+    prints: list[str] = []
+    for path in backend_files():
+        body = read(path)
+        is_gate = path.endswith("core/logging.py")
+        has_cli = "__main__" in body
+        for lineno, line in enumerate(code_only(body).splitlines(), 1):
+            if not is_gate and re.search(
+                r"(?<![\w.])(?:getLogger|logging\.\w+)\s*\(|(?<![\w.])logger\s*\.\w+\s*\(", line
+            ):
+                log_writers.append(f"{path}:{lineno}")
+            if not has_cli and re.search(r"(?<![\w.])print\(", line):
+                prints.append(f"{path}:{lineno}")
+    assert not log_writers, "绕过 `core/logging.py` 直接写日志：" + "；".join(log_writers)
+    assert not prints, "非 CLI 文件里的 print（R-J 的隐患面）：" + "；".join(prints)
+    return "日志写入点只在 `core/logging.py` · 0 处游离 print"
+
+
+# --------------------------------------------------------------------------- #
+# 依赖方向与结构纪律（`docs/03 §3.1` 的模块依赖表 · §3.2 的三条纪律）
+# --------------------------------------------------------------------------- #
+
+def import_direction() -> str:
+    """模块依赖方向：`docs/03 §3.1` 的**允许依赖**白名单 + **明确禁止**里可静态判的部分。"""
+    allowed = {
+        "core": {"app.core"},
+        "domain": {"app.core", "app.domain"},
+        "tools": {"app.core", "app.domain", "app.tools"},
+        "learning": {"app.core", "app.domain", "app.learning"},
+        "identity": {"app.core", "app.identity"},
+        "graph": {"app.core", "app.domain", "app.tools", "app.learning", "app.identity", "app.graph"},
+        "api": {"app.core", "app.domain", "app.tools", "app.learning", "app.identity", "app.graph", "app.api"},
+    }
+    forbidden = {
+        "domain": {"fastapi", "langgraph", "sqlite3", "sqlalchemy", "httpx", "requests", "urllib",
+                   "socket", "app.tools", "app.learning", "app.graph", "app.identity", "app.api"},
+        "identity": {"app.graph", "app.domain", "app.api", "fastapi", "langgraph"},
+        "tools": {"app.graph", "app.api"},
+        "learning": {"app.graph", "app.api"},
+        "graph": {"app.api"},
+    }
+    scanned = 0
+    entry_skipped = 0
+    problems: list[str] = []
+    for path in backend_files():
+        relative = os.path.relpath(path, BACKEND)
+        parts = relative.split(os.sep)
+        if len(parts) == 1:  # `backend/app/main.py` · `backend/app/__init__.py` = 入口层，不设白名单
+            entry_skipped += 1
+            continue
+        module = parts[0]
+        if module not in allowed:
+            continue
+        scanned += 1
+        for name in sorted(app_modules(path) - allowed[module]):
+            problems.append(f"{relative}: import {name}")
+        for name in sorted(imported_modules(path) & forbidden.get(module, set())):
+            problems.append(f"{relative}: import {name}（`docs/03 §3.1` 明确禁止）")
+    if scanned == 0:
+        raise Skipped("0 个业务模块（`backend/app/**` 未产出）")
+    assert not problems, "；".join(problems[:6])
+    return f"{scanned} 个模块文件，仓内 import 全在白名单内（入口层 {entry_skipped} 个文件不设白名单）"
+
+
+def frontend_import_direction() -> str:
+    """前端依赖（`docs/03 §3.1`）：`features/*` **互不 import** · `components/` 不 import `features/`。"""
+    scanned = 0
+    problems: list[str] = []
+    for path in walk_files("frontend", (".js",)):
+        scanned += 1
+        body = read(path)
+        if "/components/" in path and re.search(r"from\s+[\"'][^\"']*features/", body):
+            problems.append(f"{path}: `components/` 里 import `features/`")
+        if "/features/" in path:
+            owner = path.split("/features/")[1].split("/")[0]
+            for match in re.finditer(r"from\s+[\"'][^\"']*features/(\w+)", body):
+                if match.group(1) != owner:
+                    problems.append(f"{path}: features/{owner} import features/{match.group(1)}")
+    assert not problems, "；".join(problems)
+    if scanned == 0:
+        raise Skipped("0 个前端 JS 文件")
+    return f"{scanned} 个前端 JS 文件，依赖方向互斥"
+
+
+def api_is_thin() -> str:
+    """`api/` 必须薄（`docs/03 §3.2` 第 1 条）：**单路由函数 ≤ 40 行** · **不写 SQL**。"""
+    files = walk_files(f"{BACKEND}/api", (".py",))
+    if not files:
+        raise Skipped("`backend/app/api/**` 未产出（W1–W4 的薄接线 —— `docs/07 §2.2`）")
+    functions = 0
+    problems: list[str] = []
+    for path in files:
+        body = read(path)
+        lines = body.splitlines()
+        for index, line in enumerate(lines):
+            hit = re.match(r"\s*(?:async\s+)?def\s+(\w+)\s*\(", line)
+            if not hit:
+                continue
+            indent = len(line) - len(line.lstrip())
+            length = 0
+            for follow in lines[index + 1:]:
+                if follow.strip() and (len(follow) - len(follow.lstrip())) <= indent:
+                    break
+                length += 1
+            functions += 1
+            if length > 40:
+                problems.append(f"{path}: {hit.group(1)}() ≈ {length} 行 > 40")
+        for keyword in ("SELECT ", "INSERT INTO", "UPDATE ", "DELETE FROM", "CREATE TABLE"):
+            if keyword in body:
+                problems.append(f"{path}: 出现 SQL（{keyword.strip()}）")
+    assert not problems, "；".join(problems[:5])
+    return f"{len(files)} 个 api 文件 / {functions} 个函数（单函数 ≤ 40 行 · 无 SQL）"
+
+
+def content_rev(revs: dict) -> str:
+    """`docs/02 §3.3` 规则 2 的算法（机器可读形式 = `content.schema.json#/x-content-rev`）。"""
+    payload = ";".join(f"{key}={revs[key]}" for key in sorted(revs))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
+
+
+def check_06_manifest() -> str:
+    """校验⑥（`docs/04 §7`）：`content_rev` **可复算** + `MANIFEST.json` 与五类 `rev` 一致。
+
+    ★ 前半段（算法）**每次都对契约自带的示例验证** —— 它不需要任何资产，因此**永不 SKIP**：
+    这正是"示例必须通过它自己的校验"（`docs/04 §4`）在门禁里的用法。
+    """
+    document = json.loads(read("contracts/content.schema.json"))
+    example = next(item for item in document["examples"] if "content_rev" in item)
+    assert set(example["revs"]) == set(document["x-content-rev"]["key_order"]), (
+        "契约示例的键名与 x-content-rev 的 key_order 不一致"
+    )
+    computed = content_rev(example["revs"])
+    assert computed == example["content_rev"], (
+        f"算法与契约示例不符：算出 {computed} ≠ 契约里的 {example['content_rev']}（x-content-rev）"
+    )
+    if not os.path.exists("content/MANIFEST.json"):
+        raise Skipped(
+            f"算法已对契约示例验证（{computed}）；但 `content/MANIFEST.json` 未产出"
+            f"（五类齐备后由域1 派生 —— `docs/07 §2.2`）"
+        )
+    manifest = json.loads(read("content/MANIFEST.json"))
+    assert manifest["content_rev"] == content_rev(manifest["revs"]), (
+        f"MANIFEST.content_rev={manifest['content_rev']} ≠ 重算的 {content_rev(manifest['revs'])}"
+    )
+    for key in document["x-content-rev"]["key_order"]:
+        path = f"content/{key}.json"
+        if os.path.exists(path):
+            declared = json.loads(read(path))["rev"]
+            assert declared == manifest["revs"][key], (
+                f"{path} 的 rev={declared} ≠ MANIFEST.revs[{key}]={manifest['revs'][key]}"
+            )
+    return f"content_rev={manifest['content_rev']}（算法与契约示例一致 · 五类 rev 逐项对齐）"
+
+
+def check_07_deployment_agnostic() -> str:
+    """校验⑦（`docs/04 §7`）：**部署无关化 + 零依赖**（与 N18 验收②同一条断言）。"""
+    scanned = 0
+    absolute: list[str] = []
+    external = 0
+    for path in frontend_files():
+        scanned += 1
+        body = read(path)
+        for lineno, line in enumerate(body.splitlines(), 1):
+            if re.search(r"https?://", line):
+                absolute.append(f"{path}:{lineno}")
+        external += len(re.findall(
+            r"""(?:src|href)\s*=\s*["']https?://|from\s+["']https?://|import\s*\(\s*["']https?://""", body))
+    assert not absolute, "前端出现绝对地址（写死后端 / 外部资源）：" + "；".join(absolute[:5])
+    assert external == 0, f"{external} 处外部 CDN / http import（N4 零依赖）"
+    for junk in ("package.json", "package-lock.json", "yarn.lock", "node_modules"):
+        assert not os.path.exists(junk), f"仓库里出现 npm 产物：{junk}（ADR-0001 免构建）"
+    return f"{scanned} 个前端文件：0 处绝对地址 · 0 处外部依赖 · 无 npm 产物"
+
+
+def contrast_ratio(foreground: str, background: str) -> float:
+    """WCAG 2.1 相对亮度对比度（纯 Python · 离线 · 无依赖）。"""
+
+    def luminance(color: str) -> float:
+        channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    high, low = sorted((luminance(foreground), luminance(background)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def rf_contrast_pairs() -> str:
+    """R-F③ + N8①：对比度 ≥ 4.5:1 —— **只对 `tokens.css` 里声明的色对**（N8 的载体）。
+
+    ★ 渲染结果的对比度**不在**本检查内（要无头浏览器，与"零安装"冲突 —— `docs/01` N8 已记账）。
+    """
+    body = read("frontend/styles/tokens.css")
+    tokens = dict(re.findall(r"(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;", body))
+    pairs = re.findall(r"@contrast-pair:\s*(--[\w-]+)\s+on\s+(--[\w-]+)(?:\s*,\s*min\s*([\d.]+))?", body)
+    assert pairs, "`tokens.css` 里没有 `@contrast-pair` 声明 —— 色对清单是 R-F③ 的唯一输入（N8）"
+    worst = 99.0
+    failures: list[str] = []
+    for foreground, background, minimum in pairs:
+        for name in (foreground, background):
+            assert name in tokens, f"色对引用了 `tokens.css` 里没有的十六色：{name}"
+        threshold = float(minimum or 4.5)
+        ratio = contrast_ratio(tokens[foreground], tokens[background])
+        worst = min(worst, ratio)
+        if ratio < threshold:
+            failures.append(f"{foreground} on {background}: {ratio:.2f} < {threshold}")
+    assert not failures, "；".join(failures)
+    target = re.search(r"--target-min:\s*(\d+)px", body)
+    assert target, "`tokens.css` 里没有 `--target-min`（N8① 的声明面）"
+    assert int(target.group(1)) >= 32, f"--target-min = {target.group(1)}px < 32px（N8① 的点击目标）"
+    return f"{len(pairs)} 组色对达标（最低 {worst:.2f}:1）· --target-min = {target.group(1)}px"
+
+
+def coverage_ledger() -> str:
+    """覆盖台账：**本门禁不覆盖什么**（`docs/06 §8` 的"落在哪"列就是这么划的）。
+
+    ★ 它的作用不是"多一条检查"，而是让"**没查**"这件事**打印出来**：每一条都能指到权威处
+    （下面顺手断言那三个小节还在，避免指针烂掉）。
+    """
+    for path, number in (("docs/06-开发计划与阶段门.md", "8"), ("docs/02-系统设计.md", "1.6"),
+                         ("docs/04-契约层说明.md", "7")):
+        assert has_section(path, number), f"覆盖台账引用的 `{path} §{number}` 不存在（指针烂了）"
+    outside = ("R-C（责任人，`docs/05 §2.4`）· R-M⑥（无埋点 / 无导出路径，review）"
+               "· R-L · R-N（**只有用例**）· R-F①② / R-G / R-I（**前端冒烟**，要真跑页面）")
+    later = ("`api/` 薄（对象未产出）· 启动校验七条（`docs/06 §4` 第 8 项，输入资产未齐）"
+             "· 运维演练 ②③④ 与 `backup.py` / `load_test.py`（第 9 项）"
+             "· `content/eval/sample/**` 与 `scripts/eval_verify.py`（阶段 C）"
+             "· `frontend/vendor/` 本地化（N4 的实物，落地时要一并定 vendor 的 R-D 口径）")
+    return f"不在本脚本：{outside} ⇒ 批次 3 其余：{later}"
+
+
+# --------------------------------------------------------------------------- #
 # 主流程
 # --------------------------------------------------------------------------- #
 
 def main() -> int:
-    print("门禁 v0 —— R-P1/P2/P3 + 契约校验①–⑤（范围见 docs/06 §12.3 卡 1）")
+    print("门禁 v1 —— v0（R-P1/P2/P3 + 契约校验①–⑤）+ W5 的第一批")
+    print("  范围与三态（PASS / FAIL / SKIP）见本脚本头部；★ SKIP = 对象未产出，不计入通过。")
     print()
 
     groups = [
@@ -493,6 +958,30 @@ def main() -> int:
             ("④ 25 条 path 覆盖完整", check_04_paths),
             ("⑤ 事件枚举与 x-type-count 一致", check_05_events),
         ]),
+        ("契约校验⑥⑦（docs/04 §7）· N8 的可自动面", [
+            ("⑥ content_rev 可复算 + MANIFEST 一致", check_06_manifest),
+            ("⑦ 部署无关化 + 零依赖", check_07_deployment_agnostic),
+            ("R-F③ 色对对比度 + N8① 点击目标（声明面）", rf_contrast_pairs),
+        ]),
+        ("R-A…R-Q 的静态面（规则 = docs/02 §1.6）", [
+            ("R-A① 请求体字符串字段上界", ra_string_bounds),
+            ("R-A② 判定正则禁嵌套量词", ra_regex_quantifiers),
+            ("R-B 写库显式 commit()", rb_write_commit),
+            ("R-D 样式禁硬编码色值", rd_hardcoded_colors),
+            ("R-E 禁 innerHTML 赋值", re_no_innerhtml),
+            ("R-H 演示类页面 ≤ 产品功能页", rh_page_budget),
+            ("R-K 唯一运行期出网口", rk_single_egress),
+            ("R-Q ①② 允许集合 / 成功标记", rq_tool_boundary),
+            ("R-J / R-O 日志写入点收敛", rj_ro_log_gate),
+        ]),
+        ("依赖方向与结构纪律（docs/03 §3.1 · §3.2）", [
+            ("后端模块依赖白名单", import_direction),
+            ("前端 features / components 依赖互斥", frontend_import_direction),
+            ("`api/` 薄（单函数 ≤ 40 行 · 无 SQL）", api_is_thin),
+        ]),
+        ("覆盖台账（如实登记\"没查什么\"）", [
+            ("不在本脚本 / 批次 3 其余部分", coverage_ledger),
+        ]),
     ]
 
     for title, items in groups:
@@ -500,14 +989,23 @@ def main() -> int:
         for name, fn in items:
             check(name, fn)
             label, ok, detail = RESULTS[-1]
-            print(f"  [{'PASS' if ok else 'FAIL'}] {label}")
+            mark = "PASS" if ok is True else ("SKIP" if ok is None else "FAIL")
+            print(f"  [{mark}] {label}")
             if detail:
-                print(f"         {detail}" if ok else f"         ↳ {detail}")
+                arrow = "↳" if ok is False else "·"
+                print(f"         {arrow} {detail}")
         print()
 
-    passed = sum(1 for _, ok, _ in RESULTS if ok)
-    failed = [(name, detail) for name, ok, detail in RESULTS if not ok]
-    print(f"== 汇总：通过 {passed} / 失败 {len(failed)}（共 {len(RESULTS)} 项）==")
+    passed = sum(1 for _, ok, _ in RESULTS if ok is True)
+    skipped = [(name, detail) for name, ok, detail in RESULTS if ok is None]
+    failed = [(name, detail) for name, ok, detail in RESULTS if ok is False]
+    print(f"== 汇总：通过 {passed} / 失败 {len(failed)} · 未覆盖 {len(skipped)}（共 {len(RESULTS)} 项）==")
+    if skipped:
+        print()
+        print("未覆盖项（**对象未产出** —— 不计入通过，也不是失败）：")
+        for name, detail in skipped:
+            print(f"  - {name}")
+            print(f"      {detail}")
     if failed:
         print()
         print("失败项：")
