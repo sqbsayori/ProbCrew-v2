@@ -912,6 +912,124 @@ def rf_contrast_pairs() -> str:
     return f"{len(pairs)} 组色对达标（最低 {worst:.2f}:1）· --target-min = {target.group(1)}px"
 
 
+def content_branch_title(document: dict) -> str:
+    """按文档自己的键，指出它**自称**是哪一支（`cases` / `revs` / `asset`）—— 报错时只说那一支。"""
+    if "cases" in document:
+        return "样例集"
+    if "revs" in document:
+        return "MANIFEST.json"
+    return str(document.get("asset", ""))
+
+
+def brief_schema_error(errors: list) -> str:
+    """把校验错误压成**字段级一行**。
+
+    ★ 为什么必须压：`oneOf` 失败时 jsonschema 的默认消息会把**整个实例**（一个 15 万字符的题库）
+      打进输出 —— 红灯会淹掉自己。这里改为只报"**它自称的那一支**"里的前几条字段级错误；
+      `minItems` 一类**把实例内嵌进消息**的关键字，则只报校验关键字名。
+    """
+    first = errors[0]
+    branches = getattr(first, "context", None) or []
+    if not branches:
+        where = "/".join(str(part) for part in first.path) or "(根)"
+        return f"@{where}: {first.message[:160]}"
+    tips: list[str] = []
+    for branch in branches[:3]:
+        message = (branch.message or "").strip()
+        where = "/".join(str(part) for part in branch.path) or "(根)"
+        if message.startswith(("[", "{")):  # 例：`minItems` 的消息形如 "<整个数组> is too short"
+            message = f"{branch.validator} 不成立"
+        tips.append(f"@{where} {message[:80]}")
+    return " / ".join(tips)
+
+
+def validator_for(document: dict):
+    """按 `$id` 自建**离线** registry 的校验器（`jsonschema` / `referencing` 属 `requirements-dev.txt`）。
+
+    ★ 校验② 里那段 import 是内联的（2026-09-20 写的）；本函数是它的**可复用形式**，供内容资产
+    校验使用 —— 不回头改校验②，避免把已经跑过一轮的检查动到。
+    """
+    try:
+        from jsonschema import Draft7Validator
+        from referencing import Registry, Resource
+        from referencing.jsonschema import DRAFT7
+    except ImportError as exc:
+        raise AssertionError(f"缺少 jsonschema / referencing 依赖（requirements-dev.txt）：{exc}")
+    schemas = load_schemas()
+    registry = Registry().with_resources(
+        [(sid, Resource.from_contents(doc, default_specification=DRAFT7)) for sid, doc in schemas.items()]
+    )
+    return Draft7Validator(document, registry=registry)
+
+
+def content_assets() -> str:
+    """内容资产与样例集：**格式**（对 `content.schema.json` 的 `oneOf` 每一支）+ 两道**交叉**检查。
+
+    ★ 这是 `docs/06 §11` 的 W5 行里那条「**内容资产对 `content.schema.json` 的格式校验**
+    （卡 4 判据① 的机器化）」的落地；在此之前，内容资产只有 W0d 的**一次手跑**（§12.5 的记录）。
+    ★ **为什么值得机器做**：`examples` 已被校验② 守着，而**真正入仓的 `content/*.json` 谁也没校**
+       —— 手改一处字段名（如 `kc_ids` → `kc_id`）不会有任何红灯，直到某个页面在运行时才发现。
+    ★ **交叉检查**（draft-07 表达不了的那些，`x-invariants` 已逐条写成断言说明）：
+      ① 样例集的 `item_id` **必须在题库里存在**（引用闭包）；② 若错因库已产出，则
+      `expected_conclusion` 里出现的 `mp_*` **也必须在错因库里**（未产出时**如实打印**为未机检）。
+    """
+    schemas = load_schemas()
+    content_id = next(sid for sid in schemas if sid.endswith("/content.schema.json"))
+    validator = validator_for(schemas[content_id])
+    files = sorted(glob.glob("content/*.json")) + sorted(glob.glob("content/eval/sample/*.json"))
+    if not files:
+        raise Skipped("0 个内容资产文件（`content/*.json` 未产出 —— 五类资产属 W2 / W4）")
+
+    checked = len(files)
+    notes: list[str] = []
+    items_of = lambda key: json.loads(read(f"content/{key}.json"))["items"]  # noqa: E731
+    produced = {key: len(items_of(key)) for key in ("problems", "types", "mistakes", "dag", "formula")
+                if os.path.exists(f"content/{key}.json")}
+
+    # ★ 下界先行：schema 的 `minItems` 也能拦住它，但那时的消息既不提下界的出处、也不说
+    #   "现在有几条"；本断言给出的是可行动的句子（`x-floors` 是它的机器可读来源）。
+    floors = schemas[content_id]["x-floors"]
+    for key, count in produced.items():
+        floor = floors.get(key, {}).get("minItems")
+        if floor is not None:
+            assert count >= floor, f"content/{key}.json 有 {count} 条 < 下界 {floor}（`docs/06 §7` · `x-floors`）"
+    notes.append("下界：" + " · ".join(f"{k} {v}" for k, v in produced.items()))
+
+    failures: list[str] = []
+    for path in files:
+        document = json.loads(read(path))
+        errors = sorted(validator.iter_errors(document), key=lambda e: list(e.path))
+        if not errors:
+            continue
+        branches = getattr(errors[0], "context", None) or []
+        wanted = content_branch_title(document)
+        picked = [branch for branch in branches if wanted and wanted in str(branch.schema.get("title", ""))]
+        failures.append(f"{path}: {brief_schema_error(picked or errors)}")
+    assert not failures, "；".join(failures[:4])
+
+    sample = sorted(glob.glob("content/eval/sample/*.json"))
+    if sample:
+        cases = [case for path in sample for case in json.loads(read(path))["cases"]]
+        assert 3 <= len(cases) <= 5, f"样例集 {len(cases)} 道 —— `docs/02 §9` 写的是首版 3–5 道"
+        assert len({case["case_id"] for case in cases}) == len(cases), "样例集里 `case_id` 有重复"
+        if os.path.exists("content/problems.json"):
+            known = {item["prob_id"] for item in items_of("problems")}
+            missing = [case["item_id"] for case in cases if case["item_id"] not in known]
+            assert not missing, f"样例集引用了题库里不存在的 item_id：{missing}"
+            notes.append(f"样例集 {len(cases)} 道的 item_id 闭包成立")
+        if os.path.exists("content/mistakes.json"):
+            known_mp = {item["mp_id"] for item in items_of("mistakes")}
+            cited = {mid for case in cases for mid in re.findall(r"mp_[a-z0-9_]+", case["expected_conclusion"])}
+            unknown = sorted(cited - known_mp)
+            assert not unknown, f"样例集的 expected_conclusion 引用了错因库里没有的 mp_id：{unknown}"
+            notes.append(f"{len(cited)} 个 mp_id 引用闭包成立")
+        else:
+            notes.append("错因库未产出 ⇒ expected_conclusion 的 mp_id 闭包本轮机检跳过（`docs/07 §2.2`）")
+        return f"{checked} 个文件过 `content.schema.json` 校验 · " + " · ".join(notes)
+    notes.append("样例集未产出（`content/eval/sample/**` —— 属 W5 第二批）")
+    return f"{checked} 个文件过 `content.schema.json` 校验 · " + " · ".join(notes)
+
+
 def coverage_ledger() -> str:
     """覆盖台账：**本门禁不覆盖什么**（`docs/06 §8` 的"落在哪"列就是这么划的）。
 
@@ -962,6 +1080,9 @@ def main() -> int:
             ("⑥ content_rev 可复算 + MANIFEST 一致", check_06_manifest),
             ("⑦ 部署无关化 + 零依赖", check_07_deployment_agnostic),
             ("R-F③ 色对对比度 + N8① 点击目标（声明面）", rf_contrast_pairs),
+        ]),
+        ("内容资产与样例集（`docs/06 §7` · §11 的 W5 行）", [
+            ("格式（`content.schema.json` 的 `oneOf`）+ 引用闭包 + 下界", content_assets),
         ]),
         ("R-A…R-Q 的静态面（规则 = docs/02 §1.6）", [
             ("R-A① 请求体字符串字段上界", ra_string_bounds),
