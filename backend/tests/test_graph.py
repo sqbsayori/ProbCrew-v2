@@ -14,6 +14,8 @@ S4，它们的用例补在本文件（计划 §4.3）—— 因此下面的契�
 """
 from __future__ import annotations
 
+import asyncio
+import importlib
 import json
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -25,7 +27,11 @@ from referencing.jsonschema import DRAFT7
 
 from app.core.errors import ERROR_CODES
 from app.graph import events
-from app.graph.state import EventFieldViolation, RecordingEventSink
+from app.graph import registry as graph_registry
+from app.graph import runner
+from app.graph.nodes import route, solve, verify
+from app.graph.state import EventFieldViolation, NodeContext, RecordingEventSink
+from app.tools import llm
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
@@ -310,3 +316,240 @@ def test_frame_sink_and_recording_sink_are_two_different_disciplines() -> None:
     log.emit("run.start", run_id="run_1")
     with pytest.raises(EventFieldViolation):  # 内容不进日志（R-O）
         log.emit("run.start", run_id="run_1", query="贝叶斯题")
+
+
+# --------------------------------------------------------------------------- #
+# S4 · 编排层（runner + 三个节点的真实现）
+# --------------------------------------------------------------------------- #
+ENDPOINT = {"provider": "deepseek", "model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1"}
+#: 假凭据：只用来过"有凭据"这一跳；请求由 `FakeModelTransport` 接住，**永不触网**。
+CREDENTIAL = "sk-test-not-real"
+
+SOLUTION = {
+    "title": "贝叶斯公式",
+    "answer": "0.25",
+    "expression": "1/6 + 1/12",
+    "steps": [
+        {"explanation": "写出条件概率的定义式。", "formula": "P(A|B)=P(A∩B)/P(B)"},
+        {"explanation": "用乘法公式展开分子。", "formula": "P(A∩B)=P(B|A)P(A)"},
+        {"explanation": "代入题给数值并化简。", "formula": "=1/4=0.25"},
+    ],
+}
+#: 独立重算会算出 `1/4`，而这里写 `0.58` ⇒ 两个手段都会判"不通过"（重算路径的输入）。
+WRONG_SOLUTION = {**SOLUTION, "answer": "0.58"}
+
+
+class FakeModelTransport:
+    """假 provider：**按提示词分流**（路由问句 → 意图；求解问句 → JSON）。
+
+    与 `test_tools.py` 的假 provider 同一体例：产品路径里没有任何 mock（N2）。
+    """
+
+    def __init__(self, *, intent: str = "solve", solution: "dict[str, Any] | None" = None) -> None:
+        self.intent = intent
+        self.solution = SOLUTION if solution is None else solution
+
+    def __call__(self, request: "Any", *, timeout_s: float, max_bytes: int) -> "Any":
+        body = request.body.decode("utf-8")
+        if "归到下面四类" in body:
+            text = self.intent
+        elif "只输出一个 JSON" in body:
+            text = json.dumps(self.solution, ensure_ascii=False)
+        else:
+            text = ""
+        payload = {"choices": [{"message": {"content": text}}]}
+        return llm.TransportResponse(
+            status=200, body=json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        )
+
+
+def collect_frames(**kwargs: "Any") -> "list[Any]":
+    """同步地把一次 run 的帧收全。
+
+    ★ 用 `asyncio.run` 而不是 pytest-asyncio：`requirements-dev.txt` 只有 pytest 与 jsonschema，
+    **不为一条用例加依赖**（依赖口径归架构与集成）。
+    """
+
+    async def scenario() -> "list[Any]":
+        frames = []
+        async for frame in runner.stream_run(**kwargs):
+            frames.append(frame)
+        return frames
+
+    return asyncio.run(scenario())
+
+
+def test_runner_node_set_matches_the_registry() -> None:
+    # 运行器跑的节点 = 注册表登记的节点（少一个 ⇒ 有节点永远跑不到；多一个 ⇒ 没登记的也能跑）
+    assert set(runner.NODE_ENTRIES) == {item.name for item in graph_registry.load_registry()}
+
+
+def test_verify_node_declares_the_two_sympy_tools() -> None:
+    entry = next(item for item in graph_registry.load_registry() if item.name == "verify")
+    declared = set(entry.tools or ())
+    assert set(verify.SYMPY_METHODS) <= declared  # 手段名与契约 `check.method` 同名
+    for tool in verify.SYMPY_METHODS:
+        assert callable(importlib.import_module(f"app.tools.{tool}").ENTRY)
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [("solve", "solve"), ("解释一下这个概念：explain", "explain"), ("lookup", "lookup"), ("visualize", "visualize")],
+)
+def test_read_intent_reads_the_four_intents(text: str, expected: str) -> None:
+    assert route.read_intent(text)[0] == expected
+    assert set(events.INTENTS) == {"solve", "explain", "lookup", "visualize"}
+
+
+def test_read_intent_falls_back_without_pretending() -> None:
+    intent, reason = route.read_intent("我不知道该怎么归类")
+    assert intent == route.FALLBACK_INTENT == "explain"  # 不冒充 solve
+    assert "无法识别" in reason  # 降级要写在 reason 里（N2）
+
+
+def test_parse_solution_requires_non_empty_steps() -> None:
+    assert solve.parse_solution("完全不是 JSON") is None
+    assert solve.parse_solution(json.dumps({"steps": [{"explanation": "", "formula": "x"}]})) is None
+    fenced = "```json\n" + json.dumps(SOLUTION, ensure_ascii=False) + "\n```"
+    parsed = solve.parse_solution(fenced)
+    assert parsed is not None
+    assert len(parsed["steps"]) == 3 and parsed["answer"] == "0.25"
+
+
+def test_full_run_streams_the_pipeline_and_keeps_one_steps_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(llm, "_TRANSPORT", FakeModelTransport())
+    store = runner.RunStore()
+
+    frames = collect_frames(
+        run_id="run_1",
+        session_id="ses_1",
+        query="这道贝叶斯题怎么算？",
+        endpoint=ENDPOINT,
+        credential=CREDENTIAL,
+        store=store,
+    )
+
+    types = [frame.type for frame in frames]
+    assert [frame.seq for frame in frames] == list(range(1, len(frames) + 1))  # seq 单调且连续
+    assert types[0] == "run.start"
+    assert types[-1] == "done"
+    assert types.index("plan") > types.index("node.end")  # plan 在 route 之后（意图来自 route）
+    assert types.count("artifact") == 1 and types.count("verification.report") == 1
+    for frame in frames:
+        EVENT_VALIDATOR.validate(frame.to_dict())  # ★ 每一帧都过真契约
+
+    resolved = next(frame for frame in frames if frame.type == "context.resolved")
+    assert resolved.payload["context"] is None and resolved.payload["reason"]  # F1：显式降级
+    plan = next(frame for frame in frames if frame.type == "plan")
+    assert plan.payload["intent"] == "solve"
+    assert [step["node"] for step in plan.payload["steps"]] == ["solve", "verify"]
+
+    artifact = next(frame for frame in frames if frame.type == "artifact")
+    assert artifact.payload["kind"] == "solution"
+    snapshot = store.snapshot("run_1")
+    assert snapshot["status"] == runner.STATUS_DONE
+    # ★ F2「两处落点逐值一致」的**最强形式**：同一个对象，不是各自生成一次
+    assert snapshot["steps"] is artifact.payload["payload"]["steps"]
+    assert snapshot["verification"]["level"] == "A"
+    assert store.active == []
+
+
+def test_run_without_credentials_ends_with_model_key_missing() -> None:
+    store = runner.RunStore()
+    frames = collect_frames(run_id="run_2", session_id="ses_1", query="1+1=?", store=store)
+
+    assert frames[-1].type == "error"
+    assert frames[-1].payload["code"] == "model_key_missing"  # N14：无凭据 ⇒ 不可用（且可修）
+    assert [frame.type for frame in frames[:2]] == ["run.start", "context.resolved"]
+    assert store.snapshot("run_2")["status"] == runner.STATUS_ERROR
+    assert store.active == []
+
+
+def test_failed_verification_recomputes_once_then_marks_uncertain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(llm, "_TRANSPORT", FakeModelTransport(solution=WRONG_SOLUTION))
+    store = runner.RunStore()
+    frames = collect_frames(
+        run_id="run_3",
+        session_id="ses_1",
+        query="这道贝叶斯题怎么算？",
+        endpoint=ENDPOINT,
+        credential=CREDENTIAL,
+        store=store,
+    )
+    for frame in frames:
+        EVENT_VALIDATOR.validate(frame.to_dict())
+
+    reports = [frame.payload["report"] for frame in frames if frame.type == "verification.report"]
+    assert len(reports) == 2  # 首验 + 重算后的复验（**上限 1 次**）
+    assert reports[0]["recomputed"] is False and reports[0]["passed"] is False
+    assert reports[1]["recomputed"] is True and reports[1]["passed"] is False
+    assert reports[1]["uncertain"] is True and reports[1]["level"] == "D"
+    assert [frame.type for frame in frames].count("artifact") == 2  # 重算 = 真的再求解一次
+
+    told = next(
+        frame for frame in frames if frame.type == "verification.report" and frame.payload["report"]["uncertain"]
+    )
+    assert "数值重算" in told.payload["summary"] or "符号等价性" in told.payload["summary"]  # 显式告知
+
+    assert frames[-1].type == "done" and frames[-1].payload["status"] == "uncertain"
+    assert store.snapshot("run_3")["verification"]["uncertain"] is True
+
+
+def test_cancelled_run_leaves_the_active_set_and_keeps_a_snapshot() -> None:
+    async def scenario() -> "runner.RunStore":
+        store = runner.RunStore()
+        generator = runner.stream_run(run_id="run_4", session_id="ses_1", query="贝叶斯", store=store)
+        first = await generator.__anext__()
+        assert first.type == "run.start"
+        assert store.active == ["run_4"]  # 还没终结 ⇒ 活跃
+        await generator.aclose()  # ★ 模拟客户端断开
+        return store
+
+    store = asyncio.run(scenario())
+    assert store.active == []  # ★ 断开后活跃图清空（docs/02 §4.2-2）
+    snapshot = store.snapshot("run_4")
+    assert snapshot is not None and snapshot["status"] == runner.STATUS_CANCELLED
+
+
+def test_snapshot_of_an_unknown_run_is_none() -> None:
+    # ★ run 只在内存：进程重启（= 新 store）后查不到 ⇒ 域2 的 api 转 404 not_found
+    assert runner.RunStore().snapshot("run_不存在的") is None
+
+
+def test_terminal_snapshots_are_capped() -> None:
+    ticks = iter(range(1, 100))
+    store = runner.RunStore(max_terminal=2, clock=lambda: float(next(ticks)))
+    for index in range(3):
+        store.start(run_id=f"run_{index}", session_id="ses")
+        store.finish(f"run_{index}", status=runner.STATUS_DONE)
+
+    assert store.snapshot("run_0") is None  # 最旧的一条按 updated_at 被淘汰
+    assert store.snapshot("run_1") is not None and store.snapshot("run_2") is not None
+
+
+def test_active_runs_are_never_evicted() -> None:
+    store = runner.RunStore(max_terminal=1, clock=lambda: 1.0)
+    store.start(run_id="live", session_id="ses")
+    for index in range(3):
+        store.start(run_id=f"done_{index}", session_id="ses")
+        store.finish(f"done_{index}", status=runner.STATUS_DONE)
+
+    assert store.snapshot("live") is not None  # 活跃的那条一条都不淘汰
+    assert store.active == ["live"]
+
+
+def test_node_context_never_shows_the_credential() -> None:
+    ctx = NodeContext.for_node("route", endpoint=ENDPOINT, credential="sk-top-secret")
+    assert "sk-top-secret" not in repr(ctx)  # R-M 第 ③/⑥ 面：顺手 print 也不泄露
+    assert "sk-top-secret" not in str(ctx)
+
+
+def test_nodes_emit_frames_not_log_records() -> None:
+    """两个口径不可互换：日志口径的 sink 收到契约帧的字段名会**当场拒绝**（那是故意的）。"""
+    ctx = NodeContext.for_node("route", events=RecordingEventSink())
+    with pytest.raises(EventFieldViolation):
+        route.run({"run_id": "run_1", "session_id": "ses_1", "query": "1+1=?"}, ctx)

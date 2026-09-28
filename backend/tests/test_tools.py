@@ -26,7 +26,9 @@ import pytest
 
 from app.core.errors import ERROR_CODES
 from app.graph.nodes import solve
-from app.graph.state import NodeContext, RecordingEventSink
+from app.graph.events import FrameSink
+from app.graph.runner import FrameCollector
+from app.graph.state import NodeContext
 from app.tools import (
     INVALID_REQUEST,
     INVALID_RESPONSE,
@@ -351,18 +353,21 @@ def test_retrieval_is_shape_only() -> None:
 
 
 def test_tool_failures_enter_the_event_stream() -> None:
-    sink = RecordingEventSink()
-    ctx = NodeContext.for_node("solve", events=sink)
+    """★ R-Q ③ 的落点：工具失败**必须**进事件流，不得静默吞掉。
+
+    口径是**契约帧**（`graph/events.FrameSink`）：S3 之后节点发的是帧；`RecordingEventSink`
+    那条 ID-only 纪律属**日志**（`core/logging.py`）—— 两者不可互换（`graph/state.py` 的说明）。
+    """
+    collector = FrameCollector(FrameSink())
+    ctx = NodeContext.for_node("solve", events=collector)
 
     solve.run({"run_id": "run_1", "session_id": "sess_1", "query": "求 2+2"}, ctx)
 
     failed = [
-        record
-        for record in sink.records
-        if record.event_type == "tool.result" and record.fields["status"] == "failed"
+        frame for frame in collector.frames if frame.type == "tool.result" and not frame.payload["ok"]
     ]
-    assert len(failed) == 2  # retrieval（W4 才实现）与 llm（缺凭据）两条失败都可见
-    assert all(record.fields.get("reason") for record in failed)
+    # retrieval（W4 才实现）与 llm（缺凭据）两条失败都可见
+    assert [frame.payload["tool"] for frame in failed] == ["retrieval", "llm"]
 
 
 def test_egress_libraries_only_appear_in_the_llm_module() -> None:

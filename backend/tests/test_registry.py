@@ -15,8 +15,10 @@ from typing import Any, Sequence
 import pytest
 
 from app.graph import registry
+from app.graph.events import FrameSink
 from app.graph.nodes import route, solve, verify
-from app.graph.state import NodeContext, RecordingEventSink, ToolBox, ToolNotAllowed
+from app.graph.runner import FrameCollector
+from app.graph.state import NodeContext, ToolBox, ToolNotAllowed
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 GRAPH_DIR = BACKEND_DIR / "app" / "graph"
@@ -141,14 +143,15 @@ def _node_name(module: Any) -> str:
 
 
 @pytest.mark.parametrize("module", [route, solve, verify], ids=_node_name)
-def test_node_shell_takes_input_emits_events_and_returns_update(module: Any) -> None:
+def test_node_emits_the_contract_frames_and_returns_an_update(module: Any) -> None:
     name = _node_name(module)
-    sink = RecordingEventSink()
-    ctx = NodeContext.for_node(name, events=sink)
+    collector = FrameCollector(FrameSink())
+    ctx = NodeContext.for_node(name, events=collector)
 
     update = module.run({"run_id": "run_1", "session_id": "sess_1", "query": "求 2+2"}, ctx)
 
+    types = [frame.type for frame in collector.frames]
     assert name in update
-    assert sink.event_types[0] == "node.start"
-    assert sink.event_types[-1] == "node.end"
-    assert "tool.result" in sink.event_types
+    assert types[0] == "node.start"
+    assert types[-1] == "node.end"
+    assert "tool.result" in types
