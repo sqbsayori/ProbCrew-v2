@@ -607,19 +607,107 @@ def rb_write_commit() -> str:
 
 
 def rd_hardcoded_colors() -> str:
-    """R-D：样式**禁硬编码色值** —— 唯一豁免 `frontend/styles/tokens.css`（`docs/02 §1.6`）。"""
+    """R-D：样式**禁硬编码色值** —— 两个豁免：`frontend/styles/tokens.css` 与 `frontend/vendor/**`。
+
+    ★ **为什么多一个豁免**（2026-09-27 · katex 本地化时定）：`vendor/` 是**第三方原件**
+      （`docs/03 §5.1` 判给架构与集成、`.gitattributes` 把它标成 binary）—— 它的色值
+      **不是我们的令牌面**，改它等于改第三方产物。⇒ 它由**许可 + 来源 + vendor 完整性一节**守，
+      不由 R-D 守。★ 豁免**逐件打印**（`vendor/` 几件），不静默跳过。
+    """
     pattern = re.compile(r"#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|oklab|color-mix)\(", re.I)
     scanned = 0
+    vendor_files = 0
     offenders: list[str] = []
     for path in frontend_files():
         if not path.endswith(".css") or path.endswith("styles/tokens.css"):
+            continue
+        if path.startswith("frontend/vendor/"):
+            vendor_files += 1
             continue
         scanned += 1
         for lineno, line in enumerate(read(path).splitlines(), 1):
             if pattern.search(line):
                 offenders.append(f"{path}:{lineno}")
     assert not offenders, "硬编码色值：" + "；".join(offenders[:5])
-    return f"{scanned} 个 CSS 文件（`tokens.css` 已豁免）"
+    return f"{scanned} 个 CSS 文件（豁免：`tokens.css` · `vendor/` 第三方原件 {vendor_files} 件）"
+
+
+def frontend_smoke_static() -> str:
+    """前端冒烟的**静态面**（ADR-0006）：挂载点 · import 图闭合 · 路由监听 · 尺寸令牌被用。
+
+    ★ **渲染面不在这里** —— 真实点击尺寸（R-F①）· 键盘可达与语义标签（R-F②）· 哈希跳转**是否
+      真的发生**（R-G）· `must_render` 是否**真的上屏**（R-I）都要真跑 DOM，而 ADR-0006 决定
+      **不把无头浏览器带进门禁**（ADR-0001 的零安装前提）。那几条由 `docs/06 §14.5` 检查点
+      第 2 条"端到端走一遍并刷新页面"的人工验收覆盖，并在覆盖台账里逐条打印。
+    """
+    index = "frontend/index.html"
+    assert os.path.exists(index), "缺 `frontend/index.html`（同源托管的唯一入口）"
+    assert 'id="app-main"' in read(index), "`index.html` 里没有 DOM 挂载点 `#app-main`（`docs/03 §5.1`）"
+
+    seen: set[str] = {index}
+    queue = [index]
+    edges = 0
+    while queue:
+        current = queue.pop()
+        base = os.path.dirname(current)
+        for raw in re.findall(r"""(?:import|from)\s*\(?\s*["']([^"']+)["']""", read(current)):
+            if not raw.startswith("."):
+                continue
+            edges += 1
+            target = os.path.normpath(os.path.join(base, raw))
+            assert os.path.exists(target), (
+                f"{current} 引用了不存在的模块：{raw} —— 同源托管下它就是 404（白屏级故障）"
+            )
+            if target not in seen:
+                seen.add(target)
+                queue.append(target)
+
+    router = read("frontend/core/router.js")
+    for event in ("hashchange", "popstate"):
+        # ★ 认**注册**那一句，不认"词出现过" —— 第一版写成 `event in router` 时，"监听被删掉、
+        #   只剩注释与 removeEventListener" 照样通过（反向演示当场抓到）。
+        assert re.search(rf"addEventListener\(\s*[\"']{event}[\"']", router), (
+            f"`core/router.js` 里没有 `addEventListener('{event}', …)`（`docs/01` N11 的可寻址面）"
+        )
+
+    targets = [path for path in frontend_files() if path.endswith(".css") and "var(--target-min)" in read(path)]
+    shell = [path for path in targets if path.startswith(("frontend/styles/", "frontend/features/"))]
+    assert shell, "外壳与页面样式里没有一处使用 `var(--target-min)` —— N8① 的声明面没接上"
+    names = " · ".join(os.path.basename(os.path.dirname(path)) + "/" + os.path.basename(path)
+                       for path in targets)
+    return f"import 图 {len(seen)} 文件 / {edges} 条边闭合 · 挂载点 + hashchange/popstate · --target-min {len(targets)} 处（{names}）"
+
+
+def vendor_integrity() -> str:
+    """`frontend/vendor/**` 的**本地化完整性**（N4 的实物）：许可 · 来源 · CSS 引用全部命中。
+
+    ★ 这一节**替代不了**对第三方代码的审读；它守的是"**本地化这件事真的做完了**" ——
+      少一个字体文件，公式会回退到错误字形，而这件事在 CI 里**没有任何症状**。
+    """
+    packages = sorted(glob.glob("frontend/vendor/*"))
+    if not packages:
+        raise Skipped("`frontend/vendor/**` 未产出（N4 的实物 —— `docs/07 §2.2`）")
+    notes: list[str] = []
+    for folder in packages:
+        for required in ("LICENSE", "PROVENANCE.md"):
+            assert os.path.exists(os.path.join(folder, required)), (
+                f"{folder} 缺 `{required}` —— 开放许可素材须按许可署名、本地化须写明来源"
+            )
+        refs = 0
+        problems: list[str] = []
+        for css in walk_files(folder, (".css",)):
+            for raw in re.findall(r"url\(([^)]+)\)", read(css)):
+                target = raw.strip().strip("'\"")
+                if target.startswith(("data:", "http://", "https://", "//")):
+                    problems.append(f"{css}: 外部地址（N4 要本地化）{target[:40]}")
+                    continue
+                refs += 1
+                candidate = os.path.join(os.path.dirname(css), target.split("?")[0].split("#")[0])
+                if not os.path.exists(candidate):
+                    problems.append(f"{css}: 引用不存在 {target}")
+        assert not problems, "；".join(problems[:4])
+        notes.append(f"{os.path.basename(folder)}：LICENSE + 来源 + {refs} 个 CSS 引用全部命中")
+    return " · ".join(notes)
 
 
 def re_no_innerhtml() -> str:
@@ -912,6 +1000,124 @@ def rf_contrast_pairs() -> str:
     return f"{len(pairs)} 组色对达标（最低 {worst:.2f}:1）· --target-min = {target.group(1)}px"
 
 
+def content_branch_title(document: dict) -> str:
+    """按文档自己的键，指出它**自称**是哪一支（`cases` / `revs` / `asset`）—— 报错时只说那一支。"""
+    if "cases" in document:
+        return "样例集"
+    if "revs" in document:
+        return "MANIFEST.json"
+    return str(document.get("asset", ""))
+
+
+def brief_schema_error(errors: list) -> str:
+    """把校验错误压成**字段级一行**。
+
+    ★ 为什么必须压：`oneOf` 失败时 jsonschema 的默认消息会把**整个实例**（一个 15 万字符的题库）
+      打进输出 —— 红灯会淹掉自己。这里改为只报"**它自称的那一支**"里的前几条字段级错误；
+      `minItems` 一类**把实例内嵌进消息**的关键字，则只报校验关键字名。
+    """
+    first = errors[0]
+    branches = getattr(first, "context", None) or []
+    if not branches:
+        where = "/".join(str(part) for part in first.path) or "(根)"
+        return f"@{where}: {first.message[:160]}"
+    tips: list[str] = []
+    for branch in branches[:3]:
+        message = (branch.message or "").strip()
+        where = "/".join(str(part) for part in branch.path) or "(根)"
+        if message.startswith(("[", "{")):  # 例：`minItems` 的消息形如 "<整个数组> is too short"
+            message = f"{branch.validator} 不成立"
+        tips.append(f"@{where} {message[:80]}")
+    return " / ".join(tips)
+
+
+def validator_for(document: dict):
+    """按 `$id` 自建**离线** registry 的校验器（`jsonschema` / `referencing` 属 `requirements-dev.txt`）。
+
+    ★ 校验② 里那段 import 是内联的（2026-09-20 写的）；本函数是它的**可复用形式**，供内容资产
+    校验使用 —— 不回头改校验②，避免把已经跑过一轮的检查动到。
+    """
+    try:
+        from jsonschema import Draft7Validator
+        from referencing import Registry, Resource
+        from referencing.jsonschema import DRAFT7
+    except ImportError as exc:
+        raise AssertionError(f"缺少 jsonschema / referencing 依赖（requirements-dev.txt）：{exc}")
+    schemas = load_schemas()
+    registry = Registry().with_resources(
+        [(sid, Resource.from_contents(doc, default_specification=DRAFT7)) for sid, doc in schemas.items()]
+    )
+    return Draft7Validator(document, registry=registry)
+
+
+def content_assets() -> str:
+    """内容资产与样例集：**格式**（对 `content.schema.json` 的 `oneOf` 每一支）+ 两道**交叉**检查。
+
+    ★ 这是 `docs/06 §11` 的 W5 行里那条「**内容资产对 `content.schema.json` 的格式校验**
+    （卡 4 判据① 的机器化）」的落地；在此之前，内容资产只有 W0d 的**一次手跑**（§12.5 的记录）。
+    ★ **为什么值得机器做**：`examples` 已被校验② 守着，而**真正入仓的 `content/*.json` 谁也没校**
+       —— 手改一处字段名（如 `kc_ids` → `kc_id`）不会有任何红灯，直到某个页面在运行时才发现。
+    ★ **交叉检查**（draft-07 表达不了的那些，`x-invariants` 已逐条写成断言说明）：
+      ① 样例集的 `item_id` **必须在题库里存在**（引用闭包）；② 若错因库已产出，则
+      `expected_conclusion` 里出现的 `mp_*` **也必须在错因库里**（未产出时**如实打印**为未机检）。
+    """
+    schemas = load_schemas()
+    content_id = next(sid for sid in schemas if sid.endswith("/content.schema.json"))
+    validator = validator_for(schemas[content_id])
+    files = sorted(glob.glob("content/*.json")) + sorted(glob.glob("content/eval/sample/*.json"))
+    if not files:
+        raise Skipped("0 个内容资产文件（`content/*.json` 未产出 —— 五类资产属 W2 / W4）")
+
+    checked = len(files)
+    notes: list[str] = []
+    items_of = lambda key: json.loads(read(f"content/{key}.json"))["items"]  # noqa: E731
+    produced = {key: len(items_of(key)) for key in ("problems", "types", "mistakes", "dag", "formula")
+                if os.path.exists(f"content/{key}.json")}
+
+    # ★ 下界先行：schema 的 `minItems` 也能拦住它，但那时的消息既不提下界的出处、也不说
+    #   "现在有几条"；本断言给出的是可行动的句子（`x-floors` 是它的机器可读来源）。
+    floors = schemas[content_id]["x-floors"]
+    for key, count in produced.items():
+        floor = floors.get(key, {}).get("minItems")
+        if floor is not None:
+            assert count >= floor, f"content/{key}.json 有 {count} 条 < 下界 {floor}（`docs/06 §7` · `x-floors`）"
+    notes.append("下界：" + " · ".join(f"{k} {v}" for k, v in produced.items()))
+
+    failures: list[str] = []
+    for path in files:
+        document = json.loads(read(path))
+        errors = sorted(validator.iter_errors(document), key=lambda e: list(e.path))
+        if not errors:
+            continue
+        branches = getattr(errors[0], "context", None) or []
+        wanted = content_branch_title(document)
+        picked = [branch for branch in branches if wanted and wanted in str(branch.schema.get("title", ""))]
+        failures.append(f"{path}: {brief_schema_error(picked or errors)}")
+    assert not failures, "；".join(failures[:4])
+
+    sample = sorted(glob.glob("content/eval/sample/*.json"))
+    if sample:
+        cases = [case for path in sample for case in json.loads(read(path))["cases"]]
+        assert 3 <= len(cases) <= 5, f"样例集 {len(cases)} 道 —— `docs/02 §9` 写的是首版 3–5 道"
+        assert len({case["case_id"] for case in cases}) == len(cases), "样例集里 `case_id` 有重复"
+        if os.path.exists("content/problems.json"):
+            known = {item["prob_id"] for item in items_of("problems")}
+            missing = [case["item_id"] for case in cases if case["item_id"] not in known]
+            assert not missing, f"样例集引用了题库里不存在的 item_id：{missing}"
+            notes.append(f"样例集 {len(cases)} 道的 item_id 闭包成立")
+        if os.path.exists("content/mistakes.json"):
+            known_mp = {item["mp_id"] for item in items_of("mistakes")}
+            cited = {mid for case in cases for mid in re.findall(r"mp_[a-z0-9_]+", case["expected_conclusion"])}
+            unknown = sorted(cited - known_mp)
+            assert not unknown, f"样例集的 expected_conclusion 引用了错因库里没有的 mp_id：{unknown}"
+            notes.append(f"{len(cited)} 个 mp_id 引用闭包成立")
+        else:
+            notes.append("错因库未产出 ⇒ expected_conclusion 的 mp_id 闭包本轮机检跳过（`docs/07 §2.2`）")
+        return f"{checked} 个文件过 `content.schema.json` 校验 · " + " · ".join(notes)
+    notes.append("样例集未产出（`content/eval/sample/**` —— 属 W5 第二批）")
+    return f"{checked} 个文件过 `content.schema.json` 校验 · " + " · ".join(notes)
+
+
 def coverage_ledger() -> str:
     """覆盖台账：**本门禁不覆盖什么**（`docs/06 §8` 的"落在哪"列就是这么划的）。
 
@@ -922,11 +1128,15 @@ def coverage_ledger() -> str:
                          ("docs/04-契约层说明.md", "7")):
         assert has_section(path, number), f"覆盖台账引用的 `{path} §{number}` 不存在（指针烂了）"
     outside = ("R-C（责任人，`docs/05 §2.4`）· R-M⑥（无埋点 / 无导出路径，review）"
-               "· R-L · R-N（**只有用例**）· R-F①② / R-G / R-I（**前端冒烟**，要真跑页面）")
+               "· R-L · R-N（**只有用例**；`docs/06 §8` 的\"落在哪\"列就是这么写的）"
+               "· ★ **前端冒烟的渲染面**：R-F① 真实点击尺寸 · R-F② 键盘可达与语义标签 · "
+               "R-G 哈希跳转**是否真的发生** · R-I `must_render` **是否真的上屏**（静态面已在下一节，"
+               "渲染面按 ADR-0006 留人工 —— 要真跑 DOM，与零安装冲突）")
     later = ("`api/` 薄（对象未产出）· 启动校验七条（`docs/06 §4` 第 8 项，输入资产未齐）"
              "· 运维演练 ②③④ 与 `backup.py` / `load_test.py`（第 9 项）"
-             "· `content/eval/sample/**` 与 `scripts/eval_verify.py`（阶段 C）"
-             "· `frontend/vendor/` 本地化（N4 的实物，落地时要一并定 vendor 的 R-D 口径）")
+             "· ★ 样例集的**端到端执行**（格式与引用闭包已接）与 `scripts/eval_verify.py`（阶段 C）"
+             "· 冻结正式集与期望判据表（**不入主仓**，人工门禁）"
+             "· ★ vendor 里第三方代码的**审读**（本地化完整性已接，审读不是脚本的事）")
     return f"不在本脚本：{outside} ⇒ 批次 3 其余：{later}"
 
 
@@ -958,10 +1168,14 @@ def main() -> int:
             ("④ 25 条 path 覆盖完整", check_04_paths),
             ("⑤ 事件枚举与 x-type-count 一致", check_05_events),
         ]),
-        ("契约校验⑥⑦（docs/04 §7）· N8 的可自动面", [
+        ("契约校验⑥⑦（docs/04 §7）· N4 / N8 的可自动面", [
             ("⑥ content_rev 可复算 + MANIFEST 一致", check_06_manifest),
             ("⑦ 部署无关化 + 零依赖", check_07_deployment_agnostic),
+            ("`frontend/vendor/**` 本地化完整性（许可 · 来源 · 引用）", vendor_integrity),
             ("R-F③ 色对对比度 + N8① 点击目标（声明面）", rf_contrast_pairs),
+        ]),
+        ("内容资产与样例集（`docs/06 §7` · §11 的 W5 行）", [
+            ("格式（`content.schema.json` 的 `oneOf`）+ 引用闭包 + 下界", content_assets),
         ]),
         ("R-A…R-Q 的静态面（规则 = docs/02 §1.6）", [
             ("R-A① 请求体字符串字段上界", ra_string_bounds),
@@ -978,6 +1192,9 @@ def main() -> int:
             ("后端模块依赖白名单", import_direction),
             ("前端 features / components 依赖互斥", frontend_import_direction),
             ("`api/` 薄（单函数 ≤ 40 行 · 无 SQL）", api_is_thin),
+        ]),
+        ("前端冒烟（ADR-0006：静态面在门禁 · 渲染面留人工）", [
+            ("静态面（挂载点 · import 图闭合 · 路由监听 · 尺寸令牌）", frontend_smoke_static),
         ]),
         ("覆盖台账（如实登记\"没查什么\"）", [
             ("不在本脚本 / 批次 3 其余部分", coverage_ledger),
