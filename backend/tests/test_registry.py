@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import ast
+import importlib
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -58,7 +59,30 @@ def test_describe_registry_is_exportable_and_greppable() -> None:
     assert "registry: 3 nodes" in text
     assert "node=route entry=app.graph.nodes.route:run tools=llm" in text
     assert "node=solve entry=app.graph.nodes.solve:run tools=llm,retrieval" in text
-    assert "node=verify entry=app.graph.nodes.verify:run tools=retrieval" in text
+    # ★ S5 改正：原来只断言到 `tools=retrieval` —— 而它在 S4 之后仍是新行的**子串**，
+    #   于是"verify 多了两个工具"这件事**门禁查不到**。现在按整行断言（顺序即集合内容）。
+    assert (
+        "node=verify entry=app.graph.nodes.verify:run"
+        " tools=retrieval,sympy_recompute,symbolic_equivalence"
+    ) in text
+
+
+def test_every_node_declares_its_tools_exactly() -> None:
+    """★ S5：**允许集合按节点逐一断言**（R-Q ① 的"显式"必须可核对，而不是"看起来有"。"""
+    declared = {item.name: tuple(item.tools or ()) for item in registry.load_registry()}
+    assert declared == {
+        "route": ("llm",),
+        "solve": ("llm", "retrieval"),
+        "verify": ("retrieval", "sympy_recompute", "symbolic_equivalence"),
+    }
+
+
+def test_every_declared_tool_is_a_real_module_with_an_entry() -> None:
+    """★ S5：声明的工具**必须真的存在且暴露 `ENTRY`** —— 否则"声明"就只是字符串。"""
+    for item in registry.load_registry():
+        for tool in item.tools or ():
+            module = importlib.import_module(f"app.tools.{tool}")
+            assert callable(getattr(module, "ENTRY", None)), f"{tool} 没有可调用的 ENTRY"
 
 
 def test_duplicate_name_is_rejected() -> None:

@@ -29,9 +29,10 @@ from app.core.errors import ERROR_CODES
 from app.graph import events
 from app.graph import registry as graph_registry
 from app.graph import runner
+from app.graph import state
 from app.graph.nodes import route, solve, verify
 from app.graph.state import EventFieldViolation, NodeContext, RecordingEventSink
-from app.tools import llm
+from app.tools import ToolResult, llm
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
@@ -553,3 +554,57 @@ def test_nodes_emit_frames_not_log_records() -> None:
     ctx = NodeContext.for_node("route", events=RecordingEventSink())
     with pytest.raises(EventFieldViolation):
         route.run({"run_id": "run_1", "session_id": "ses_1", "query": "1+1=?"}, ctx)
+
+
+# --------------------------------------------------------------------------- #
+# S5 · 收口：错误码映射 · 终帧路径 · 工具结果的 data 口径
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(
+    "reason, expected",
+    [
+        ("model_key_missing", "model_key_missing"),      # 模型类：与对外枚举同名同值，透传
+        ("model_unreachable", "model_unreachable"),
+        ("parse_error", "dependency_unavailable"),        # 对内原因：不看内容，一律合并
+        ("timeout", "dependency_unavailable"),
+        ("cite_unavailable", "dependency_unavailable"),
+        ("internal_response", "dependency_unavailable"),
+        (None, "internal_error"),                         # 真正的内部异常（没有 reason）
+    ],
+)
+def test_error_code_mapping_never_leaks_internal_reasons(reason: "str | None", expected: str) -> None:
+    """★ 对外的 `code` **只能是** `error.schema.json` 那 16 个之一 —— 加一条断言守着。"""
+    code = runner.error_code_for(reason)
+    assert code == expected
+    assert code in ERROR_CODES
+
+
+def test_error_messages_are_bounded_and_say_nothing_internal() -> None:
+    for code in ERROR_CODES:
+        message = runner.message_for(code)
+        assert 1 <= len(message) <= 200
+        assert "Traceback" not in message and "/" not in message and "\\" not in message
+    # 未知 code 也不许空手返回（`errorPayload.message` 的 minLength = 1）
+    assert runner.message_for("not_a_code")
+
+
+def test_tool_result_data_is_dropped_when_it_is_not_an_object() -> None:
+    """契约要求 `tool.result.data` 是**对象或 null** ⇒ 非 Mapping 的返回值不进帧（失败必为 null）。"""
+    collector = runner.FrameCollector(events.FrameSink())
+    ctx = NodeContext.for_node("solve", events=collector)
+    state.emit_tool_result(ctx, "llm", ToolResult(ok=SUCCEEDED, value="这不是对象"))
+    state.emit_tool_result(ctx, "llm", ToolResult(ok=SUCCEEDED, value={"text": "0.0833"}))
+
+    plain, objectful = collector.frames
+    assert "data" not in plain.payload
+    assert objectful.payload["data"] == {"text": "0.0833"}
+    assert objectful.payload["ok"] is bool(SUCCEEDED)  # ok 来自 ToolResult，不在这里重判
+    for frame in collector.frames:
+        EVENT_VALIDATOR.validate(frame.to_dict())
+
+
+def test_run_always_ends_with_a_terminal_frame_even_on_bad_input() -> None:
+    """★ 终帧必须显式（`docs/02 §6.5-2`）：入参连第一帧都构造不出来时，**也要给一个 `error`**。"""
+    frames = collect_frames(run_id="run_5", session_id="ses_1", query=123, store=runner.RunStore())
+    assert [frame.type for frame in frames] == ["error"]
+    assert frames[0].payload["code"] == "internal_error"
+    EVENT_VALIDATOR.validate(frames[0].to_dict())
