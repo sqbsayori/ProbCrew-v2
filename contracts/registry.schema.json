@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/registry.schema.json",
   "title": "编排注册与运行时自检（Registry & Health）",
   "description": "① **节点 / 工具的注册规格** —— 它是 **R-Q（工具调用边界）** 的机器可读落点，也是 `docs/03 §7①` 裁定的「**显式注册 + 启动校验**」的形状；② **`GET /api/health` 的自检响应**。★ 两者同处一份契约，因为它们回答的是同一个问题：**「这个进程现在到底是由什么构成的、它自己觉得健不健康」**。★ 本文件是**本轮裁定新增**的第 14 份契约（`ADR-0003` 决策 7 当时写的是 13 份 —— 见 `docs/04 §9` 缺口 3）。",
-  "version": "v1.0",
+  "version": "v1.1",
   "oneOf": [
     {
       "title": "注册表（graph/registry）",
@@ -84,13 +84,27 @@
       "★ tools 为空数组、为 null、或含通配符 ⇒ 报错退出（R-Q ①）",
       "entry 不存在或签名不符 ⇒ 报错退出",
       "启动时打印 / 导出「已注册清单」⇒ 可 grep、可断言",
-      "并发度 > 1 ⇒ 拒绝启动并说明原因（docs/02 §8-15）"
+      "并发度 > 1 ⇒ 拒绝启动并说明原因（docs/02 §8-15）",
+      "★ 部署形态值非法（既不是 `single` 也不是 `hosted`）⇒ 拒绝启动并说明原因（PROBCREW_DEPLOYMENT；docs/02 §1.5① 的 P1 启用方式）",
+      "★ 部署形态为 `single` 却对外监听 ⇒ 拒绝启动并说明原因 —— 单机形态的前提是「本机访问」，对外监听 + 允许 loopback 端点正是 docs/02 §4.2.1 规则 2 要挡的那个场景（实现见 app/main.py）"
     ]
   },
   "x-forbidden-fields": {
     "description": "★ `GET /api/health` **不得包含**的字段。这不是风格问题，是三条硬约束的交点。",
     "forbidden": ["model", "model_status", "model_endpoint", "upstream", "llm"],
     "why": "① 「模型状态」需要**一次出网调用**，而 `docs/02 §1.5③` 规定运行期**恰好两个出网口**且 health 不在其中；② 它会破坏 `docs/02 §8-7` 的「判定压测时 health 必须仍 < 100ms」；③ N14 下**不存在部署级端点**，health 根本无从知道任何用户的模型状态 —— 报它只能靠猜。★ 原措辞曾写 health「报告 DB / 模型 / 检索状态」，2026-09-16 已修正。"
+  },
+  "x-changelog": {
+    "description": "★ 契约变更记录（`docs/04 §6` 第 4 步：新增枚举值属兼容变更，但必须记账）。**v2 不另设 `contracts/CHANGELOG.md`** —— 记录就在契约文件里，历史由 git log 承担。",
+    "entries": [
+      {
+        "version": "v1.1",
+        "date": "2026-09-27",
+        "type": "兼容增量",
+        "change": "`x-startup-checks.checks` 增两条：**部署形态值非法**与**`single` 却对外监听**都 ⇒ 拒绝启动（与 N16 的「部署者开关」配套）",
+        "why": "★ `docs/02 §1.5①` 写着 loopback 例外「**仅在单机形态**，且必须由部署者**显式勾选**才生效；默认关闭」，而**「勾在哪一行」此前没有任何落点** —— 于是那句话在实现层等于不存在。本次把形态声明（`PROBCREW_DEPLOYMENT`）与它的两条启动校验落进这份**启动校验的唯一机器可读清单**（`docs/03 §7①` 的落点），实现见 `backend/app/main.py`。"
+      }
+    ]
   },
   "examples": [
     {
