@@ -1,0 +1,22 @@
+/* 刷题页专属样式。颜色、圆角、阴影和间距一律取自 tokens.css。 */
+.practice-page { max-width: 1180px; }
+.practice-layout { display: grid; grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr); gap: var(--space-4); align-items: start; }
+.practice-filter { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.practice-filter__input { flex: 1 1 220px; min-height: var(--target-min); padding: 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; }
+.practice-problem-link { color: var(--color-primary); text-decoration: none; }
+.practice-problem-link:hover { text-decoration: underline; }
+.practice-problem { display: flex; flex-direction: column; gap: var(--space-3); }
+.practice-problem__stem { margin: 0; font-size: var(--font-size-lg); line-height: var(--line-height-base); white-space: pre-wrap; }
+.practice-meta { display: flex; flex-wrap: wrap; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.practice-badge { display: inline-flex; align-items: center; min-height: var(--target-min); padding: 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-surface-muted); }
+.practice-answer { width: 100%; min-height: 8rem; box-sizing: border-box; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; resize: vertical; }
+.practice-answer:focus, .practice-filter__input:focus { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.practice-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.practice-hints { display: flex; flex-direction: column; gap: var(--space-2); }
+.practice-hint { margin: 0; padding: var(--space-3); border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: var(--radius-sm); background: var(--color-surface-muted); white-space: pre-wrap; }
+.practice-result { display: flex; flex-direction: column; gap: var(--space-3); }
+.practice-result__line { margin: 0; }
+.practice-solution { margin: 0; padding-left: var(--space-5); }
+.practice-solution li { margin-bottom: var(--space-2); }
+.practice-solution__formula { display: block; margin-top: var(--space-1); font-family: var(--font-family-mono); white-space: pre-wrap; }
+@media (max-width: 860px) { .practice-layout { grid-template-columns: minmax(0, 1fr); } }
