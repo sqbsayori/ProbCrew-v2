@@ -41,6 +41,9 @@ body {
 }
 
 .app-topbar__brand {
+  display: inline-flex;                 /* ★ 2026-09-27 补：真实渲染实测 84×28 ⇒ 高度不足 32 */
+  align-items: center;
+  min-height: var(--target-min);        /* N8①：点击目标 ≥ 32px（与导航项 · 按钮同一口径） */
   font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--color-text);

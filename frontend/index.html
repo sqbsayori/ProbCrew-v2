@@ -45,7 +45,7 @@
     import { el, mount, qs, setText, txt } from './core/dom.js'
     import { EVENTS, emit, on } from './core/bus.js'
     import { store } from './core/store.js'
-    import { register, setFallback, start, navigate } from './core/router.js'
+    import { register, setFallback, start, navigate, parse } from './core/router.js'
     import { ApiError, get, post } from './core/api.js'
     import { role, token } from './core/auth.js'
     import { emptyState, notice } from './components/index.js'
@@ -202,6 +202,16 @@
     // ★ 刷新后令牌还在（`core/auth.js` 只把令牌落 localStorage）⇒ 也要问一次：
     //   `notice_ack_at` 在**服务端**，所以"确认过就不再问"由服务端保证。
     announceIfNeeded()
+    /**
+     * ★ **空哈希（首次打开站点 `/`）⇒ 落到 `#/home`**（`docs/02 §7.1` 的落地页约定）。
+     *
+     * 为什么这句必须在外壳里：`core/router.js` 的兜底**只广播提示、不做重定向**
+     * —— 它自己的注释就写着"重定向是外壳的决定"。没有这一句时，首次打开会看到
+     * **"未知页面"**（2026-09-27 由真实浏览器实测发现，见 README 的"门禁与 CI"节）。
+     * ★ 必须在 `start()` **之前**改哈希：`navigate()` 改的是 `location.hash`，
+     *   而 `hashchange` 只有 `start()` 挂上监听后才有人接（否则那一次跳转没人渲染）。
+     */
+    if (parse().path === '/') location.hash = '#/home'
     start()
     emit(EVENTS.APP_READY, { version: SHELL_VERSION })
   </script>

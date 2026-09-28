@@ -28,13 +28,21 @@ from fastapi.staticfiles import StaticFiles
 __all__ = [
     "CONCURRENCY_ENV",
     "DEFAULT_CONCURRENCY",
+    "DEPLOYMENT_ENV",
+    "DEPLOYMENT_HOSTED",
+    "DEPLOYMENT_SINGLE",
     "FRONTEND_DIR",
     "HOST",
+    "LOOPBACK_HOSTS",
     "PORT",
     "app",
+    "assert_deployment_consistent",
     "assert_single_worker",
+    "describe_deployment",
+    "loopback_endpoint_allowed",
     "main",
     "resolve_concurrency",
+    "resolve_deployment",
 ]
 
 # ---- 路径 -------------------------------------------------------------------
@@ -96,6 +104,87 @@ def assert_single_worker(concurrency: int) -> None:
     raise SystemExit(REFUSE_EXIT_CODE)
 
 
+# ---- 部署形态（N16 的「部署者开关」 · ★ 2026-09-27 补）------------------------
+
+#: 部署形态信号变量。★ **首次取值** —— 此前它只有散文（`docs/02 §1.5①` 的 P1 例外
+#: 「必须由部署者**显式勾选**才生效」，而「勾在哪一行代码上」**没有任何落点**）。
+DEPLOYMENT_ENV = "PROBCREW_DEPLOYMENT"
+#: 两档形态（`docs/01` N16）：远程托管（正式服务 · **loopback 端点一律拒绝**）·
+#: 单机（答辩 / 教师自用 · 允许本机端点 P1）。★ 名字用 `hosted` / `single` 而不是
+#: `remote` / `local` —— 避免与 `egress` 的枚举（`loopback` / `remote`）混淆：**形态与去向是两个维度**
+#: （`docs/02 §1.5①` 的表就是四象限，单机形态下也可能 `egress=remote`）。
+DEPLOYMENT_HOSTED = "hosted"
+DEPLOYMENT_SINGLE = "single"
+#: 回环监听地址 —— 单机形态的正当性前提是"**本机访问**"（`docs/02 §1.5①`）。
+LOOPBACK_HOSTS = ("127.0.0.1", "::1", "localhost")
+
+
+def resolve_deployment(env: Mapping[str, str] | None = None) -> str:
+    """部署形态：未设置或空串 ⇒ **`hosted`（远程托管）**；坏值**拒绝启动**（不静默降级）。
+
+    ★ **为什么缺省取最严的那一档**：`docs/02 §1.5①` 写着 loopback 例外「**默认关闭**」——
+      缺省 `hosted` 就是"默认关闭"的机器可读形式；单机形态必须由部署者**显式**声明。
+    ★ 坏值处理与 {@link resolve_concurrency} / {@link resolve_port} 同款：**说清原因再拒绝**。
+    """
+    raw = (os.environ if env is None else env).get(DEPLOYMENT_ENV, "").strip().lower()
+    if raw == "":
+        return DEPLOYMENT_HOSTED
+    if raw not in (DEPLOYMENT_HOSTED, DEPLOYMENT_SINGLE):
+        sys.stderr.write(
+            f"[拒绝启动] {DEPLOYMENT_ENV}={raw!r} 不是合法形态 —— 只接受 "
+            f"{DEPLOYMENT_SINGLE!r}（单机：答辩 / 教师自用）或 {DEPLOYMENT_HOSTED!r}（远程托管，缺省）。\n"
+            "  原因：形态决定 loopback 端点与明文 http 是否允许（docs/02 §1.5① · §4.2.1 规则 2），"
+            "猜一个等于把安全开关交给默认值。\n"
+        )
+        raise SystemExit(REFUSE_EXIT_CODE)
+    return raw
+
+
+def loopback_endpoint_allowed(deployment: str) -> bool:
+    """P1（本机端点）在**服务端**这一半是否放开 —— **只在单机形态**（`docs/02 §1.5①` · §4.2.1 规则 2）。
+
+    ★ 规则 2 的原话是「**仅在单机形态**，且必须由部署者**显式勾选**才生效」⇒ 它是**两个条件的合取**：
+      本函数判服务端形态，客户端还要用户在设置页勾「本机端点」。**两者都成立**才真的放行。
+    ★ **消费点**（本仓唯一来源就是这里）：端点校验函数（`/api/model/ping` 与 `/api/chat`
+      **必须共用同一个** —— `docs/02 §4.2.1`）+ N18 的"单机允许 http"那一半。
+      ⇒ ★ **跨域事项（`docs/05 §3` 规则 1）**：`backend/app/api/**` 与 `core/**` 属**后端与数据**；
+      若该域希望从 `core/config.py` 的 `Settings` 读这个开关，请按规则 1 记账后再搬 —— **唯一来源不能有两处**。
+    """
+    return deployment == DEPLOYMENT_SINGLE
+
+
+def assert_deployment_consistent(deployment: str, host: str = HOST) -> None:
+    """启动校验：**单机形态不得对外监听** —— 否则「允许 loopback 端点」的正当性不成立。
+
+    ★ 为什么这条是真检查而不是形式：`docs/02 §4.2.1` 规则 2 的理由原文是「远程托管下学生填的
+      loopback 是**服务器**的 loopback：他既无正当性使用它，**它又是一条通往服务器内部服务的路**」
+      ⇒ 一个**对外可达**的服务若同时允许 loopback 端点，就正好把那句话里的场景构造出来了。
+    ★ 今天 `HOST` 是常量（回环）—— `docs/03 §8.1` 的拓扑要求**反代与服务同机**，因此本函数
+      **是守卫**：它挡住的是「把 HOST 改成 `0.0.0.0` 又声明成 `single`」这个组合。
+    """
+    if deployment == DEPLOYMENT_SINGLE and host not in LOOPBACK_HOSTS:
+        sys.stderr.write(
+            f"[拒绝启动] {DEPLOYMENT_ENV}={DEPLOYMENT_SINGLE} 却监听 {host!r} —— 二者矛盾。\n"
+            "  原因：单机形态的前提是「**本机访问**」（docs/02 §1.5①）；对外监听 + 允许 loopback 端点\n"
+            "        正是 docs/02 §4.2.1 规则 2 要挡的那个场景（学生填 127.0.0.1 就能打服务器内部）。\n"
+            "  处理：远程托管请用缺省（PROBCREW_DEPLOYMENT 不设或设为 hosted）并由反代对外（docs/03 §8.5）。\n"
+        )
+        raise SystemExit(REFUSE_EXIT_CODE)
+
+
+def describe_deployment(deployment: str) -> str:
+    """启动时打印一行 —— 让「当前是哪一档形态、端点例外开不开」在**日志与终端里可见**。"""
+    if deployment == DEPLOYMENT_SINGLE:
+        return (
+            "部署形态：单机（答辩 / 教师自用）—— ★ 允许本机端点（P1）与明文 http；"
+            "**不要把它暴露到局域网 / 公网**（docs/02 §1.5①）"
+        )
+    return (
+        "部署形态：远程托管 —— ★ loopback 端点与明文 http **一律拒绝**"
+        "（docs/02 §4.2.1 规则 2 · N18）"
+    )
+
+
 # ---- 应用对象 ---------------------------------------------------------------
 
 app = FastAPI(
@@ -134,6 +223,10 @@ def main() -> None:
         raise SystemExit(REFUSE_EXIT_CODE) from exc
 
     assert_single_worker(concurrency)
+    # ★ 部署形态：坏值在函数内拒绝；一致性检查见 `docs/02 §4.2.1` 规则 2 的落点说明。
+    deployment = resolve_deployment()
+    assert_deployment_consistent(deployment)
+    print(describe_deployment(deployment), flush=True)
     import uvicorn
 
     uvicorn.run(app, host=HOST, port=port, log_level="info")
