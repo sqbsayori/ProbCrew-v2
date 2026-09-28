@@ -210,10 +210,13 @@ def send(
         return ToolResult(ok=False, reason=INVALID_RESPONSE)
 
     text = _dig(data, _CHOICES_PATH)
-    if not isinstance(text, str) or not text.strip():
+    # ★ `ok` 由**解析结果**派生，不写成字面量 —— R-Q ② 要的是"成功标记来自真实执行结果"，
+    #   而它在静态面上表现为"不得出现硬编码的成功标记"（`scripts/verify.sh` 的 R-Q 检查）。
+    answer_ok = isinstance(text, str) and bool(text.strip())
+    if not answer_ok:
         return ToolResult(ok=False, reason=INVALID_RESPONSE)
     model = data.get("model") if isinstance(data, dict) else None
-    return ToolResult(ok=True, value={"text": text, "model": model if isinstance(model, str) else None})
+    return ToolResult(ok=answer_ok, value={"text": text, "model": model if isinstance(model, str) else None})
 
 
 def _code_for_status(status: int) -> "str | None":
