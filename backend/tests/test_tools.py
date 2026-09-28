@@ -7,6 +7,8 @@
 - **R-Q ②③**：``ok`` 来自真实执行结果（禁止硬编码 ``true``）；工具失败必须进事件流；
 - **``docs/02 §4.2.1`` 六条**：端点信任边界的**逐条负样本**（规则 1–6）；
 - **``docs/02 §6.3``**：上游状态 → 四类 ``code`` 的映射（401/403 **绝不复用** 401 ``unauthenticated``）。
+- **S2（``docs/06 §4`` 第 11 项）**：两个验证手段 —— ``check`` 形状**过契约**、
+  解析失败 ⇒ 未执行（**不是**不通过）、不可信表达式**不入 ``eval``**、``sympy`` 不得进 ``graph/``。
 
 ★ 假 provider 的形态是**替换 ``llm._TRANSPORT``**（R-L 的"假 provider 抓载荷"要有落点）；
 产品路径里**没有任何 mock**（N2 · ``docs/02 §4.2.1``）。
@@ -15,9 +17,11 @@ from __future__ import annotations
 
 import ast
 import json
+import time
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 import pytest
 
 from app.core.errors import ERROR_CODES
@@ -32,9 +36,14 @@ from app.tools import (
     MODEL_QUOTA_EXCEEDED,
     MODEL_UNREACHABLE,
     NOT_IMPLEMENTED,
+    PARSE_ERROR,
+    TIMEOUT,
     llm,
     retrieval,
+    symbolic_equivalence,
+    sympy_recompute,
 )
+from app.tools import expression as expression_guard
 from app.tools.endpoint import (
     PROVIDER_IDS,
     EndpointRejection,
@@ -365,3 +374,179 @@ def test_egress_libraries_only_appear_in_the_llm_module() -> None:
         if bad:
             offenders[str(path.relative_to(BACKEND_DIR))] = bad
     assert offenders == {}
+
+
+# --------------------------------------------------------------------------- #
+# S2 · 两个验证手段（docs/06 §4 第 11 项：A/B 级可达）
+# --------------------------------------------------------------------------- #
+VERIFICATION_CONTRACT = json.loads(
+    (REPO_ROOT / "contracts" / "verification.schema.json").read_text(encoding="utf-8")
+)
+CHECK_SCHEMA = VERIFICATION_CONTRACT["definitions"]["check"]
+
+
+def assert_check_is_contract_shaped(check: "dict[str, Any]") -> None:
+    """★ 用**真 jsonschema** 校验 ``definitions.check`` —— 与 `docs/04 §7` 校验① 同一口径。
+
+    为什么不让它"看起来像"契约：形状是**装配方的输入**（`graph/nodes/verify.py` 只搬运），
+    这里漂一个键名，坏的是 `verification.report` 整条链（F3 的 `must_render` 也跟着空）。
+    """
+    jsonschema.validate(instance=check, schema=CHECK_SCHEMA)
+
+
+def test_s2_methods_come_from_the_verification_contract() -> None:
+    # 手段名与可达条件是**契约里的枚举**，本仓不自造（`docs/04 §7` 校验⑤ 的同口径）。
+    enum = CHECK_SCHEMA["properties"]["method"]["enum"]
+    reachability = VERIFICATION_CONTRACT["x-level-reachability"]
+    assert sympy_recompute.METHOD in enum
+    assert symbolic_equivalence.METHOD in enum
+    assert reachability["A"]["requires_any"] == [sympy_recompute.METHOD]
+    assert reachability["B"]["requires_any"] == [symbolic_equivalence.METHOD]
+
+
+def test_s2_tools_expose_entry_points() -> None:
+    # `app/tools/__init__.py` 的约定：一个工具一个模块，模块必须暴露 `ENTRY`。
+    assert sympy_recompute.ENTRY is sympy_recompute.recompute
+    assert symbolic_equivalence.ENTRY is symbolic_equivalence.equivalent
+
+
+def test_recompute_accepts_an_exact_answer() -> None:
+    result = sympy_recompute.recompute("1/6 + 1/12", expected="0.25")
+    assert result.ok is True
+    assert result.reason is None
+    assert result.value["passed"] is True
+    assert result.value["method"] == "sympy_recompute"
+    assert_check_is_contract_shaped(result.value)
+
+
+def test_recompute_accepts_a_decimal_answer_within_tolerance() -> None:
+    # 模型给 12 位小数、SymPy 给精确值 ⇒ 不可能逐位相等，靠相对容差收口。
+    result = sympy_recompute.recompute("1/3", expected="0.333333333333")
+    assert result.value["passed"] is True
+    assert "容差" in result.value["detail"]
+
+
+def test_recompute_flags_an_inconsistent_answer() -> None:
+    # ★ 独立重算出 1/4，解答写 0.58 ⇒ 结论是"不通过"。注意 **`ok` 仍为真**：
+    #   "结论是不通过"不是工具失败 —— 写成失败会让 §4.4③ 的重算流程永远触发不了。
+    result = sympy_recompute.recompute("1/6 + 1/12", expected="0.58")
+    assert result.ok is True
+    assert result.value["passed"] is False
+    assert result.value["evidence"] == {"expected": "0.580000000000000", "actual": "1/4"}
+    assert_check_is_contract_shaped(result.value)
+
+
+@pytest.mark.parametrize("bad", ["sin(", "(1", "1,2", "log"])
+def test_recompute_treats_unparsable_input_as_not_executed(bad: str) -> None:
+    # ★ 未执行 ⇒ `ok` 为假 + `parse_error`；按 `docs/02 §4.4②` **不算通过、也不算不通过**。
+    result = sympy_recompute.recompute(bad, expected="0")
+    assert (result.ok, result.reason) == (False, PARSE_ERROR)
+
+
+@pytest.mark.parametrize(
+    "hostile",
+    [
+        "__import__('os').system('echo pwned')",
+        "open('x')",
+        "a.b",
+        "x[0]",
+        "globals()",
+        "1;2",
+    ],
+)
+def test_verification_tools_reject_untrusted_expressions(hostile: str) -> None:
+    # 表达式来自**模型输出**，而 `parse_expr` 底层是 `eval` ⇒ 白名单守卫是第一道防线。
+    assert sympy_recompute.recompute(hostile, expected="0").reason == INVALID_REQUEST
+    assert symbolic_equivalence.equivalent(hostile, "0").reason == INVALID_REQUEST
+
+
+def test_guard_rejects_before_the_string_reaches_eval(monkeypatch: pytest.MonkeyPatch) -> None:
+    """★ 不只看返回码：**证明那条载荷根本没被送进 `parse_expr`**（它底层就是 `eval`）。
+
+    换成"写一个标记文件、再断言文件不存在"也能说明问题，但那要多一个可写目录；这条用例把
+    `parse_expr` 整个换成"被调用即失败"，覆盖的是同一件事，而且不依赖文件系统。
+    """
+
+    def explode(*args: Any, **kwargs: Any) -> Any:
+        raise AssertionError("守卫没拦住 —— 不可信字符串被送进了 parse_expr（底层是 eval）")
+
+    monkeypatch.setattr(expression_guard, "parse_expr", explode)
+    for hostile in ("__import__('os').system('echo pwned')", "open('x')", "a.b", "x[0]"):
+        with pytest.raises(expression_guard.ExpressionRejected) as excinfo:
+            expression_guard.parse(hostile)
+        assert excinfo.value.kind == INVALID_REQUEST
+
+
+def test_expression_namespace_keeps_builtins_out() -> None:
+    """第 3 层防线（给"前两层被绕过"留的）：命名空间里**拿不到任何内置函数**。
+
+    直接用 `eval` 是为了对准真实机制 —— `parse_expr` 的最后一跳就是 `eval(code, global_dict, …)`，
+    而 `global_dict` 里的 `__builtins__` 一旦缺失，Python 会**自动补上真内置**。
+    """
+    namespace = dict(expression_guard._GLOBAL_DICT)  # noqa: SLF001 - 校验的就是这个命名空间
+    with pytest.raises(NameError):
+        eval("__import__('os')", namespace)  # noqa: S307 - 本用例要验证的正是这一跳
+
+
+def test_over_long_expression_is_invalid_request() -> None:
+    # R-A 的同精神：不可信字符串必须有上界（否则一次答疑能被一个超长式子拖住）。
+    over_long = "1" * (expression_guard.MAX_EXPRESSION_LENGTH + 1)
+    result = sympy_recompute.recompute(over_long, expected="0")
+    assert (result.ok, result.reason) == (False, INVALID_REQUEST)
+
+
+def test_equivalent_accepts_symbolically_equal_forms() -> None:
+    result = symbolic_equivalence.equivalent("sin(x)^2 + cos(x)^2", "1")
+    assert result.ok is True
+    assert result.value["passed"] is True
+    assert result.value["method"] == "symbolic_equivalence"
+    assert_check_is_contract_shaped(result.value)
+
+
+def test_equivalent_calls_a_nonzero_constant_difference_unequal() -> None:
+    # 差化简成非零常数（-1）⇒ 这一支本身就是结论，不需要反例。
+    result = symbolic_equivalence.equivalent("x^2 + 1", "x^2 + 2")
+    assert result.value["passed"] is False
+    assert "非零常数" in result.value["detail"]
+    assert "evidence" not in result.value
+
+
+def test_equivalent_gives_a_counterexample_when_it_cannot_decide() -> None:
+    # 差是 `-x`：化简不动、但也没证明不等价 ⇒ 保守判"未判定"，并给数值反例。
+    result = symbolic_equivalence.equivalent("x^2 + 1", "x^2 + x + 1")
+    assert result.value["passed"] is False
+    assert "未能判定" in result.value["detail"]
+    assert result.value["evidence"]["counterexample"].startswith("x=")
+    assert_check_is_contract_shaped(result.value)
+
+
+def test_equivalent_reports_parse_error() -> None:
+    result = symbolic_equivalence.equivalent("(1", "0")
+    assert (result.ok, result.reason) == (False, PARSE_ERROR)
+
+
+def test_run_bounded_gives_up_at_the_deadline() -> None:
+    # 截止时间的语义是"我不再等它"（到点抛 TIMEOUT ⇒ 未执行，不是不通过）。
+    with pytest.raises(expression_guard.ExpressionRejected) as excinfo:
+        expression_guard.run_bounded(lambda: time.sleep(0.3), 1)  # noqa: SLF001
+    assert excinfo.value.kind == TIMEOUT
+
+
+def test_timeout_is_reported_as_not_executed(monkeypatch: pytest.MonkeyPatch) -> None:
+    def give_up(call: Any, timeout_ms: int) -> Any:
+        raise expression_guard.ExpressionRejected(TIMEOUT, "测试注入：到点不再等")
+
+    monkeypatch.setattr(sympy_recompute, "run_bounded", give_up)
+    result = sympy_recompute.recompute("1/2", expected="0.5")
+    assert (result.ok, result.reason) == (False, TIMEOUT)
+
+
+def test_sympy_stays_out_of_the_graph_layer() -> None:
+    # `docs/03 §3.2` 第 2 条：业务逻辑不得写进图节点 —— 计算库出现在节点里即红灯。
+    # ★ 判据只覆盖 `graph/`：`docs/03 §4` 明写"分布计算与性质推导（SymPy）"**属于 `domain`**。
+    offenders = [
+        str(path.relative_to(BACKEND_DIR))
+        for path in (APP_DIR / "graph").rglob("*.py")
+        if "sympy" in imported_roots(path)
+    ]
+    assert offenders == []

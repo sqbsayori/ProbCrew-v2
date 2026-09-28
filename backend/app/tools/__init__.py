@@ -32,6 +32,7 @@ INVALID_REQUEST = "invalid_request"      # 入参形状不对（消息序列 / �
 INVALID_RESPONSE = "invalid_response"    # 上游 2xx 但没有可用的回答正文
 PAYLOAD_REJECTED = "payload_rejected"    # R-L：出网载荷命中反向禁止清单
 PARSE_ERROR = "parse_error"              # S2：表达式无法解析（不算通过、也不算不通过）
+TIMEOUT = "timeout"                      # S2：验证手段在截止时间内没跑完（同上：未执行，不是不通过）
 CITE_UNAVAILABLE = "cite_unavailable"    # W4/F10：无命中或语料缓存缺失，如实降级
 
 #: 对外的四个模型类 `code`（与 `app.core.errors` 的枚举同源；有一条用例守着不漂移）。
@@ -54,6 +55,7 @@ __all__ = [
     "NOT_IMPLEMENTED",
     "PARSE_ERROR",
     "PAYLOAD_REJECTED",
+    "TIMEOUT",
     "ToolResult",
 ]
 
