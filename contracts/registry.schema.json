@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/registry.schema.json",
   "title": "编排注册与运行时自检（Registry & Health）",
   "description": "① **节点 / 工具的注册规格** —— 它是 **R-Q（工具调用边界）** 的机器可读落点，也是 `docs/03 §7①` 裁定的「**显式注册 + 启动校验**」的形状；② **`GET /api/health` 的自检响应**。★ 两者同处一份契约，因为它们回答的是同一个问题：**「这个进程现在到底是由什么构成的、它自己觉得健不健康」**。★ 本文件是**本轮裁定新增**的第 14 份契约（`ADR-0003` 决策 7 当时写的是 13 份 —— 见 `docs/04 §9` 缺口 3）。",
-  "version": "v1.1",
+  "version": "v1.2",
   "oneOf": [
     {
       "title": "注册表（graph/registry）",
@@ -51,8 +51,8 @@
       "title": "健康自检（GET /api/health）",
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "db", "corpus", "asset_rev"],
-      "description": "★ **只报告本地事实**（DB · L1 缓存 · 资产 `rev`）。★ 它是**唯一无需登录的 API**，因此它**不得泄露任何与用户有关的信息** —— 三个字段全部是「这个进程自己的状态」。",
+      "required": ["status", "db", "corpus", "asset_rev", "backup"],
+      "description": "★ **只报告本地事实**（DB · L1 缓存 · 资产 `rev` · ★ **备份新鲜度**）。★ 它是**唯一无需登录的 API**，因此它**不得泄露任何与用户有关的信息** —— 这几个字段全部是「这个进程自己的状态」。",
       "properties": {
         "status": {
           "type": "string",
@@ -73,6 +73,29 @@
           "type": ["string", "null"],
           "pattern": "^[0-9a-f]{12}$",
           "description": "当前 `content_rev`（12 位十六进制，算法见 `content.schema.json` 的 `x-content-rev`）；资产未加载成功时为 `null`。★ 它在 health 里出现是为了排障：**「这一版跑的是哪一版内容」是复现问题的第一个问题**。"
+        },
+        "backup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["last_success_at", "last_result"],
+          "description": "★ **N19 验收④ 的落点（2026-09-27 补）**：**备份新鲜度可查** —— 原话是「`/api/health` 或管理页须显示**最近一次成功备份的时间与结果**：只记\"失败\"会让\"**备份停了三天**\"看起来一切正常」。⇒ 选定 **health** 这一路（它只报本地事实、且是**唯一无需登录**的 API，运维探针可以直接盯它）。★ **它不构成第三个出网口**：数据来自备份脚本写的**本地状态文件**（`backend/data/backups/last_backup.json`，`docs/03 §8.3`），health 只读它、不出网。",
+          "properties": {
+            "last_success_at": {
+              "type": ["string", "null"],
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+              "description": "最近一次**成功**备份的 UTC 时间（ISO-8601，秒级）；**从未成功过 ⇒ `null`**（不是\"今天\"、也不是空串 —— 二者会让\"从没备份过\"看起来正常）。"
+            },
+            "last_result": {
+              "type": "string",
+              "enum": ["ok", "failed", "never"],
+              "description": "最近一次备份的**结果**。★ `never` 与 `failed` 分开：前者是\"还没排过\"、后者是\"排了但坏了\"，两者的处置不同（与 `model_key_missing` / `model_unreachable` 拆开的理由同款）。"
+            },
+            "last_failure_at": {
+              "type": ["string", "null"],
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+              "description": "最近一次**失败**的时间（可空）。★ 有它才能回答\"上一次坏是什么时候\"，而不只是\"现在坏没坏\"。"
+            }
+          }
         }
       }
     }
@@ -97,6 +120,13 @@
   "x-changelog": {
     "description": "★ 契约变更记录（`docs/04 §6` 第 4 步：新增枚举值属兼容变更，但必须记账）。**v2 不另设 `contracts/CHANGELOG.md`** —— 记录就在契约文件里，历史由 git log 承担。",
     "entries": [
+      {
+        "version": "v1.2",
+        "date": "2026-09-27",
+        "type": "兼容增量",
+        "change": "`GET /api/health` 的自检响应新增 **`backup`**（`last_success_at` / `last_result` / `last_failure_at`），并进入该分支的 `required`",
+        "why": "★ **N19 验收④ 此前没有形状**：原话要求「`/api/health` **或**管理页须显示**最近一次成功备份的时间与结果**」，而 `contracts/` 全仓 grep `备份` / `backup` **0 命中**（同日实测）—— 于是那条验收在**两个落点上都不存在**，只能靠人记得\"备份停了没有\"。本次把落点定在 **health**：它只报本地事实、不出网（不构成第三个出网口），且是**唯一无需登录**的 API ⇒ 运维探针可直接盯它。★ **生产者** = `scripts/backup.py`（写 `backend/data/backups/last_backup.json`，属 W5 其余部分）；**消费者** = `GET /api/health`（属 W1–W4 的 `api/` 接线）+ 运维探针。⇒ 两条都**未产出**，因此本字段现在只是**形状与口径**，`last_result` 会是 `never`。"
+      },
       {
         "version": "v1.1",
         "date": "2026-09-27",
@@ -137,7 +167,12 @@
       "status": "ok",
       "db": "ok",
       "corpus": "ok",
-      "asset_rev": "5c6c6ae242d6"
+      "asset_rev": "5c6c6ae242d6",
+      "backup": {
+        "last_success_at": "2026-09-27T02:00:05Z",
+        "last_result": "ok",
+        "last_failure_at": null
+      }
     }
   ]
 }
