@@ -63,8 +63,13 @@ REGISTRY: tuple[RegistryEntry, ...] = (
     RegistryEntry(name="route", entry="app.graph.nodes.route:run", tools=("llm",)),
     # 求解：检索教材语料 + 出解答 ⇒ retrieval + llm。
     RegistryEntry(name="solve", entry="app.graph.nodes.solve:run", tools=("llm", "retrieval")),
-    # 验证：回查教材出处做 grounding ⇒ retrieval（符号重算类工具属 W3 / W4）。
-    RegistryEntry(name="verify", entry="app.graph.nodes.verify:run", tools=("retrieval",)),
+    # 验证：回查教材出处做 grounding ⇒ retrieval；★ W3（S4）补上两个 SymPy 手段
+    # （`docs/06 §4` 第 11 项：不实现它们，级别永远到不了 A / B）。
+    RegistryEntry(
+        name="verify",
+        entry="app.graph.nodes.verify:run",
+        tools=("retrieval", "sympy_recompute", "symbolic_equivalence"),
+    ),
 )
 
 
