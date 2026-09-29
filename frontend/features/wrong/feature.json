@@ -1,0 +1,11 @@
+{
+  "id": "wrong",
+  "dir": "wrong",
+  "title": "错题本",
+  "icon": "↺",
+  "route": "wrong",
+  "group": "学习",
+  "order": 30,
+  "class": "product",
+  "subtitle": "按知识点复习错题（F7 · F8 · F11 · F14）"
+}
