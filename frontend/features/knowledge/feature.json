@@ -1,0 +1,11 @@
+{
+  "id": "knowledge",
+  "dir": "knowledge",
+  "title": "知识点",
+  "icon": "🧭",
+  "route": "knowledge",
+  "group": "学习",
+  "order": 30,
+  "class": "product",
+  "subtitle": "依赖上溯与公式检索（F9 · F18）"
+}
