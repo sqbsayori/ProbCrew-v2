@@ -42,6 +42,9 @@ STUDENT_TABLES = ("student_user", "student_attempt", "student_mastery", "student
 _TS_FMT = "%Y-%m-%dT%H:%M:%SZ"
 #: 备份文件名后缀（可字典序排序，便于 restore 找最新一批）。
 _FILE_TS_FMT = "%Y%m%dT%H%M%SZ"
+#: 后缀的定宽（`%Y%m%dT%H%M%SZ` = 16 位）—— restore 按**宽度**反解文件名，不按 `-` 切
+#: （库名若含连字符，`rsplit` 会切错）。
+_STAMP_WIDTH = len(datetime.now(timezone.utc).strftime(_FILE_TS_FMT))
 
 
 def _now() -> str:
@@ -92,6 +95,16 @@ def _table_rows(conn: sqlite3.Connection, table: str) -> int:
         return -1
 
 
+def _stamp(path: Path) -> str:
+    """从备份文件名取定宽时间戳后缀（`<库名>-<stamp>.sqlite`）。"""
+    return path.stem[-_STAMP_WIDTH:]
+
+
+def _dbname(path: Path) -> str:
+    """从备份文件名取库名（去掉 `-` 与定宽时间戳；库名可含连字符）。"""
+    return path.stem[: -(1 + _STAMP_WIDTH)]
+
+
 def run_backup(data_dir: Path, content_dir: Path) -> int:
     setup_logging(data_dir / "logs")
     backups_dir = data_dir / "backups"
@@ -133,14 +146,11 @@ def run_restore(data_dir: Path) -> int:
         return 1
 
     # 取文件名时间戳最新的一批（同一时刻的多个库是一组）。
-    def _stamp(path: Path) -> str:
-        return path.stem.rsplit("-", 1)[-1]
-
     latest = max(_stamp(p) for p in backups)
     batch = [p for p in backups if _stamp(p) == latest]
 
     for backup_file in batch:
-        live = data_dir / f"{backup_file.stem.rsplit('-', 1)[0]}.sqlite"
+        live = data_dir / f"{_dbname(backup_file)}.sqlite"
         _snapshot_sqlite(backup_file, live)
 
     counts: dict[str, int] = {}

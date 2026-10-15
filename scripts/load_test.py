@@ -21,20 +21,10 @@ import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 
-#: 让 `from app.core.errors import …` 可复用（复用错误码词汇表）。
-REPO_ROOT = Path(__file__).resolve().parents[1]
-BACKEND_DIR = REPO_ROOT / "backend"
-if str(BACKEND_DIR) not in sys.path:
-    sys.path.insert(0, str(BACKEND_DIR))
-
-from app.core.errors import ERROR_CODES  # noqa: E402
-
-#: N20 的并发口径（`docs/01 §6` N20 格子）。
+#: N20 判据① 的并发度与延迟预算（`docs/01 §6` N20 格子）；
+#: 判据②③④（第 11 路 503 · 5 路断流 · 10+50 复合）待 /api/chat 与 /api/practice/grade 落地后再接。
 CHAT_CONCURRENCY = 10
-GRADE_CONCURRENCY = 50
-SAMPLES_PER_WORKER = 20
 HEALTH_BUDGET_MS = 100
 
 
