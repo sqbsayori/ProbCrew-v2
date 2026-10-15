@@ -29,6 +29,10 @@ ALLOWED_NON_ID_FIELDS = frozenset({"status", "reason", "level"})
 #: 单字段值长度上界（ID 最长 64，取裕量；防止把内容塞进 id 字段）。
 _VALUE_MAX = 128
 
+#: 审计日志是否已初始化 —— :func:`setup_logging` 置位；:func:`log_action` 靠它做
+#: 「不接受静默丢日志」的护栏：未初始化就写会当场抛错，而不是 INFO 被 lastResort 丢弃。
+_configured = False
+
 
 class LogContentViolation(ValueError):
     """试图把内容（非 ID / 非动作）写进日志时抛出 —— R-O 的机器可执行形式。"""
@@ -58,6 +62,8 @@ def setup_logging(
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
         logger.addHandler(handler)
         logger.propagate = False
+    global _configured
+    _configured = True
     return logger
 
 
@@ -66,7 +72,7 @@ def log_action(action: str, **ids: "Any") -> str:
 
     - ``action``：动作标识（如 ``grade`` / ``hint`` / ``login``），非空且 ≤ 64 字；
     - 其余关键字参数：键名必须是 ``*_id`` 后缀，或在 :data:`ALLOWED_NON_ID_FIELDS` 内；
-      值会被转成字符串并截断到 128 字（防内容经 id 字段渗入）。
+      值会被转成字符串；超过 128 字则**拒绝写入**（防内容经 id 字段渗入，不静默截断）。
 
     返回写入的一行（便于测试断言）。
     """
@@ -88,5 +94,10 @@ def log_action(action: str, **ids: "Any") -> str:
         parts.append(f"{key}={text}")
 
     line = " ".join(parts)
+    if not _configured:
+        raise RuntimeError(
+            "审计日志未初始化：请先调用 app.core.logging.setup_logging(log_dir) —— "
+            "否则这条 action 会被静默丢弃（R-O 的「记了」这一半必须成立）"
+        )
     logging.getLogger(AUDIT_LOGGER_NAME).info(line)
     return line

@@ -10,19 +10,27 @@
 """
 from __future__ import annotations
 
-import pytest
+import asyncio
+import json
 
+import pytest
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.core.errors import AppError
 from app.main import (
     DEPLOYMENT_ENV,
     DEPLOYMENT_HOSTED,
     DEPLOYMENT_SINGLE,
     REFUSE_EXIT_CODE,
+    app_error_handler,
     assert_deployment_consistent,
     describe_deployment,
+    http_exception_handler,
     loopback_endpoint_allowed,
     main,
     resolve_deployment,
     resolve_port,
+    validation_error_handler,
 )
 
 
@@ -85,3 +93,27 @@ def test_port_default_and_bounds() -> None:
     assert resolve_port({"PORT": "8899"}) == 8899
     with pytest.raises(ValueError):
         resolve_port({"PORT": "70000"})
+
+
+# ---- 统一错误体接线（contracts/error.schema.json）---------------------------- #
+
+
+def test_app_error_returns_contract_envelope() -> None:
+    response = asyncio.run(app_error_handler(None, AppError("not_found", "资源不存在")))
+    body = json.loads(response.body)
+    assert response.status_code == 404
+    assert body == {"error": {"code": "not_found", "message": "资源不存在"}}
+
+
+def test_http_404_returns_not_found_envelope() -> None:
+    response = asyncio.run(http_exception_handler(None, StarletteHTTPException(404, "Not Found")))
+    body = json.loads(response.body)
+    assert response.status_code == 404
+    assert body["error"]["code"] == "not_found"
+
+
+def test_validation_error_returns_invalid_argument() -> None:
+    response = asyncio.run(validation_error_handler(None, None))  # 处理器不回声输入，exc 不参与
+    body = json.loads(response.body)
+    assert response.status_code == 400
+    assert body["error"]["code"] == "invalid_argument"

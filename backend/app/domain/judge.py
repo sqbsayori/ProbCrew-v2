@@ -23,10 +23,10 @@ docs/02 §4.3-⑥，domain 层无权知道）；``solution`` 由 API 层从题�
 """
 from __future__ import annotations
 
-from fractions import Fraction
 from typing import Any
 
 from app.core.errors import AppError
+from app.domain._numeric import as_fraction
 from app.domain.mistakes import match_mistake
 from app.domain.normalize import normalize
 
@@ -34,23 +34,10 @@ from app.domain.normalize import normalize
 ANSWER_MAX_LENGTH = 200
 
 
-def _as_fraction(text: str) -> "Fraction | None":
-    """精确有理数解析（支持 ``50%`` / ``1/4`` / 小数）；失败返回 None。"""
-    if text.endswith("%"):
-        try:
-            return Fraction(text[:-1]) / 100
-        except (ValueError, ZeroDivisionError):
-            return None
-    try:
-        return Fraction(text)
-    except (ValueError, ZeroDivisionError):
-        return None
-
-
 def _value_equal(ans: str, exp: str) -> bool:
     """数值等价（精度口径）：精确有理数比较；非数值退化为字符串相等。"""
-    value_ans = _as_fraction(ans)
-    value_exp = _as_fraction(exp)
+    value_ans = as_fraction(ans)
+    value_exp = as_fraction(exp)
     if value_ans is not None and value_exp is not None:
         return value_ans == value_exp
     return ans == exp

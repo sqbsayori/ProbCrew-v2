@@ -22,8 +22,15 @@ import sys
 from pathlib import Path
 from typing import Mapping
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.core.config import load_settings
+from app.core.errors import AppError, HTTP_STATUS_BY_CODE, error_envelope
+from app.core.logging import setup_logging
 
 __all__ = [
     "CONCURRENCY_ENV",
@@ -36,13 +43,16 @@ __all__ = [
     "LOOPBACK_HOSTS",
     "PORT",
     "app",
+    "app_error_handler",
     "assert_deployment_consistent",
     "assert_single_worker",
     "describe_deployment",
+    "http_exception_handler",
     "loopback_endpoint_allowed",
     "main",
     "resolve_concurrency",
     "resolve_deployment",
+    "validation_error_handler",
 ]
 
 # ---- 路径 -------------------------------------------------------------------
@@ -192,6 +202,46 @@ app = FastAPI(
     description="W0a 骨架：只有同源静态托管与单 worker 启动检测，本轮没有任何业务端点。",
 )
 
+
+# ---- 统一错误体（contracts/error.schema.json）--------------------------------
+# ★ 全仓只有这一处把「异常 → ErrorEnvelope」接上（docs/02 §6.3 · docs/04 承诺 12 的传输面）：
+#   FastAPI 缺省返回 `{"detail": ...}`，不符合契约，前端 `core/api.js` 只能兜底成 `internal_error`。
+#   这里收三类：业务 `AppError`（W1+ 各端点直接抛它）· 路由 404/405 等 `HTTPException` ·
+#   请求体校验 `RequestValidationError`。业务端点不再各自手写响应体。
+_STATUS_TO_CODE: dict[int, str] = {}
+for _code, _status in HTTP_STATUS_BY_CODE.items():
+    _STATUS_TO_CODE.setdefault(_status, _code)
+
+_STATUS_MESSAGES = {
+    404: "资源不存在",
+    405: "请求方法不允许",
+    500: "服务内部错误",
+}
+
+
+async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
+    """业务错误 → 契约信封（状态码由 code 派生，`core/errors.py` 的 `http_status`）。"""
+    return JSONResponse(status_code=exc.http_status, content=exc.to_envelope())
+
+
+async def http_exception_handler(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+    """路由 404/405 等 → 契约信封（状态码 ↔ code 的反查只取 `core/errors.py` 的映射）。"""
+    status = exc.status_code
+    code = _STATUS_TO_CODE.get(status, "internal_error")
+    message = _STATUS_MESSAGES.get(status, f"请求失败（HTTP {status}）")
+    return JSONResponse(status_code=status, content=error_envelope(code, message))
+
+
+async def validation_error_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    """请求体校验失败 → `invalid_argument`（不回声原始输入，凭据不得进错误信息，R-M③）。"""
+    return JSONResponse(status_code=400, content=error_envelope("invalid_argument", "请求参数不合法"))
+
+
+app.add_exception_handler(AppError, app_error_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_error_handler)
+
+
 # ⚠️ 后续工作包的 `app.include_router(...)` 一律加在**本行之上**。
 # 同源静态托管：`/` 就是 `frontend/`，`html=True` 让目录请求回落到 `index.html`。
 # ★ 不配 CORS —— 前后端同源（`docs/03 §8.4`），没有跨域这回事。
@@ -227,6 +277,9 @@ def main() -> None:
     deployment = resolve_deployment()
     assert_deployment_consistent(deployment)
     print(describe_deployment(deployment), flush=True)
+    # ★ 审计日志（R-O）：跑业务前先挂上 handler —— 否则 `core/logging.log_action` 会当场拒绝写入
+    #   （不接受「静默丢日志」，docs/02 §1.4 规则 1 · ADR-0005）。
+    setup_logging(load_settings().log_dir)
     import uvicorn
 
     uvicorn.run(app, host=HOST, port=port, log_level="info")
