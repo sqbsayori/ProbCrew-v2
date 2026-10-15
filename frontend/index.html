@@ -146,12 +146,13 @@
     async function announceIfNeeded() {
       if (!token()) return
       try {
-        const status = await get('/api/me/notice')
+        const status = await get('/api/me/notice', { silent: true })
         if (!status?.ask) return
         egressBanner = buildEgressBanner(status)
         main.prepend(egressBanner)
       } catch {
-        /* ★ 静默：`GET /api/me/notice` 属 W3，未就绪时不该在每次登录后弹一条红提示 */
+        /* ★ 静默（`silent: true` 不广播 api:error）：`GET /api/me/notice` 属 W3，
+           未就绪时不该在每次登录后弹一条红提示（否则每次登录都看到「未找到」） */
       }
     }
 

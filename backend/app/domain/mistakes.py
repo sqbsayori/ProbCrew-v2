@@ -27,9 +27,9 @@ W0 机制（实现定值，按 docs/06 §12.5 检查点 5 须回写 docs/02 §4.
 from __future__ import annotations
 
 import re
-from fractions import Fraction
 from typing import Any, Callable
 
+from app.domain._numeric import as_fraction
 from app.domain.normalize import normalize
 
 #: 条件概率记号 p(a|b)（归一化后必为小写；平坦正则，无嵌套量词）。
@@ -40,20 +40,6 @@ _NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 
 #: 独立重复试验的题干语境（平坦交替，无嵌套量词）。
 _INDEPENDENCE_STEM = re.compile(r"独立|重复|抛掷|投掷|射击|有放回|n\s*=?\s*\d+")
-
-
-def _as_fraction(text: str) -> "Fraction | None":
-    """把归一化后的片段解析为精确有理数；支持 ``50%`` 与 ``1/4``；失败返回 None。"""
-    candidate = text
-    if candidate.endswith("%"):
-        try:
-            return Fraction(candidate[:-1]) / 100
-        except (ValueError, ZeroDivisionError):
-            return None
-    try:
-        return Fraction(candidate)
-    except (ValueError, ZeroDivisionError):
-        return None
 
 
 # ---------------------------------------------------------------------------
@@ -69,15 +55,15 @@ def _rule_direction_reversed(ans: str, exp: str, item: "dict[str, Any]") -> bool
 
 # ---------------------------------------------------------------------------
 # 规则二：单位错（unit_error）—— 数值相等但单位（非数字余部）不一致
-#   expected="5米"，answer="5厘米"；expected="0.5"，answer="50%" 也归此类
+#   expected="5米"，answer="5厘米"。（★ 50% vs 0.5 不算此类：判定入口按精确有理数判为相等）
 # ---------------------------------------------------------------------------
 def _rule_unit_error(ans: str, exp: str, item: "dict[str, Any]") -> bool:
     ans_nums = _NUMBER.findall(ans)
     exp_nums = _NUMBER.findall(exp)
     if len(ans_nums) != 1 or len(exp_nums) != 1:
         return False
-    value_ans = _as_fraction(ans_nums[0])
-    value_exp = _as_fraction(exp_nums[0])
+    value_ans = as_fraction(ans_nums[0])
+    value_exp = as_fraction(exp_nums[0])
     if value_ans is None or value_exp is None or value_ans != value_exp:
         return False
     remainder_ans = _NUMBER.sub("", ans)
@@ -105,15 +91,15 @@ def _rule_missing_partition(ans: str, exp: str, item: "dict[str, Any]") -> bool:
 #   （刻意要求题干语境，避免把普通数值错判成 n 乘错 —— 保守优先）
 # ---------------------------------------------------------------------------
 def _rule_independence_confusion(ans: str, exp: str, item: "dict[str, Any]") -> bool:
-    value_ans = _as_fraction(ans)
-    value_exp = _as_fraction(exp)
+    value_ans = as_fraction(ans)
+    value_exp = as_fraction(exp)
     if value_ans is None or value_exp is None or value_exp == 0:
         return False
     ratio = value_ans / value_exp
     if ratio.denominator == 1:
         n = ratio.numerator
     else:
-        inverse = Fraction(1) / ratio
+        inverse = 1 / ratio
         if inverse.denominator != 1:
             return False
         n = inverse.numerator

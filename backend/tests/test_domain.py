@@ -272,6 +272,21 @@ def test_normalize_and_match_long_digit_string_fast() -> None:
     assert elapsed < 1.0, f"长数字串处理耗时 {elapsed:.3f}s —— 疑似灾难性回溯（R-A）"
 
 
+def test_grade_exponent_notation_rejected_fast() -> None:
+    """R-A：指数记号（如 ``1e1000000``，仅 9 字）会触发 ``10**exp`` 的大整数幂 —— 必须毫秒级拒绝。
+
+    旧仓 100k 位数字 P0 的同族问题：字符串很短，却能让 ``Fraction`` 算十秒；
+    单 worker + GIL 下等于整站阻塞。护栏在 ``app.domain._numeric.as_fraction``。
+    """
+    item = {**BAYES_ITEM, "expected": "0.5"}
+    start = time.perf_counter()
+    result = grade("1e1000000", item)
+    elapsed = time.perf_counter() - start
+    assert result["graded"] is True and result["correct"] is False  # 如实判错，不花十秒
+    assert elapsed < 0.1, f"指数记号处理耗时 {elapsed:.3f}s —— 疑似大整数幂（R-A）"
+    assert match_mistake("1e1000000", item) == []
+
+
 # ---------------------------------------------------------------------------
 # 7. 架构约束：domain/ 只依赖 core/ + 标准库（docs/03 §3.1，静态可核对）
 # ---------------------------------------------------------------------------
