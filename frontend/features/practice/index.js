@@ -5,7 +5,8 @@
  */
 import { el, mount, qs } from '../../core/dom.js'
 import { register, navigate } from '../../core/router.js'
-import { get, post } from '../../core/api.js'
+import { get, post, stream } from '../../core/api.js'
+import { endpoint } from '../../core/auth.js'
 import { card, table, notice, emptyState, skeleton } from '../../components/index.js'
 
 if (!document.querySelector('link[data-practice-style]')) {
@@ -47,6 +48,7 @@ let renderSeq = 0
 let mainEl = null
 let state = null
 let sessionCache = null
+let activeChatAbort = null
 
 function compact(values) {
   return values.filter(Boolean)
@@ -236,6 +238,178 @@ function buildResult() {
   return el('div', { class: 'practice-result' }, lines)
 }
 
+
+function stopChat() {
+  if (activeChatAbort) {
+    activeChatAbort.abort()
+    activeChatAbort = null
+  }
+  if (state?.chat) {
+    state.chat.status = 'error'
+    state.chat.error = '已停止本次答疑。'
+    draw()
+  }
+}
+
+function renderChatFrame(frame) {
+  const payload = frame?.payload || {}
+  const type = frame?.type || 'unknown'
+  const body = []
+  if (type === 'run.start') {
+    body.push(el('span', { text: `答疑已开始（run_id：${payload.run_id || '—'}）` }))
+  } else if (type === 'context.resolved') {
+    body.push(el('span', { text: payload.context ? '已带入当前题目上下文。' : `未带入上下文${payload.reason ? `：${payload.reason}` : ''}。` }))
+  } else if (type === 'plan') {
+    body.push(el('span', { text: `计划：${payload.intent || '—'}${Array.isArray(payload.steps) ? `（${payload.steps.length} 步）` : ''}` }))
+  } else if (type === 'node.start') {
+    body.push(el('span', { text: `开始处理：${payload.label || payload.node || '—'}` }))
+  } else if (type === 'node.delta') {
+    body.push(el('p', { class: 'practice-chat__delta', text: payload.text || '' }))
+  } else if (type === 'tool.call') {
+    body.push(el('span', { text: `调用工具：${payload.tool || '—'}` }))
+  } else if (type === 'tool.result') {
+    body.push(el('span', { text: `工具 ${payload.tool || '—'}：${payload.ok ? '成功' : '失败'}` }))
+  } else if (type === 'artifact') {
+    const artifact = payload.payload || {}
+    body.push(el('span', { text: `产物：${payload.kind || 'artifact'}${artifact.title ? ` · ${artifact.title}` : ''}` }))
+    if (Array.isArray(artifact.steps)) {
+      body.push(el('ol', { class: 'practice-chat__steps' }, artifact.steps.map((step) => el('li', {}, compact([
+        step.explanation ? el('span', { text: step.explanation }) : null,
+        step.formula ? el('span', { class: 'practice-solution__formula', text: step.formula }) : null,
+      ])))))
+    }
+  } else if (type === 'node.end') {
+    body.push(el('span', { text: `处理结束：${payload.node || '—'}（${payload.ok ? '成功' : '失败'}）` }))
+  } else if (type === 'verification.report') {
+    const report = payload.report || {}
+    body.push(el('span', { text: `验证：${report.levelLabel || report.level || '未报告'}${payload.ok ? ' · 通过' : ' · 未通过'}` }))
+    if (payload.summary) body.push(el('p', { class: 'practice-chat__delta', text: payload.summary }))
+  } else if (type === 'hitl.request') {
+    body.push(el('span', { text: `需要人工确认：${payload.draft || '请查看请求'}` }))
+    if (Array.isArray(payload.options)) body.push(el('span', { text: `可选操作 ${payload.options.length} 项。` }))
+  } else if (type === 'hitl.resolved') {
+    body.push(el('span', { text: `人工确认完成：${payload.action || '已处理'}` }))
+  } else if (type === 'done') {
+    body.push(el('strong', { text: `完成：${payload.final_answer || payload.status || '完成'}` }))
+  } else if (type === 'error') {
+    body.push(el('strong', { text: `错误：${payload.code || 'error'}${payload.message ? ` · ${payload.message}` : ''}` }))
+  } else {
+    body.push(el('span', { text: '收到未知事件类型，已按安全文本保留。' }))
+  }
+  return el('li', { class: 'practice-chat__event', dataset: { chatType: type } }, [
+    el('span', { class: 'practice-chat__type', text: `#${frame?.seq ?? '—'} ${type}` }),
+    ...body,
+  ])
+}
+
+async function startChat() {
+  if (!state?.selected || state.chat.status === 'running') return
+  const configuredEndpoint = endpoint()
+  if (!configuredEndpoint) {
+    state.chat.error = '尚未配置模型端点。请先到设置页配置 provider / model / base_url。'
+    draw()
+    return
+  }
+  const query = state.chat.query.trim()
+  if (!query) {
+    state.chat.error = '请先输入要问的问题。'
+    draw()
+    return
+  }
+
+  const controller = new AbortController()
+  const chatState = state.chat
+  activeChatAbort = controller
+  chatState.frames = []
+  chatState.status = 'running'
+  chatState.error = ''
+  draw()
+
+  try {
+    const result = await stream('/api/chat', {
+      query,
+      context: {
+        text: problemStem(state.selected),
+        refs: [{ kind: 'problem', id: problemId(state.selected) }],
+      },
+      endpoint: configuredEndpoint,
+    }, {
+      signal: controller.signal,
+      onFrame: (frame) => {
+        chatState.frames.push(frame)
+        if (state?.chat === chatState) draw()
+      },
+    })
+    if (state?.chat === chatState) {
+      chatState.status = result.endType === 'done' ? 'done' : 'error'
+      if (result.endType === 'error') chatState.error = '答疑流返回了 error 终帧。'
+    }
+  } catch (error) {
+    if (state?.chat === chatState) {
+      chatState.status = 'error'
+      chatState.error = error?.name === 'AbortError' ? '已停止本次答疑。' : `答疑失败：${error?.message || '未知错误'}`
+    }
+  } finally {
+    if (activeChatAbort === controller) activeChatAbort = null
+    if (state?.chat === chatState) draw()
+  }
+}
+
+function buildChat() {
+  const chat = state.chat
+  const configuredEndpoint = endpoint()
+  const unavailable = !state.selected || !configuredEndpoint
+  const running = chat.status === 'running'
+  const query = el('textarea', {
+    class: 'practice-chat__input',
+    maxlength: 2000,
+    placeholder: '针对当前题目提问，例如：为什么要用条件概率？',
+    disabled: unavailable || running,
+  })
+  query.value = chat.query
+  query.addEventListener('input', () => { chat.query = query.value })
+
+  const actions = [
+    el('button', {
+      class: 'button button--primary',
+      type: 'submit',
+      text: running ? '答疑进行中…' : '开始答疑',
+      disabled: unavailable || running,
+    }),
+  ]
+  if (running) {
+    actions.push(el('button', {
+      class: 'button',
+      type: 'button',
+      text: '停止答疑',
+      onclick: stopChat,
+    }))
+  }
+  const form = el('form', { class: 'practice-chat__form' }, [
+    query,
+    el('div', { class: 'practice-actions' }, actions),
+  ])
+  form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    startChat()
+  })
+
+  const notices = compact([
+    !state.selected ? notice({ message: '请先选择一道题，再把题目作为上下文提问。', tone: 'info' }) : null,
+    state.selected && !configuredEndpoint ? notice({ message: '尚未配置模型端点，请先到设置页配置 provider / model / base_url。', tone: 'warn' }) : null,
+    chat.error ? notice({ message: chat.error, tone: 'danger' }) : null,
+  ])
+  const statusText = running ? '答疑进行中…' : chat.status === 'done' ? '答疑完成' : chat.status === 'error' ? '答疑失败' : '尚未开始'
+  return el('div', { class: 'practice-chat' }, [
+    ...notices,
+    form,
+    el('p', { class: 'practice-chat__status', text: statusText }),
+    chat.frames.length
+      ? el('ol', { class: 'practice-chat__events' }, chat.frames.map(renderChatFrame))
+      : emptyState({ title: '暂无答疑事件', hint: '提交问题后，事件会按服务端返回顺序逐步显示。' }),
+  ])
+}
+
 function buildPage(current) {
   const notices = compact([
     current.error ? notice({ message: current.error, tone: 'danger' }) : null,
@@ -260,6 +434,7 @@ function buildPage(current) {
         card({ title: '作答', body: buildAnswer() }),
         card({ title: '提示', body: buildHints() }),
         card({ title: '判定结果', body: buildResult() }),
+        card({ title: '答疑（W3）', body: buildChat() }),
       ]),
     ]),
   ])
@@ -353,6 +528,7 @@ export async function renderPractice(route = { query: {} }) {
   }
 
   if (seq !== renderSeq) return
+  if (activeChatAbort) { activeChatAbort.abort(); activeChatAbort = null }
   state = {
     kc: route.query.kc || '',
     problems,
@@ -360,6 +536,7 @@ export async function renderPractice(route = { query: {} }) {
     answer: '',
     hints: [],
     result: null,
+    chat: { query: '', frames: [], status: 'idle', error: '' },
     loading: false,
     error: '',
     backendUnavailable,

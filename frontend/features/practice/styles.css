@@ -20,3 +20,16 @@
 .practice-solution li { margin-bottom: var(--space-2); }
 .practice-solution__formula { display: block; margin-top: var(--space-1); font-family: var(--font-family-mono); white-space: pre-wrap; }
 @media (max-width: 860px) { .practice-layout { grid-template-columns: minmax(0, 1fr); } }
+
+.practice-chat { display: flex; flex-direction: column; gap: var(--space-3); }
+.practice-chat__form { display: flex; flex-direction: column; gap: var(--space-2); }
+.practice-chat__input { width: 100%; min-height: 5rem; box-sizing: border-box; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; resize: vertical; }
+.practice-chat__input:focus { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.practice-chat__status { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.practice-chat__events { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.practice-chat__event { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: var(--radius-sm); background: var(--color-surface-muted); }
+.practice-chat__event[data-chat-type="error"] { border-left-color: var(--color-danger); }
+.practice-chat__event[data-chat-type="done"] { border-left-color: var(--color-success); }
+.practice-chat__type { font-family: var(--font-family-mono); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.practice-chat__delta { margin: 0; white-space: pre-wrap; }
+.practice-chat__steps { margin: 0; padding-left: var(--space-5); }
