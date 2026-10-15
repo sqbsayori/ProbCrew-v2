@@ -211,6 +211,9 @@ app = FastAPI(
 _STATUS_TO_CODE: dict[int, str] = {}
 for _code, _status in HTTP_STATUS_BY_CODE.items():
     _STATUS_TO_CODE.setdefault(_status, _code)
+# ★ 405 在契约 16 个 code 里没有对应项（没有「方法不允许」）—— 它是**客户端错**，
+#   不是内部错误，故显式归 invalid_argument，而不是落到兜底的 internal_error。
+_STATUS_TO_CODE[405] = "invalid_argument"
 
 _STATUS_MESSAGES = {
     404: "资源不存在",
