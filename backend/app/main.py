@@ -10,9 +10,11 @@
    **不另开静态服务器、不配 CORS**，前端一律走相对 `/api/*`（`docs/03 §8.4`）。
 3. 给出可被 uvicorn 直接使用的应用对象 `app`。
 
-★ **`/api/*` 为零**：本轮一个业务端点都没有。后续工作包（W1–W4）在 `api/` 里加路由，
+★ **`/api/*` 在 W0a 为零**：本轮一个业务端点都没有。后续工作包（W1–W4）在 `api/` 里加路由，
    由本文件按 `include_router` 挂载 —— ★ **必须挂在文件末尾那次 `mount("/")` 之前**，
    否则 `Mount("/")` 会先匹配掉一切（Starlette 按注册顺序匹配）。
+   ★ **W1（2026-10-16）起已挂上聚合 router**（`app.api.router`，内含身份闭环的三个端点 +
+   `GET /api/me`）；此后新增端点只改 `app/api/__init__.py`，本文件不再随端点增长而改。
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api import router as api_router
 from app.core.config import load_settings
 from app.core.errors import AppError, HTTP_STATUS_BY_CODE, error_envelope
 from app.core.logging import setup_logging
@@ -199,7 +202,10 @@ def describe_deployment(deployment: str) -> str:
 
 app = FastAPI(
     title="ProbCrew · 概率论伴学助手",
-    description="W0a 骨架：只有同源静态托管与单 worker 启动检测，本轮没有任何业务端点。",
+    description=(
+        "同源静态托管 + 单 worker 启动检测 + 统一错误体；"
+        "业务端点自 W1 起由 `app.api.router` 提供（身份闭环：login / logout / password / me）。"
+    ),
 )
 
 
@@ -244,6 +250,13 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_error_handler)
 
+
+# ---- 业务路由（★ W1 起）-----------------------------------------------------
+# ★ **跨域记账（`docs/05 §3` 规则 1）**：本文件属**架构与集成**（域1），本次这**两行**由
+#   **后端与数据**（域2）添加，理由：W1 的身份端点不加挂载就**一个都不可达** ——
+#   下面那次 `mount("/")` 会把一切先匹配掉（Starlette 按注册顺序匹配，本文件头已写明）。
+#   挂载点本身（`api/__init__.py` 的聚合 router）归域2，因此新增端点不再需要改本文件。
+app.include_router(api_router)
 
 # ⚠️ 后续工作包的 `app.include_router(...)` 一律加在**本行之上**。
 # 同源静态托管：`/` 就是 `frontend/`，`html=True` 让目录请求回落到 `index.html`。
