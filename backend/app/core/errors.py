@@ -56,9 +56,22 @@ HTTP_STATUS_BY_CODE: dict[str, int] = {
 }
 
 #: 契约 detail.propertyNames 的 not-pattern：命中即拒绝构造。
-_SENSITIVE_KEY = re.compile(r"(?i)(key|token|secret|password|passwd|credential|authorization|api_?key)")
+#: ★ **W1 增量（2026-10-16）**：从私有改成公开常量 —— `identity/audit.py` 的 `detail`
+#:   要执行**同一条**契约纪律（`auditRow.detail.propertyNames` 与 `error.detail` **同一个写法**，
+#:   契约原文如此）。复制第二份模式会让两处**各自漂移**，而漂移的那一份是安全边界。
+SENSITIVE_KEY_PATTERN = r"(?i)(key|token|secret|password|passwd|credential|authorization|api_?key)"
+_SENSITIVE_KEY = re.compile(SENSITIVE_KEY_PATTERN)
 
 _MESSAGE_MAX = 200
+
+
+def is_sensitive_key(name: str) -> bool:
+    """键名（或字段名）是否命中敏感模式 —— **唯一**一份判定，错误体与审计共用。
+
+    公开它是为了不让 `identity/audit.py` 复制第二份正则：契约把 `auditRow.detail` 与
+    `error.detail` 写成**同一个 `propertyNames` 写法**，实现侧也该只有一处。
+    """
+    return _SENSITIVE_KEY.search(str(name)) is not None
 
 
 class AppError(Exception):
@@ -78,7 +91,7 @@ class AppError(Exception):
             if not isinstance(detail, dict):
                 raise ValueError("detail 必须是对象（dict）")
             for key in detail:
-                if _SENSITIVE_KEY.search(str(key)):
+                if is_sensitive_key(key):
                     raise ValueError(f"detail 键名 {key!r} 命中敏感模式，凭据不得进错误信息（R-M）")
         super().__init__(f"[{code}] {message}")
         self.code = code
