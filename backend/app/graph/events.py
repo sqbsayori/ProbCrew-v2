@@ -327,6 +327,9 @@ class FrameSink:
         self._clock = clock
         self._seq = 0
         self._terminal_seen = False
+        #: 当前这一跳的收集钩子（由 `FrameCollector` 挂上）—— **帧只要从这条 sink 发出就必被收下**，
+        #: 不管调用方手里拿的是 collector 还是 sink 本身（2026-10-18 CI 跳号的根因）。
+        self.tap: "Callable[[Frame], None] | None" = None
 
     @property
     def seq(self) -> int:
@@ -353,6 +356,8 @@ class FrameSink:
         _check_payload(event_type, body)
         self._seq += 1
         frame = Frame(seq=self._seq, type=event_type, ts=float(self._clock()), payload=body)
+        if self.tap is not None:
+            self.tap(frame)
         if event_type in TERMINAL_EVENT_TYPES:
             self._terminal_seen = True
         return frame
