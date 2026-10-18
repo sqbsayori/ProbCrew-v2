@@ -6,5 +6,22 @@
 #
 # W0 对三个待定问题之③的回答：★ jsonschema 归 **dev** —— 它是**门禁**依赖
 #   （scripts/verify.sh 用它校验 14 份契约），**不进服务进程**（docs/03 §8.4）。
+#
+# ★ **W1 增量（2026-10-16）· 跨域记账（docs/05 §3 规则 1）**：加 httpx2。
+#   本文件属**架构与集成**（域1）。由**后端与数据**（域2）添加，理由：
+#   `fastapi.testclient.TestClient`（实为 `starlette.testclient`）需要 HTTP 客户端，
+#   而两份 requirements 里此前**都没有**它 ⇒ 接口层用例（`backend/tests/test_api_auth.py`）
+#   在本机装不起来，而 `docs/02 §8` 的失败模式 1/2/3/4 全部写着"接口测试"。
+#
+#   ★ **为什么是 httpx2 而不是 httpx**（2026-10-16 实测，不是照抄）：
+#     starlette 1.8.0 把 TestClient 的传输实现换成 **httpx2**（"The next generation HTTP client"，
+#     httpx 同一作者，`github.com/pydantic/httpx2`），用 httpx 会打
+#     `StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated`。
+#     三组实测：① 两者都在 ⇒ 用 httpx2，**无警告**；② 只有 httpx ⇒ 能跑但报弃用警告；
+#     ③ 只有 httpx2 ⇒ 能跑且无警告（10 条用例全绿）。
+#   ★ **为什么不在这里也钉 httpx**：它已由 `requirements.txt` 的传递依赖保证
+#     （`langgraph-sdk` 与 `langchain-core` 都要求它；`pip check` 实测一致）。
+#     在一个只装 `-dev` 的环境里，httpx2 单独就够 —— 这正是上面第 ③ 组实测。
+httpx2==2.13.1
 jsonschema==4.26.0
 pytest==9.1.1

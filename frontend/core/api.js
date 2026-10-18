@@ -46,15 +46,16 @@ function toApiError(response, payload) {
  * @param {string} path **必须以 `/api/` 开头**（相对路径）
  * @param {{
  *   body?: any, headers?: Record<string, string>, signal?: AbortSignal,
- *   auth?: boolean, modelKey?: boolean, raw?: boolean,
+ *   auth?: boolean, modelKey?: boolean, raw?: boolean, silent?: boolean,
  * }} [options]
  *   - `auth`（缺省 `true`）：带上 `Authorization: Bearer <token>`
  *   - `modelKey`（缺省 `false`）：带上 `X-Model-Key`（只有需要模型的端点才带）
  *   - `raw`（缺省 `false`）：不做 JSON 解析，直接给 `Response`
+ *   - `silent`（缺省 `false`）：不广播 `api:error`（用于后台探测这类「失败本就可接受」的请求）
  * @returns {Promise<any>}
  */
 export async function request(method, path, options = {}) {
-  const { body, headers = {}, signal, auth = true, modelKey: withModelKey = false, raw = false } = options
+  const { body, headers = {}, signal, auth = true, modelKey: withModelKey = false, raw = false, silent = false } = options
   if (!String(path).startsWith('/api/')) {
     throw new TypeError(`api.${method.toLowerCase()}(${path}): 路径必须是相对 /api/*（docs/03 §8.4）`)
   }
@@ -89,7 +90,7 @@ export async function request(method, path, options = {}) {
   if (!response.ok) {
     const error = toApiError(response, parsed)
     if (error.status === 401 && error.code === 'unauthenticated') clearSession() // ③
-    emit(EVENTS.API_ERROR, error)
+    if (!silent) emit(EVENTS.API_ERROR, error)
     throw error
   }
   return parsed
@@ -137,13 +138,14 @@ export const del = (path, options) => request('DELETE', path, options)
  *   onFrame?: (frame: {seq: number, type: string, ts: number, payload: any}) => void,
  *   signal?: AbortSignal,
  *   modelKey?: boolean,   // 缺省 true：答疑是唯一需要凭据的链路
+ *   silent?: boolean,     // 缺省 false：不广播 api:error
  * }} [options]
  * @returns {Promise<{frames: number, lastSeq: number, endType: 'done'|'error'}>}
  * @throws {ApiError} 服务端以非 2xx 开头（含统一错误体；401 `unauthenticated` 会清会话）
  * @throws {Error} 流结束但**没有终帧**（客户端侧的中断，**不借用** `error.schema.json` 的 `code` 词汇表）
  */
 export async function stream(path, body, options = {}) {
-  const { onFrame, signal, modelKey: withModelKey = true } = options
+  const { onFrame, signal, modelKey: withModelKey = true, silent = false } = options
   const response = await request('POST', path, {
     body,
     signal,
@@ -159,7 +161,7 @@ export async function stream(path, body, options = {}) {
     try { parsed = text ? JSON.parse(text) : null } catch { parsed = null }
     const error = toApiError(response, parsed)
     if (error.status === 401 && error.code === 'unauthenticated') clearSession()
-    emit(EVENTS.API_ERROR, error)
+    if (!silent) emit(EVENTS.API_ERROR, error)
     throw error
   }
   if (!response.body) throw new Error('api.stream: 响应没有 body —— 该端点没有走流式返回')
