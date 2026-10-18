@@ -231,7 +231,13 @@ def search(query: str, *, corpus_dir: "str | Path" = "", limit: int = 5) -> Tool
 
 def _degrade(status: str) -> ToolResult:
     """如实降级：**一条对外码 + 一条 R-O 日志**（三类的差异只在日志里，不进 ``value``）。"""
-    log_action("retrieval.degrade", reason=CITE_UNAVAILABLE, status=status)
+    # ★ 诊断日志是 **best-effort**：审计日志未初始化时 `log_action` 会抛（R-O 故意如此），
+    #   但降级路径**绝不能因此变成故障** —— CI 上没有 `backend/data/corpus` 时就走这里，
+    #   2026-10-18 的两条 CI 红正是这个原因。
+    try:
+        log_action("retrieval.degrade", reason=CITE_UNAVAILABLE, status=status)
+    except Exception:  # noqa: BLE001
+        pass
     return ToolResult(ok=False, reason=CITE_UNAVAILABLE)
 
 
