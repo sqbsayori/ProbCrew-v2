@@ -98,7 +98,9 @@ export function tracePrerequisites(nodes, startIds) {
  */
 async function loadTree() {
   try {
-    const tree = await get('/api/knowledge/tree')
+    // ★ `silent: true`（#29 的选项）：接口未就绪是**可预期**的失败，本页自己会如实降级，
+    //   不该再让外壳广播一条全局 `api:error` 红提示（与 `GET /api/me/notice` 同一口径）。
+    const tree = await get('/api/knowledge/tree', { silent: true })
     if (tree && Array.isArray(tree.nodes)) return { nodes: tree.nodes, live: true, reason: '' }
     return { nodes: FALLBACK_TREE.nodes, live: false, reason: '响应形状不符合契约' }
   } catch (error) {
@@ -116,7 +118,8 @@ async function loadWrongKcIds() {
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const query = new URLSearchParams({ limit: '20' })
     if (cursor) query.set('cursor', cursor)
-    const body = await get(`/api/me/wrong?${query.toString()}`)
+    // ★ 同上：错题端点属域2 的 W2，未就绪时本页走契约 examples 并显式标注 —— 不广播全局错误。
+    const body = await get(`/api/me/wrong?${query.toString()}`, { silent: true })
     for (const item of body?.items ?? []) {
       for (const kcId of item?.kc_ids ?? []) ids.add(kcId)
     }
