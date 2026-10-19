@@ -1,7 +1,7 @@
 {
   "asset": "formula",
-  "rev": "formula-2026.09.27.1",
-  "title": "概率论公式与定理库（首版 40 条）",
+  "rev": "formula-2026.10.10.1",
+  "title": "概率论公式与定理库",
   "items": [
     {
       "fm_id": "fm_classical_probability",

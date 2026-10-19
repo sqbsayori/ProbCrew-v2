@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 import json
 import time
 from pathlib import Path
@@ -30,6 +31,7 @@ from app.graph.events import FrameSink
 from app.graph.runner import FrameCollector
 from app.graph.state import NodeContext
 from app.tools import (
+    CITE_UNAVAILABLE,
     INVALID_REQUEST,
     INVALID_RESPONSE,
     MODEL_CODES,
@@ -37,7 +39,6 @@ from app.tools import (
     MODEL_KEY_MISSING,
     MODEL_QUOTA_EXCEEDED,
     MODEL_UNREACHABLE,
-    NOT_IMPLEMENTED,
     PARSE_ERROR,
     TIMEOUT,
     llm,
@@ -346,18 +347,221 @@ def test_response_over_the_byte_cap_is_rejected(monkeypatch: pytest.MonkeyPatch)
 # --------------------------------------------------------------------------- #
 # 其余工具与依赖方向
 # --------------------------------------------------------------------------- #
-def test_retrieval_is_shape_only() -> None:
-    result = retrieval.search("条件概率")
+# --------------------------------------------------------------------------- #
+# T1 · 本地语料检索（W4 —— 计划 §4.7① 写死的口径：BM25 + 中文 bigram）
+# --------------------------------------------------------------------------- #
+#: 一份合法语料的 front matter（**六件**；形状权威 `docs/02 §1.3`）。
+CORPUS_FRONT_MATTER = """---
+cite_id: {cite_id}
+title: {title}
+chapter: {chapter}
+license: {license_name}
+source_url: https://example.invalid/{cite_id}
+fetched_at: 2026-10-10
+---
+
+{body}
+"""
+
+
+def write_section(
+    root: Path,
+    *,
+    body: str,
+    slug: str = "corpus",
+    chapter: int = 1,
+    section: int = 1,
+    cite_id: "str | None" = None,
+    title: str = "第 1 章 古典概型",
+    license_name: str = "CC0-1.0",
+) -> Path:
+    """按 `docs/02 §1.3` 的落点与形状写一节语料 —— ★ 语料**不入仓**，所以用例自己造。"""
+    path = root / slug / f"ch{chapter:02d}" / f"sec{section:02d}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        CORPUS_FRONT_MATTER.format(
+            cite_id=cite_id or f"{slug}-{chapter:02d}-{section:02d}",
+            title=title,
+            chapter=chapter,
+            license_name=license_name,
+            body=body,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_retrieval_hits_carry_a_cite_id(tmp_path: Path) -> None:
+    """★ F10 的正面路径：命中必须带 **`cite_id`**（不是自由文本的"出处"）。"""
+    write_section(
+        tmp_path,
+        slug="probstats",
+        chapter=3,
+        section=1,
+        body="条件概率描述已知证据时事件发生的可能性。",
+        title="第 3 章 条件概率",
+    )
+    write_section(tmp_path, slug="probstats", chapter=1, section=1, body="古典概型要求基本事件等可能。")
+
+    result = retrieval.search("条件概率", corpus_dir=tmp_path)
+
+    assert result.ok is True
+    hits = result.value["hits"]
+    assert [hit["cite_id"] for hit in hits] == ["probstats-03-01"]
+    assert hits[0]["chapter"] == 3
+    assert hits[0]["title"] == "第 3 章 条件概率"
+    assert "条件概率描述" in hits[0]["snippet"]
+    assert "cite_id" not in hits[0]["snippet"]  # ★ snippet 只见正文，front matter 不进去
+
+
+def test_retrieval_breaks_ties_by_cite_id(tmp_path: Path) -> None:
+    """同一份语料每次同一顺序（并列按 `cite_id` 升序）—— 不然用例与演示都不可复现。"""
+    body = "贝叶斯公式把先验与证据接起来。"
+    write_section(tmp_path, slug="corpus", chapter=2, section=1, body=body)
+    write_section(tmp_path, slug="corpus", chapter=1, section=1, body=body)
+
+    result = retrieval.search("贝叶斯公式", corpus_dir=tmp_path)
+
+    assert [hit["cite_id"] for hit in result.value["hits"]] == ["corpus-01-01", "corpus-02-01"]
+
+
+def test_retrieval_clamps_limit(tmp_path: Path) -> None:
+    for index in range(1, 4):
+        write_section(tmp_path, slug="corpus", chapter=1, section=index, body="全概率公式把互斥情形拆开。")
+
+    assert len(retrieval.search("全概率公式", corpus_dir=tmp_path, limit=0).value["hits"]) == 1
+    assert len(retrieval.search("全概率公式", corpus_dir=tmp_path, limit=99).value["hits"]) == 3
+
+
+@pytest.mark.parametrize("query", ["", "   ", None, 7])
+def test_retrieval_treats_a_bad_query_as_not_executed(query: Any, tmp_path: Path) -> None:
+    """空 / 非字符串 ⇒ `parse_error`（"未执行，不是不通过"，与 `tools/expression.py` 同口径）。"""
+    result = retrieval.search(query, corpus_dir=tmp_path)
+
     assert result.ok is False
-    assert result.reason == NOT_IMPLEMENTED
+    assert result.reason == PARSE_ERROR
 
 
-def test_tool_failures_enter_the_event_stream() -> None:
+def test_retrieval_degrades_when_the_corpus_is_missing(tmp_path: Path) -> None:
+    result = retrieval.search("条件概率", corpus_dir=tmp_path / "missing")
+
+    assert result.ok is False
+    assert result.reason == CITE_UNAVAILABLE  # ★ F10：如实说"出处暂不可用"，不编章节号
+
+
+def test_retrieval_degrades_when_no_section_is_usable(tmp_path: Path) -> None:
+    """缺 front matter · 许可不在白名单 —— 两种都让该节**不可用**（不是"警告后照用"）。"""
+    (tmp_path / "bad").mkdir()
+    (tmp_path / "bad" / "sec01.md").write_text("没有 front matter 的正文。", encoding="utf-8")
+    write_section(
+        tmp_path,
+        slug="bad",
+        chapter=1,
+        section=2,
+        body="许可不在白名单里。",
+        license_name="CC-BY-NC-4.0",
+    )
+
+    result = retrieval.search("许可", corpus_dir=tmp_path)
+
+    assert result.ok is False
+    assert result.reason == CITE_UNAVAILABLE
+
+
+def test_retrieval_degrades_when_nothing_matches(tmp_path: Path) -> None:
+    write_section(tmp_path, slug="corpus", chapter=1, section=1, body="条件概率描述已知证据时的可能性。")
+
+    result = retrieval.search("傅里叶变换", corpus_dir=tmp_path)
+
+    assert result.ok is False
+    assert result.reason == CITE_UNAVAILABLE
+
+
+def test_retrieval_default_corpus_dir_is_derived_from_the_module() -> None:
+    """默认语料目录**由 `__file__` 推导**（不依赖 cwd —— 计划 §4.7①）。"""
+    assert retrieval.DEFAULT_CORPUS_DIR == BACKEND_DIR / "data" / "corpus"
+
+
+#: `scripts/fetch_corpus.py` —— 唯一被允许的**离线**出网口（域3 的写作用域）。
+FETCH_CORPUS_SCRIPT = REPO_ROOT / "scripts" / "fetch_corpus.py"
+
+
+def load_fetch_corpus_module() -> Any:
+    """按路径加载脚本 —— 它不在 `app` 包里，`conftest.py` 的 sys.path 引导不覆盖它。"""
+    spec = importlib.util.spec_from_file_location("fetch_corpus_under_test", FETCH_CORPUS_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_fetch_corpus_splits_markdown_into_sections() -> None:
+    """切分规则：按二级标题 `## ` 分节；**一份都没有就整份当一节**（计划 §4.7② 的"按 markdown 标题切分"）。"""
+    module = load_fetch_corpus_module()
+
+    sections = module.split_sections("# 第 3 章 概率\n\n## 3.1 术语\n\n正文甲。\n\n## 3.2 独立事件\n\n正文乙。\n")
+    assert [name for name, _ in sections] == ["3.1 术语", "3.2 独立事件"]
+    assert sections[0][1] == "正文甲。"
+    assert [name for name, _ in module.split_sections("没有二级标题的一整份正文。")] == ["（未命名小节）"]
+
+
+def test_fetch_corpus_refuses_a_licence_outside_the_whitelist(tmp_path: Path) -> None:
+    """★ 白名单不是注释：许可不在枚举内 ⇒ **拒绝执行、非零退出、一个文件都不写**。"""
+    module = load_fetch_corpus_module()
+
+    code = module.main(
+        [
+            "--url",
+            "https://example.invalid/x.md",
+            "--title",
+            "第 3 章 条件概率",
+            "--license",
+            "CC-BY-NC-4.0",
+            "--cite-prefix",
+            "probstats-03",
+            "--out-dir",
+            str(tmp_path),
+        ]
+    )
+
+    assert code != 0
+    assert list(tmp_path.rglob("*.md")) == []
+
+
+def test_fetch_corpus_demo_corpus_is_retrievable(tmp_path: Path) -> None:
+    """降级语料必须**可再生成**（它不入仓 ⇒ 否则"有语料"这条路径永远没有样本）。"""
+    module = load_fetch_corpus_module()
+
+    assert module.main(["--demo", "--out-dir", str(tmp_path)]) == 0
+
+    files = sorted(tmp_path.rglob("*.md"))
+    assert [path.relative_to(tmp_path).as_posix() for path in files] == [
+        "demo/ch01/sec01.md",
+        "demo/ch01/sec02.md",
+    ]
+    text = files[0].read_text(encoding="utf-8")
+    assert "演示语料（自撰，非教材）" in text  # ★ 如实标注，不冒充教材
+    assert "license: CC0-1.0" in text
+    assert "cite_id: demo-01-01" in text
+
+    result = retrieval.search("条件概率", corpus_dir=tmp_path)
+
+    assert result.ok is True
+    assert result.value["hits"][0]["cite_id"].startswith("demo-01-")
+
+
+def test_tool_failures_enter_the_event_stream(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """★ R-Q ③ 的落点：工具失败**必须**进事件流，不得静默吞掉。
 
     口径是**契约帧**（`graph/events.FrameSink`）：S3 之后节点发的是帧；`RecordingEventSink`
     那条 ID-only 纪律属**日志**（`core/logging.py`）—— 两者不可互换（`graph/state.py` 的说明）。
+
+    ★ 检索这一格用**指向不存在的语料目录**来保证"一定失败"（默认目录被 monkeypatch），
+    否则"本机有/没有 `backend/data/corpus`"会让这条用例的结论随环境漂。
     """
+    monkeypatch.setattr(retrieval, "DEFAULT_CORPUS_DIR", tmp_path / "missing-corpus")
     collector = FrameCollector(FrameSink())
     ctx = NodeContext.for_node("solve", events=collector)
 
@@ -366,7 +570,7 @@ def test_tool_failures_enter_the_event_stream() -> None:
     failed = [
         frame for frame in collector.frames if frame.type == "tool.result" and not frame.payload["ok"]
     ]
-    # retrieval（W4 才实现）与 llm（缺凭据）两条失败都可见
+    # retrieval（无可用语料 ⇒ cite_unavailable）与 llm（缺凭据）两条失败都可见
     assert [frame.payload["tool"] for frame in failed] == ["retrieval", "llm"]
 
 

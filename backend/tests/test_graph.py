@@ -457,6 +457,27 @@ def test_full_run_streams_the_pipeline_and_keeps_one_steps_object(
     assert store.active == []
 
 
+def test_node_failure_keeps_the_frames_it_already_emitted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """★ 节点发帧后抛异常 ⇒ 那些帧**必须先送达**，再补 `error` 终帧（`seq` 不得跳号）。
+
+    2026-10-18 的 CI 红就是这条路径：`verify` 在 Linux 上抛异常，`verification.report`
+    已经计入 `seq` 却没有进 `collector.frames` ⇒ 客户端看到 `1..7, 10`。
+    """
+
+    def boom(_state: "Any", ctx: NodeContext) -> "dict[str, Any]":
+        state.emit_node_start(ctx, label="路由")
+        raise RuntimeError("boom")
+
+    monkeypatch.setitem(runner.NODE_ENTRIES, "route", boom)
+    frames = collect_frames(run_id="run_boom", session_id="ses_1", query="1+1=?")
+
+    assert [frame.seq for frame in frames] == list(range(1, len(frames) + 1))
+    assert "node.start" in [frame.type for frame in frames]  # 已发出的帧没有被吞掉
+    assert frames[-1].type == "error"
+
+
 def test_run_without_credentials_ends_with_model_key_missing() -> None:
     store = runner.RunStore()
     frames = collect_frames(run_id="run_2", session_id="ses_1", query="1+1=?", store=store)

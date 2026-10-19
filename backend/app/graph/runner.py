@@ -39,6 +39,7 @@ from typing import Any, AsyncIterator, Callable, Mapping
 
 from app.core.errors import ERROR_CODES
 from app.graph.events import Frame, FrameSink
+from app.core.logging import log_action
 from app.graph.nodes import route, solve, verify
 from app.graph.state import NodeContext
 
@@ -228,11 +229,15 @@ class FrameCollector:
     def __init__(self, sink: FrameSink) -> None:
         self._sink = sink
         self.frames: "list[Frame]" = []
+        sink.tap = self.frames.append
 
     def emit(self, event_type: str, /, **payload: Any) -> Frame:
-        frame = self._sink.emit(event_type, **payload)
-        self.frames.append(frame)
-        return frame
+        # ★ 收集交给 sink 的 tap：这样"帧从这条 sink 发出"与"被这一跳收下"是**同一件事**。
+        return self._sink.emit(event_type, **payload)
+
+    def detach(self) -> None:
+        """这一跳结束：摘掉 tap（sink 会被下一跳复用）。"""
+        self._sink.tap = None
 
 
 async def stream_run(
@@ -270,11 +275,13 @@ async def stream_run(
         )
 
         # ① 路由：意图分类（★ 它失败就没有意图可发 —— 不编一个往下走，N2）
-        route_update, route_frames = await _drive(
+        route_update, route_frames, route_error = await _drive(
             "route", state, sink, endpoint=endpoint, credential=credential
         )
         for frame in route_frames:
             yield frame
+        if route_error is not None:
+            raise route_error
         state.update(route_update)
         if not state.get("intent"):
             code = error_code_for(_first_reason(route_update))
@@ -298,11 +305,13 @@ async def stream_run(
             if attempt:
                 state["strategy_hint"] = solve.STRATEGY_HINTS[1]
 
-            solve_update, solve_frames = await _drive(
+            solve_update, solve_frames, solve_error = await _drive(
                 "solve", state, sink, endpoint=endpoint, credential=credential
             )
             for frame in solve_frames:
                 yield frame
+            if solve_error is not None:
+                raise solve_error
             state.update(solve_update)
             if not state.get("answer_text"):
                 code = error_code_for(_first_reason(solve_update))
@@ -312,11 +321,13 @@ async def stream_run(
                 return
             runs.update(run_id, steps=state.get("steps") or [])
 
-            verify_update, verify_frames = await _drive(
+            verify_update, verify_frames, verify_error = await _drive(
                 "verify", state, sink, endpoint=endpoint, credential=credential
             )
             for frame in verify_frames:
                 yield frame
+            if verify_error is not None:
+                raise verify_error
             state.update(verify_update)
             verification = state.get("verification") or {}
             runs.update(run_id, verification=verification)
@@ -355,15 +366,33 @@ async def _drive(
     *,
     endpoint: "Mapping[str, Any] | None",
     credential: "str | None",
-) -> "tuple[Mapping[str, Any], list[Frame]]":
-    """跑一跳 —— 同步节点**丢线程池**（`docs/03 §3.2` 第 3 条）；返回 `(状态更新, 这一跳发的帧)`。"""
+) -> "tuple[Mapping[str, Any], list[Frame], BaseException | None]":
+    """跑一跳 —— 同步节点**丢线程池**（`docs/03 §3.2` 第 3 条）。
+
+    返回 `(状态更新, 这一跳发的帧, 节点异常)`。★ **异常也要把已经发出的帧带回来**：
+    否则调用方拿不到它们（帧已计入 `seq`，却没有被 yield）⇒ 客户端看到的是**跳号**，
+    而且 `verification.report` 这类"应发必发"的帧会静默消失（2026-10-18 的 CI 红就是这么来的）。
+    调用方先 yield 帧、再把异常抛给 `stream_run` 的 `except`（那里补 `error` 终帧）。
+    """
     entry = NODE_ENTRIES.get(node_name)
     if entry is None:
         raise KeyError(f"未登记的节点 {node_name!r} —— 先写进 runner.NODE_ENTRIES 与注册表")
     collector = FrameCollector(sink)
     ctx = NodeContext.for_node(node_name, events=collector, endpoint=endpoint, credential=credential)
-    update = await asyncio.to_thread(entry, state, ctx)
-    return update, collector.frames
+    try:
+        update = await asyncio.to_thread(entry, state, ctx)
+    except Exception as exc:  # noqa: BLE001 —— 帧先送达，异常交给上层补终帧（取消除外）
+        reason = str(getattr(exc, "reason", "") or type(exc).__name__)
+        # ★ 诊断日志是 **best-effort**：审计日志未初始化时 `log_action` 会抛（R-O 故意如此），
+        #   但**绝不能让它盖掉原始异常**——否则"补终帧"这条路径自己就成了新的故障源。
+        try:
+            log_action("run.node_failed", node_id=node_name, reason=reason[:64])
+        except Exception:  # noqa: BLE001
+            pass
+        return {}, collector.frames, exc
+    finally:
+        collector.detach()
+    return update, collector.frames, None
 
 
 def _first_reason(update: "Mapping[str, Any]") -> "str | None":
