@@ -3,6 +3,8 @@
 | 端点 | 认证 | 成功 | 失败 |
 |---|---|---|---|
 | `GET /api/me` | 是 | 200 账号对象（`contracts/user.schema.json` 的**顶层**） | 401 `unauthenticated` |
+| `GET /api/me/wrong` | 是 | 200 `pagination` 信封 + `attempt` 视图（C6 + C2） | 400 `invalid_argument`（limit / cursor） |
+| `GET /api/me/progress` | 是 | 200 `mastery` 响应（C8：总作答数 + 逐知识点正确率 + 薄弱占位） | 401 `unauthenticated` |
 
 ★ **为什么这个端点值得单独一个文件与一条约束**：外壳的 "刷新页面" 这一步靠它 ——
   `frontend/core/auth.js` 的注释写明"刷新后角色由服务端 ``/api/me`` 重新取"，
@@ -22,12 +24,13 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import current_context, get_conn
+from app.api.deps import current_context, get_conn, password_gate
 from app.core.errors import AppError
 from app.identity import users
 from app.identity.auth import AuthContext
+from app.learning import store
 
 __all__ = ["router"]
 
@@ -50,3 +53,32 @@ def read_me(
     if owner is None or owner["status"] == "deleted":
         raise AppError("unauthenticated", "未登录或登录已过期，请重新登录")
     return users.to_public(owner)
+
+
+@router.get("/api/me/wrong")
+def read_wrong(
+    kc: "str | None" = Query(default=None, max_length=64),
+    limit: int = Query(default=20, ge=1, le=100),
+    cursor: "str | None" = Query(default=None, max_length=256),
+    context: AuthContext = Depends(password_gate("wrong")),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> "dict[str, Any]":
+    """错题本：跨会话读回**自己的**错题（F8）—— C6 + C2（`docs/04 §3` 的组合方式）。
+
+    ★ 没有 `user_id` 入参：身份只来自令牌 ⇒「读到别人的错题」在结构上不可能（F15）。
+    ★ 返回的是**已提交**的作答记录（复习场景）；`GET /api/problems` 才是「未提交」的暴露面，
+      那里一个 `expected` 都不带（`docs/02 §4.3-5`）。
+    """
+    items, next_cursor = store.wrong_page(
+        conn, user_id=context.user_id, kc=kc, limit=limit, cursor=cursor
+    )
+    return {"items": items, "next_cursor": next_cursor}
+
+
+@router.get("/api/me/progress")
+def read_progress(
+    context: AuthContext = Depends(password_gate("progress")),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> "dict[str, Any]":
+    """进度（F11）：总作答数按 `attempt` 去重 + 逐知识点正确率；`weak` 是显式占位（决策 7A）。"""
+    return store.progress(conn, context.user_id)

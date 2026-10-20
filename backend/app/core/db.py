@@ -188,12 +188,18 @@ def connect(path: "str | Path | None" = None) -> sqlite3.Connection:
 
     ★ 连接是**每次调用一个新对象**（sqlite3 的连接不可跨线程共享，FastAPI 的依赖会在线程池里跑）。
     父目录不存在时按需创建 —— `backend/data/`（运行时目录）不在版本库里，首次运行必须能自建。
+
+    ★ **`check_same_thread=False`（2026-10-20 补）**：连接是**请求级**的（`api/deps.py` 的
+      ``yield`` 用完即关），但 FastAPI 可能**在线程池里创建依赖、在事件循环里执行 async 端点**
+      —— 两者不是同一个线程。sqlite3 默认禁止跨线程使用，症状是 W2 的 `POST /api/practice/grade`
+      第一次被调用就 ``ProgrammingError``。本仓的连接**不跨请求共享**，因此关掉这条检查是安全的；
+      它也是 W3 的异步答疑端点在同一个请求里写库的前提。
     """
     target = db_path() if path is None else Path(path)
     parent = target.parent
     if str(parent) not in ("", "."):
         parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(target), timeout=BUSY_TIMEOUT_MS / 1000)
+    conn = sqlite3.connect(str(target), timeout=BUSY_TIMEOUT_MS / 1000, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
