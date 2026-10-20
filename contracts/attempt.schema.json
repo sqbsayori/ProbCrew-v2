@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/attempt.schema.json",
   "title": "作答记录（Attempt · API 视图）",
   "description": "一次作答的**对外视图**，以及判定接口（`POST /api/practice/grade`）的响应形状。★ **视图口径（本仓约定，见 `docs/04 §4`）**：契约只描述**跨端可见的对象**，**数据库行的权威是 `docs/02 §3.2`** —— 因此本文件里 `hint_used_total` **在**（它由 `COUNT(*)` 派生、**不落列**），而 `user_id` / `student_id` **不在**（学生侧不需要；管理页是**按学生逐人查看**，见 `docs/02 §7.1` 的 `#/admin?tab=students&user=usr_xxx`）。★ 本文件是**重写**（`ADR-0003` 决策 1 的搬运清单里只有 `user.schema.json`），依据是 `docs/01` F7 的「记录必须含什么」与 `docs/02 §3.2` / `§3.4` 的字段级设计。",
-  "version": "v1.0",
+  "version": "v1.1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -77,6 +77,12 @@
       "type": "string",
       "maxLength": 400,
       "description": "★ **标准答案快照**（F7 明写）。它必须在**作答当时**落库：题库改版后，「当时的标准答案」要能被解释，否则历史记录无法复核。"
+    },
+    "stem": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "★ **题干（v1.1 新增的可选视图字段，2026-10-20）** —— 只由 `GET /api/me/wrong` 带上：错题本要显示「错的是哪道题」，而 `item_id` 对人不友好。★ **不落 `student_attempt` 行**：它来自题库资产 `content/problems.json`（与 `problem.schema.json` 的 `stem` 同一个上界 4000），资产里找不到该 `prob_id` 时**省略本字段**（不编空题干）。★ 它的暴露面只有**已提交记录**的复习视图；未提交的暴露面是 `GET /api/problems`，那里本来就有 `stem`。"
     },
     "hint_used": {
       "type": "integer",
@@ -259,7 +265,8 @@
   "x-view-vs-row": {
     "description": "★ 视图与数据库行的差异，逐条登记（`docs/04 §4` 的视图口径在本文件的具体落地）。**行的权威是 `docs/02 §3.2`，本文件不重复它的义务。**",
     "view_only": {
-      "hint_used_total": "派生值（COUNT(*)，不落列）—— 只在视图里存在"
+      "hint_used_total": "派生值（COUNT(*)，不落列）—— 只在视图里存在",
+      "stem": "来自题库资产 `content/problems.json`，不落 `student_attempt` 行；只由 `GET /api/me/wrong` 填充（v1.1，2026-10-20）"
     },
     "row_only": {
       "user_id": "学生侧契约不需要；管理页按学生逐人查看",
@@ -270,6 +277,19 @@
       "kc_ids": "TEXT(JSON) → array，且 **minItems: 1**（F19）",
       "session_id · item_id · mistake_id": "TEXT → string（附 ID 规则的 pattern）"
     }
+  },
+  "x-changelog": {
+    "description": "契约变更记录（`docs/04 §6` 第 4 步）。v2 不另设 `contracts/CHANGELOG.md` —— 记录就在契约文件里，历史由 git log 承担。",
+    "entries": [
+      {
+        "version": "v1.1",
+        "date": "2026-10-20",
+        "type": "兼容增量（新增可选字段）",
+        "change": "新增可选属性 `stem`（题干）：只由 `GET /api/me/wrong` 填充，不落表",
+        "why": "★ 错题本要显示「错的是哪道题」，而 C6 之前只有 `item_id`（`prob_bayes_0012` 这类），页面只能显示 ID。`attempt` 是 `additionalProperties: false` ⇒ 端点**不得**私自加字段：要么改契约，要么页面另拉 `/api/problems` 做映射（跨域 + 多一次请求 + 两处口径）。2026-10-20 裁定：**改契约**（`docs/02 §3.2` 的视图口径本就允许「派生视图字段」，`hint_used_total` 是同一类先例）。",
+        "compat": "新增**可选**字段 ⇒ `docs/04 §5` 的兼容变更，既有响应校验逐字不变；`gradeResult` 的两个分支各自 `additionalProperties: false` 且未声明 `stem` ⇒ **`grade` 响应不可能带上它**（字段只在错题本视图出现）。"
+      }
+    ]
   },
   "examples": [
     {

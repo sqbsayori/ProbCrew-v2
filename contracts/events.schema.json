@@ -822,7 +822,7 @@
             "done",
             "error"
           ],
-          "description": "run 的当前状态。★ **建议取值（2026-09-24 起草 —— ★ 待 W3 / 域3 确认）**：`running`（生产中）· `hitl_pending`（图在 `interrupt()` 处挂起 ⇒ `hitl` 必须存在）· `done`（正常终帧）· `error`（错误终帧，`code` 见 `error.schema.json`）。★ 它与 SSE 的 `done` / `error` / `hitl.request` **必须一致**：同一时刻只能有一个权威状态（两处打架时前端无法判断该显示进度条还是终态）。"
+          "description": "run 的当前状态。★ **已确认取值（2026-09-24 起草 · ✅ 2026-10-20 由 W3 / 域3 确认照用）**：`running`（生产中）· `hitl_pending`（图在 `interrupt()` 处挂起 ⇒ `hitl` 必须存在）· `done`（正常终帧）· `error`（错误终帧，`code` 见 `error.schema.json`）。★ 它与 SSE 的 `done` / `error` / `hitl.request` **必须一致**：同一时刻只能有一个权威状态（两处打架时前端无法判断该显示进度条还是终态）。★ **`cancelled` 不在本枚举里**（`docs/02 §4.2-2` 的取消语义仍是**内部状态**、不外发）—— 要外发须按 `docs/04 §6` 另提一次案。"
         },
         "steps": {
           "type": "array",
@@ -977,7 +977,7 @@
         "change": "新增 `definitions.runSnapshot`（`GET /api/runs/{id}` 的响应）· 把 `artifactPayload(kind=\"solution\").steps.items` 的内联形状抽成 `#/definitions/solutionStep`，两处 `$ref` 同一个形状",
         "why": "★ **F2 的结构断言有第二处落点**（`docs/02 §4.2-7` ②：`GET /api/runs/{id}` 的 `steps: [{说明, 式子}]`），而本契约的 `definitions` 此前**恰好 14 个、全部是 SSE 事件的 payload** —— 该端点被 `docs/04 §3` 的覆盖表引用，**形状却不存在**（`docs/04 §9` 缺口 8）；而校验④只比 path 在不在覆盖表里，因此这一条**永远绿**。★ 抽 `solutionStep` 是因为：两处落点若各写一份形状，F2 的断言就变成两条**可以各自漂移**的定义 —— 那正是本仓反复禁止的「同一件事两处记载」。",
         "compat": "新增定义 + 同形状抽取 ⇒ **`oneOf` 分支未增删、`type` 枚举仍是 14 类**（`x-type-count` 不变）、既有 payload 的校验结果**逐字不变**（内联块与 `solutionStep` 的字段/约束一一对应）；且本端点**尚未实现**（W3 属阶段 B）⇒ 不存在已发布客户端。",
-        "pending_confirmation": "★ `runSnapshot.status` 的 4 个取值（`running` / `hitl_pending` / `done` / `error`）是 **2026-09-24 起草的建议值 —— 待 W3 / 域3 确认**（`docs/04 §9` 缺口 8 的建议形状只给了字段名，没给取值集合）；`docs/04 §5` 允许「新增枚举值」属兼容变更，确认后若要增删，按 `docs/04 §6` 再走一次提案即可。★ 与建议形状的另一处偏差（`hitl` 复用 `hitlRequestPayload` 而不另立 `{question, options[]}`）写在 `runSnapshot` 的 `description` 里。"
+        "confirmation": "★ `runSnapshot.status` 的 4 个取值（`running` / `hitl_pending` / `done` / `error`）是 **2026-09-24 起草的建议值 —— ✅ 2026-10-20 由 W3 / 域3 确认照用**（`docs/04 §9` 缺口 8 的建议形状只给了字段名，没给取值集合）；`docs/04 §5` 允许「新增枚举值」属兼容变更，确认后若要增删，按 `docs/04 §6` 再走一次提案即可。★ 与建议形状的另一处偏差（`hitl` 复用 `hitlRequestPayload` 而不另立 `{question, options[]}`）写在 `runSnapshot` 的 `description` 里。"
       },
       {
         "version": "v1.1",

@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/hint.schema.json",
   "title": "提示阶梯与题目拆解（Hint · API 视图）",
   "description": "`POST /api/practice/hint` 的请求与响应、提示流水条目，以及 **F17 的结构化拆解**。★ 本文件是「**帮助**」这一域的契约 —— 「提示阶梯不是体验优化，是伦理约束落地的地方」（`docs/01` §5 原话）：它必须在数据模型里有对应字段（用了几次提示），否则约束**无法执行、也无法度量**。★ 因此这里的三条断言都有执行载体：`hint_used` 由**服务端**从提示流水量出（客户端上报值一律忽略）· 第三级提示（完整解析）**只在提交之后**可取 · 每次提示使计数**精确 +1**。",
-  "version": "v1.0",
+  "version": "v1.1",
   "oneOf": [
     {
       "title": "提示请求（POST /api/practice/hint）",
@@ -47,7 +47,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 3,
-          "description": "1 =「方向」（**不给完整思路**）· 2 =「步骤骨架」（**不给最终答案**）· 3 =「完整解析」。★ **第 3 级只在已提交之后可取**（`docs/02 §5.2` 的三条不可违反之一：未提交前不返回完整解析）。★ 它的执行载体是流水本身：请求体里没有 `level`，客户端无法把它「改成 3」。"
+          "description": "1 =「方向」（**不给完整思路**）· 2 =「步骤骨架」（**不给最终答案**）· 3 =「完整解析」。★ **第 3 级只在已提交之后可取**（`docs/02 §5.2` 的三条不可违反之一：未提交前不返回完整解析）。★ **2026-10-20 收紧**（`docs/02 §11-18` 的裁定）：「已提交」的作用域是**本会话** `(user,item,session)` —— 该题历史上做过但本次未提交，仍必须 409。★ 它的执行载体是流水本身：请求体里没有 `level`，客户端无法把它「改成 3」。"
         },
         "content": {
           "type": "string",
@@ -156,9 +156,22 @@
     "rules": [
       "level 必须等于「该 (user,item,session) 的现有流水条数 + 1」—— 服务端推进，客户端不可指定",
       "写流水与回传 hint_used 必须在**同一事务**内（否则会出现「发了提示但没记」或「记了两次」）",
-      "level=3 只在 `student_attempt` 里已存在该 (user,item) 的作答之后才可返回",
+      "level=3 只在 `student_attempt` 里已存在该 (user,item,session) 的作答之后才可返回（★ **2026-10-20 收紧**：作用域是**本会话**，不是「该 (user,item) 有过任一次作答」—— 旧写法允许重做时新会话连点三次绕过 F6）",
       "请求体里出现 `hint_used` / `level` 时**一律忽略、不报错**（避免旧客户端崩），但绝不采信",
       "level=1 的 content 不得含完整解题思路；level=2 不得含最终答案 —— **这是文案纪律，无法机检，只能 review**（如实标注，不假装它已自动化）"
+    ]
+  },
+  "x-changelog": {
+    "description": "契约变更记录（`docs/04 §6` 第 4 步）。v2 不另设 `contracts/CHANGELOG.md` —— 记录就在契约文件里，历史由 git log 承担。",
+    "entries": [
+      {
+        "version": "v1.1",
+        "date": "2026-10-20",
+        "type": "语义收紧（不新增字段）",
+        "change": "`x-invariants` 的 level=3 判据从「该 `(user,item)` 有过任一次作答」收紧为「该 `(user,item,session)` **本会话**已提交」",
+        "why": "★ `docs/02 §11-18` 的裁定：旧判据让「错题重做」在新会话里连点三次即可于**本次未提交**时拿到完整解析 —— F6 的伦理约束（`docs/01` §5「把抄答案变成要点两下」）在**正常路径**上被绕过，而门 B 的 F6 用例在新账号上仍是绿的、看不见它。",
+        "compat": "★ 「收紧校验」按 `docs/04 §5` 属破坏性变更，但本端点**2026-10-20 才首次发布**，且被收紧的正是「未提交不给解析」这条 MUST —— 不存在「依赖旧行为」的合法客户端；已上线的 `#/practice` 只在提交后才请求第 3 级，行为不变。★ 实现落点：`learning/store.py::has_attempt` 的 `session_id` 参数 + `tests/test_api_practice.py::test_hint_level3_requires_submission_in_same_session`。"
+      }
     ]
   },
   "examples": [

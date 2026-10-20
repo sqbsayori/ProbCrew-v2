@@ -266,6 +266,44 @@ def test_hint_ladder_advances_by_server_and_level3_needs_submission(client):
     assert third["hint_used_total"] == 3
 
 
+def test_hint_level3_requires_submission_in_same_session(client):
+    """★ 2026-10-20 裁定（`docs/02 §11-18`）：第 3 级的判据是**本会话已提交**。
+
+    旧判据（「该 `(user,item)` 有过任一次作答」）会让「重做一道做过的题」在**新会话**里
+    连点三次就拿到完整解析 —— F6 的伦理约束被**正常路径**绕过。这里逐条钉住：
+    ① 会话 `s1` 提交过 → ② 新会话 `s2` 取第 3 级仍 **409** → ③ `s2` 提交后才放行。
+    """
+    _seed()
+    token = _token(client)
+    item = _gradable_item()
+
+    first = client.post(
+        "/api/practice/grade",
+        json={"item_id": item["prob_id"], "answer": item["expected"], "session_id": "s1"},
+        headers=_auth(token),
+    )
+    assert first.status_code == 200, first.text
+
+    payload = {"item_id": item["prob_id"], "session_id": "s2"}
+    for expected_level in (1, 2):
+        response = client.post("/api/practice/hint", json=payload, headers=_auth(token))
+        assert response.status_code == 200, response.text
+        assert response.json()["level"] == expected_level
+
+    blocked = client.post("/api/practice/hint", json=payload, headers=_auth(token))
+    assert blocked.status_code == 409, blocked.text
+    assert blocked.json()["error"]["code"] == "conflict"
+
+    client.post(
+        "/api/practice/grade",
+        json={"item_id": item["prob_id"], "answer": item["expected"], "session_id": "s2"},
+        headers=_auth(token),
+    )
+    third = client.post("/api/practice/hint", json=payload, headers=_auth(token))
+    assert third.status_code == 200, third.text
+    assert (third.json()["level"], third.json()["hint_used"]) == (3, 3)
+
+
 # ---- ④ 改密闸门与越权隔离 -----------------------------------------------------
 
 
@@ -277,6 +315,32 @@ def test_must_change_pw_blocks_learning_endpoints_but_allows_me(client):
     blocked = client.get("/api/problems", headers=_auth(token))
     assert blocked.status_code == 403
     assert blocked.json()["error"]["code"] == "must_change_pw"
+
+
+def test_wrong_book_carries_stem_and_matches_contract(client):
+    """错题本带 `stem`（`attempt.schema.json` v1.1 · 2026-10-20）—— 复习视图要能显示题干。
+
+    ★ `stem` 是**视图字段**：来自 `content/problems.json`，不落 `student_attempt` 行
+      ⇒ 断言「与资产逐字相同」，而不是「某个默认值」。
+    """
+    _seed()
+    token = _token(client)
+    item = _gradable_item()
+    client.post(
+        "/api/practice/grade",
+        json={"item_id": item["prob_id"], "answer": "__wrong__", "session_id": "s1"},
+        headers=_auth(token),
+    )
+    response = client.get("/api/me/wrong", headers=_auth(token))
+    assert response.status_code == 200, response.text
+    body = response.json()
+    Draft7Validator(PAGINATION).validate(body)
+    assert body["next_cursor"] is None
+    assert body["items"][0]["item_id"] == item["prob_id"]
+    assert body["items"][0]["stem"] == item["stem"]
+    # ★ `additionalProperties: false` 的根对象 + 新增可选字段 ⇒ 这条校验同时证明
+    #   `stem` 已在契约里（否则它会当场变红）。
+    Draft7Validator(ATTEMPT).validate(body["items"][0])
 
 
 def test_wrong_book_is_per_user(client):

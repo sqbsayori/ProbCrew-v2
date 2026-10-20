@@ -23,7 +23,7 @@ from app.core.config import load_settings
 from app.core.errors import AppError
 from app.learning import paging
 
-__all__ = ["content_rev", "find_problem", "hint_content", "problems_page"]
+__all__ = ["content_rev", "find_problem", "hint_content", "problems_page", "stem_of"]
 
 #: `contracts/problem.schema.json` 的**全部**字段（`additionalProperties: false`）。
 _VIEW_FIELDS: tuple[str, ...] = ("prob_id", "stem", "kc_ids", "pt_id", "answer_kind", "difficulty")
@@ -72,6 +72,19 @@ def find_problem(item_id: str) -> "dict[str, Any] | None":
         if item["prob_id"] == item_id:
             return item
     return None
+
+
+def stem_of(item_id: str) -> "str | None":
+    """题干（只给**已提交记录**的复习视图用 —— 错题本要显示"错的是哪道题"）。
+
+    ★ 它**不进** `problem` 列表投影之外的新暴露面：`GET /api/problems` 本来就带 `stem`，
+      这里只是让 `/api/me/wrong` 能按 `item_id` 补上同一个字段（`attempt.schema.json`
+      的 `stem` 是 **2026-10-20 新增的可选视图字段**，不落 `student_attempt` 行）。
+    ★ 资产里找不到该 `prob_id` 时返回 ``None``（**省略字段**而不是编一个空题干）——
+      题目被删除后历史记录仍要可读，但不得凭空造内容。
+    """
+    item = find_problem(item_id)
+    return None if item is None else str(item["stem"])
 
 
 def _view(item: "dict[str, Any]") -> "dict[str, Any]":

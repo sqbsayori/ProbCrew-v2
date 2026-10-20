@@ -82,17 +82,22 @@ def take_hint(
     context: AuthContext = Depends(password_gate("hint")),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> "dict[str, Any]":
-    """提示阶梯：级别由**流水条数**决定；第 3 级只在已提交之后（`docs/02 §5.2`）。
+    """提示阶梯：级别由**流水条数**决定；第 3 级只在**本会话已提交**之后（`docs/02 §5.2`）。
 
     ★ 未提交就请求第 3 级 ⇒ **409 `conflict`**，且**不写流水**（否则 ``level = 条数 + 1``
       这条 invariant 当场破掉）。客户端提交后再请求，就能拿到完整解析。
+    ★ **2026-10-20 收紧**（`docs/02 §11-18`）：判据是**本会话**（同一 `session_id`）已提交 ——
+      「这道题以前做过」**不算**，否则错题重做时新会话连点三次即可在本次未提交的情况下
+      拿到完整解析，F6 的伦理约束被正常路径绕过。
     """
     item = catalog.find_problem(payload.item_id)
     if item is None:
         raise AppError("not_found", "题目不存在")
     used = store.count_hints(conn, context.user_id, payload.item_id, payload.session_id)
     level = min(used + 1, 3)
-    if level == 3 and not store.has_attempt(conn, context.user_id, payload.item_id):
+    if level == 3 and not store.has_attempt(
+        conn, context.user_id, payload.item_id, payload.session_id
+    ):
         raise AppError("conflict", "请先提交作答，再查看完整解析")
     store.record_hint(
         conn,
