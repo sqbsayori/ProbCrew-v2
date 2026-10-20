@@ -53,6 +53,7 @@
     import './features/login/index.js'
     import './features/practice/index.js'
     import './features/wrong/index.js'
+    import './features/knowledge/index.js'
 
     /** 骨架版本号（广播进 `app:ready`，便于确认"跑的是哪一版外壳"）。 */
     const SHELL_VERSION = 'w0a'
@@ -62,11 +63,10 @@
      * ★ W1–W4 在这里把占位换成各 feature 的 `index.js`（一人一页，`frontend/features/<x>/`）。
      * ★ **某个页面真正上线时，必须把它的那一行从这里删掉**（`docs/03 §7④` 第 3 步）——
      *   `router.register` 是**后注册者生效**，而本清单在 feature 的 `import` **之后**注册，
-     *   不删就会用占位盖住真页面（`#/login` 已于 W1 ④ 上线、`#/practice` 与 `#/wrong`
-     *   已于 2026-10-20 挂载，故都不在本清单里）。
+     *   不删就会用占位盖住真页面（`#/login` 已于 W1 ④ 上线；`#/practice` / `#/wrong` /
+     *   `#/knowledge` 已于 2026-10-20 挂载，故都不在本清单里）。
      */
     const PAGES = [
-      { path: '#/knowledge', title: '知识点', subtitle: '知识图谱（#/knowledge?kc=&view=）' },
       { path: '#/settings', title: '设置', subtitle: '模型端点与凭据 · 外传告知（N14 · N15 · N16）' },
       { path: '#/admin', title: '管理', subtitle: '教师侧（#/admin?tab=students&user=…）' },
     ]
