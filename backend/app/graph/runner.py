@@ -18,8 +18,8 @@
 `asyncio.to_thread` 执行 —— 否则 N20 承诺的 10 路并发会退化成串行。
 
 ★ **取消**（`docs/02 §4.2-2`）：客户端断开 ⇒ 不再往下走 · run **从活跃集合移除** · 快照置
-**`cancelled`**。★ 这个取值是 `_plan/提案-01` 提的契约增补，**R1 批准前它只是内部状态**，
-不外发（见 `_plan/S0-事件payload核对表.md` 的 §四 第 2 条）。
+**`cancelled`**。★ 该取值来自早先的「events · runSnapshot」契约增补提案（**提案原文未入仓**），
+**R1 批准前它只是内部状态**，不外发。
 ★ 已知边界（诚实登记）：`to_thread` 里那一跳**无法被强杀**（Python 没有可移植的取消机制）——
 `cancelled` 的语义是"**我不再往下走**"，不是"那一跳停了"。
 
@@ -43,7 +43,7 @@ from app.core.logging import log_action
 from app.graph.nodes import route, solve, verify
 from app.graph.state import NodeContext
 
-#: 已终结快照的**上限**（首次取值，见 `_plan/提案-01`）：单 worker 下防无界增长。
+#: 已终结快照的**上限**（首次取值；提案原文未入仓）：单 worker 下防无界增长。
 MAX_TERMINAL_SNAPSHOTS = 20
 
 STATUS_RUNNING = "running"

@@ -74,6 +74,11 @@ def log_action(action: str, **ids: "Any") -> str:
     - 其余关键字参数：键名必须是 ``*_id`` 后缀，或在 :data:`ALLOWED_NON_ID_FIELDS` 内；
       值会被转成字符串；超过 128 字则**拒绝写入**（防内容经 id 字段渗入，不静默截断）。
 
+    ★ **调用方的两种合法用法（2026-10-20 补）**：可审计的主链路**直接调用** —— 未初始化就抛，
+      这是 R-O 的「记了」那一半（用例 ``test_log_action_fails_loud_without_setup`` 守着）；
+      **降级路径**（例如检索无命中、CI 里没有语料）必须由调用方 ``try/except`` 兜住 ——
+      该路径的「记不上」不得升级成故障，但也**不得**把异常吞在这里（否则 R-O 会静默失效）。
+
     返回写入的一行（便于测试断言）。
     """
     if not isinstance(action, str) or not (1 <= len(action) <= 64):
