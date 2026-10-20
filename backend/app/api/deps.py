@@ -19,7 +19,11 @@ from fastapi import Depends, Header
 
 from app.core import db
 from app.core.errors import AppError
-from app.identity.auth import AuthContext, assert_password_changed, resolve_bearer
+from app.identity.auth import (
+    AuthContext,
+    assert_password_changed,
+    resolve_bearer,
+)
 
 __all__ = ["current_context", "get_conn", "password_gate", "require_admin"]
 
@@ -45,14 +49,21 @@ def current_context(
 
 
 def require_admin(context: AuthContext = Depends(current_context)) -> AuthContext:
-    """角色不足 ⇒ **403 ``forbidden``**（`docs/02 §6.3`；本批无消费方，是 P3 的接缝）。
+    """管理员闸门：角色不足 ⇒ **403 ``forbidden``**（`docs/02 §6.3`）。
 
     ★ ``forbidden`` **只**保留给"角色不足"这一件事：账号被停用走 ``account_disabled``、
       强制改密走 ``must_change_pw``、读他人资源走 ``not_found`` —— 四个 code 各管一事，
       前端才能给出四句不同的话（这一点由 `docs/02 §6.3` 的"前端行为"列写死）。
+    ★ **次序：先看角色、再看 `must_change_pw`**（2026-10-20 补）。
+      反过来的话，一个「刚被重置密码的学生」访问 `/api/admin/*` 会收到
+      `must_change_pw`（前端据此跳到设置页改密），而真相是**他根本不是管理员** ——
+      改完密码还是 403。角色不足是结构性的、改密解决不了，所以它先判。
+    ★ 管理员自己也会被 `must_change_pw` 拦（CLI 建号时若显式置位）：闸门对角色一致，
+      否则「管理员重置自己的密码」就成了一条绕过自环的路。
     """
     if context.role != "admin":
         raise AppError("forbidden", "无权访问")
+    assert_password_changed(context, "admin")
     return context
 
 

@@ -24,7 +24,15 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-__all__ = ["GradeRequest", "HintRequest", "LoginRequest", "PasswordChangeRequest"]
+__all__ = [
+    "AdminImportRequest",
+    "AdminImportRow",
+    "AdminUserPatch",
+    "GradeRequest",
+    "HintRequest",
+    "LoginRequest",
+    "PasswordChangeRequest",
+]
 
 
 class LoginRequest(BaseModel):
@@ -75,3 +83,58 @@ class HintRequest(BaseModel):
 
     item_id: str = Field(pattern=r"^prob_[a-z0-9_]+$", max_length=64)
     session_id: str = Field(min_length=1, max_length=64)
+
+
+class AdminImportRow(BaseModel):
+    """`POST /api/admin/users/import` 的一行（契约 `adminImportRequest.rows.items`）。
+
+    ★ **`extra="forbid"` 在这里是制度**：契约的导入行里**没有** `role` / 学号 / 真实姓名 ——
+      多传一个 `role: "admin"` 必须当场 400，而不是"忽略掉"（忽略等于让调用方以为生效了）。
+      F15 的「接口不可创建管理员」因此是**形状层面**的事实，不是端点里的一句 if。
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(min_length=3, max_length=32, pattern=r"^[A-Za-z0-9_.-]{3,32}$")
+    password: str = Field(min_length=1, max_length=72)
+    display_name: str = Field(default="", max_length=64)
+
+
+class AdminImportRequest(BaseModel):
+    """`POST /api/admin/users/import` 的请求体（契约 `adminImportRequest`：`rows` 1–500）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rows: "list[AdminImportRow]" = Field(min_length=1, max_length=500)
+
+
+class AdminUserPatch(BaseModel):
+    """`PATCH /api/admin/users/{id}` 的请求体 —— **每个字段都可选，但至少要有一个**。
+
+    ★ 字段名与 `adminUserRow` 对齐（`display_name` / `status` / `role` / 锁），**没有** `username`：
+      改登录名会让"这是同一个人"变成需要另一张对照表的事（契约 `username` 的复用规则
+      只在**删除**时改名为 `deleted_<8hex>`）。
+    ★ `role` / `status` 收成 `str` 而**不是** `Literal[...]`：F15 要的拒绝理由
+      （"接口不可创建管理员，请用 CLI"）用 `Literal` 会被 FastAPI 变成一句通用的
+      "请求参数不合法" —— 400 对了，但**为什么**没了。校验放在 `api/admin.py` 里做。
+    ★ `password` 在场 ⇒ **重置密码分支**（强制改密 + 令牌全撤 + 写审计），响应换成
+      `adminPasswordResetResult`；其余字段任意组合 ⇒ `update_user` 分支，响应是 `adminUserRow`。
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: "str | None" = Field(default=None, max_length=64)
+    status: "str | None" = Field(default=None, max_length=16)
+    role: "str | None" = Field(default=None, max_length=16)
+    password: "str | None" = Field(default=None, min_length=1, max_length=72)
+    unlock: bool = False
+
+    def is_empty(self) -> bool:
+        """是否一个字段都没给（`unlock=False` 不算"给了"）—— 空 PATCH 是 400，不是 200 无事发生。"""
+        return (
+            self.display_name is None
+            and self.status is None
+            and self.role is None
+            and self.password is None
+            and not self.unlock
+        )

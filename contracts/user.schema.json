@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/user.schema.json",
   "title": "账号（Account）",
   "description": "登录账号的对外视图。**任何接口都不得返回 password_hash** —— 本契约用 additionalProperties:false 把这条钉死：往响应里加字段会直接违反契约。账号是权限的唯一来源（服务端 identity/），前端藏菜单不算权限。★ 本文件**搬运自旧仓 `contracts/user.schema.json`**（ADR-0003 决策 1 指定的唯一搬运契约），**形状逐字保留**，只做「只增不改」允许的增量 —— 增量清单见 `x-v2-deviations`。",
-  "version": "v1.3",
+  "version": "v1.4",
   "type": "object",
   "additionalProperties": false,
   "required": ["user_id", "username", "display_name", "role", "status", "created_at"],
@@ -401,6 +401,146 @@
         }
       }
     },
+    "adminUserPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "`PATCH /api/admin/users/{id}` 的请求体（★ **2026-10-20 落进契约（v1.4）**：该端点此前只映射到**响应**形状 `adminPasswordResetResult`，请求体**没有家** —— 与缺口 9 / 11 同型）。★ 每个字段都可选，但**至少要有一个**（`minProperties: 1`：空 PATCH 是 400，不是 200 无事发生）。★ **没有 `username`**：改登录名会让「这是同一个人」需要另一张对照表，而契约的改名只发生在**删除**时（`deleted_<8hex>`）。★ `password` 在场 ⇒ **重置密码分支**（响应换成 `adminPasswordResetResult`）；否则 ⇒ `update_user` 分支（响应是 `adminUserRow`）。",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "disabled"
+          ],
+          "description": "启用 / 停用。★ **不含 `deleted`**：删除有它自己的四类处置（`DELETE /api/admin/users/{id}` 或 `DELETE /api/me/data`），把删除降级成一次状态修改会造出「看起来删了、数据还在」的账号（F16 要堵的正是这个形态）。"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "student"
+          ],
+          "description": "★ **只有 `student` 一个取值** —— F15 的「接口不可创建管理员」在**形状层面**：提权（`role: \"admin\"`）连契约都过不去，不依赖端点里记得写一句 if。管理员只能由 `scripts/manage_users.py` 创建（`docs/03 §8.4` 第 7 步）。"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 72,
+          "description": "重置密码分支的**临时密码**（上界按契约的 72，字节校验在 `identity/users.py::check_password_bytes` —— 中文一字三字节，两者不等价）。它由管理员经**单独渠道**告知学生，且必然伴随 `must_change_pw`。"
+        },
+        "unlock": {
+          "type": "boolean",
+          "description": "解锁（`failed_count=0` · `locked_until=NULL`）。★ 它并入 `update_user` 这一动作的 `detail`，**不新增** `auditRow.action` 的取值（8 个取值只增不改，`docs/04 §6`）。"
+        }
+      }
+    },
+    "adminStudentRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "username",
+        "display_name",
+        "created_at",
+        "attempt_count",
+        "correct_count",
+        "mastery",
+        "recent_attempts"
+      ],
+      "description": "★ **`GET /api/admin/students` 的行 —— 2026-10-20 落进契约（v1.4）**：`docs/04 §3` 早把这个端点映射到「C6 + C8 + C3」，而三份契约里**没有任何一份**给出「一个学生 + 他的作答 / 掌握度」这个组合形状 —— 端点有行、形状无处可查（与 `docs/04 §9` 缺口 9 同型：覆盖表只断言 path 在表里，于是它**永远绿**）。★ **每个数字都是「这个人自己的」**：`docs/01 §9` 把「跨用户聚合」列为排除项 ⇒ 本形状里**没有**平均分 / 排名 / 分布 / 热力图字段，实现与页面也不得由这些数字自己算一个出来。★ 它与 `adminUserRow` **不合并**：那个是账号管理（令牌 / 锁定），这个是学习数据（作答 / 掌握度）—— 见 `docs/02 §6.1` 的两处必须分开。",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "pattern": "^usr_[0-9a-f]{12}$",
+          "description": "学生标识。★ 管理页必须显示它的**后 8 位**：脱敏后原用户名可复用（契约顶层的复用规则），区分同名靠它。"
+        },
+        "username": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32
+        },
+        "display_name": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "created_at": {
+          "type": "number",
+          "description": "建号时刻（epoch 秒）—— 列表按 `created_at DESC, user_id DESC` 排序（`pagination` 的 `x-sort-order`）。"
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "该生的作答条数（`student_attempt` 的行数）。★ **不是**掌握度 `attempts` 的求和 —— 一道题挂多个知识点时后者会重复计数。"
+        },
+        "correct_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "其中判定为正确的条数；`correct` 为 NULL（不可判定）的不计入（与 `docs/02 §4.3-②` 同口径）。"
+        },
+        "mastery": {
+          "type": "array",
+          "description": "逐知识点的计数。★ **复用** `mastery.schema.json#/definitions/topicProgress` —— 同一形状不写两遍（`docs/04 §5`：形状只有一个家）。",
+          "items": {
+            "$ref": "https://probcrew.local/contracts/mastery.schema.json#/definitions/topicProgress"
+          }
+        },
+        "recent_attempts": {
+          "type": "array",
+          "maxItems": 20,
+          "description": "**最近 20 条**作答（`created_at DESC, attempt_id DESC`）。★ 它是「逐条查看作答记录」的读面，**不是**全量导出：上限写进契约，是因为全量会随学期增长成一次几十万行的响应。★ **不含 `answer_raw` / `expected`**：教师排查「这题他答了什么」靠 `item_id` + `correct` 足够，而把答案原文塞进列表会把一次查看变成一次数据搬运（也把 R-O 的「只记 ID 与动作」精神丢在响应体里）。",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "attempt_id",
+              "item_id",
+              "correct",
+              "hint_used",
+              "source",
+              "created_at"
+            ],
+            "properties": {
+              "attempt_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "item_id": {
+                "type": "string",
+                "pattern": "^prob_[a-z0-9_]+$",
+                "maxLength": 64
+              },
+              "correct": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "`null` = 不可判定（与 `attempt.correct` 同口径：不得把「需要人工判定」说成「做错了」）。"
+              },
+              "hint_used": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "该次作答用掉的提示次数（`hint.schema.json` 的 `hint_used` 是它的**唯一权威来源**）。"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "practice",
+                  "wrong_review"
+                ]
+              },
+              "created_at": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
     "auditRow": {
       "type": "object",
       "additionalProperties": false,
@@ -523,7 +663,8 @@
       "definitions.adminUserRow / adminPasswordResetResult / adminImportRequest / adminImportResult（账号管理）",
       "username 的复用规则写进 description（口径澄清，非语义变更）",
       "★ v1.2：noticeStatus.message（N15 告知文案的**显示字段**，标 must_render —— R-I 的落点）",
-      "★ v1.3：definitions.auditRow（`GET /api/admin/audit` 的审计行 —— `docs/04 §9` 缺口 9 的落点；R-J / R-M 的机检形式写在它的 `detail.propertyNames`）"
+      "★ v1.3：definitions.auditRow（`GET /api/admin/audit` 的审计行 —— `docs/04 §9` 缺口 9 的落点；R-J / R-M 的机检形式写在它的 `detail.propertyNames`）",
+      "★ v1.4：definitions.adminStudentRow（`GET /api/admin/students` 的行 —— 数据视图此前**没有任何形状**：`docs/04 §3` 只写了「C6 + C8 + C3」三份契约的组合，而组合本身无处可查）· definitions.adminUserPatch（`PATCH /api/admin/users/{id}` 的**请求体** —— 该端点此前只映射到响应形状；`role` 只允许 `student`，F15 在形状层面）"
     ],
     "not_used_in_v2": [
       "user_id 取值 usr_history —— v2 不迁旧数据",
@@ -542,6 +683,13 @@
       "enum_evaluation": "★ **`action` 的 8 个取值与 `target_id` 的两条口径是 2026-09-24 起草的建议值 —— ✅ 2026-10-20 由 W1 / 域2 确认：8 个取值照用、不增删**（`docs/04 §9` 缺口 9 的建议形状只给了字段名与「枚举 / 对象」两类，没有给取值集合）。★ 确认后它不再是「起草值」：新增动作仍按 `docs/04 §6` 走提案（`docs/04 §5` 把「新增枚举值」列为兼容变更），但**确认本身不构成变更** —— 枚举集合逐字未动，因此本文件 version 仍是 **v1.3**（确认记录写在 `docs/04 §9` 缺口 9 与 `docs/06 §14.5`）。",
       "shape_deviation": "★ 与 `docs/04 §9` 建议形状的**一处偏差**：`target_id` 在建议形状里标为可选（`target_id?`），本契约取为**必填但可空**（`[\"string\",\"null\"]`）—— 理由与 `qa-log.answer` 相同：「必填」是为了让写入方**显式表态**（没有对象就写 `null`），而不是漏写一个字段让读方去猜。",
       "compat": "只新增一个 `definitions` 条目：**没有任何字段被删改、没有既有对象的形状被收紧** ⇒ 对既有消费方零影响；且 v2 尚未发布，不存在已发布客户端。"
+    },
+    "increment_v1_4": {
+      "changed": "新增 `definitions.adminStudentRow`（`GET /api/admin/students` 的行）与 `definitions.adminUserPatch`（`PATCH /api/admin/users/{id}` 的请求体），本文件 version 提到 v1.4",
+      "why": "★ **缺口的形态是「覆盖表映射了三份契约，组合形状却不存在」**：`docs/04 §3` 把该端点写成「C6 + C8 + C3（学生标识）」，而 `attempt` 的根是**单条**作答、`mastery` 的根是**一个用户**的进度、`user` 的根是**账号自陈** —— 三者都答不了「这一页里有哪几个学生、各自做了多少」。实现若各自拼一个形状，契约层就只剩一句散文（与 `docs/04 §9` 缺口 9 同型：校验④只断言 path 在覆盖表里 ⇒ 永远绿）。",
+      "shape_choice": "★ **`mastery[]` 用跨文件 `$ref` 复用** `mastery.schema.json#/definitions/topicProgress`（形状只有一个家）· **`recent_attempts[]` 内联**：它是**摘要**（`attempt_id` / `item_id` / `correct` / `hint_used` / `source` / `created_at`），**不含** `answer_raw` / `expected` —— 不是 `attempt` 的视图，因此不复用、也不假装是。",
+      "boundary_evaluation": "★ **`docs/01 §9` 把「跨用户聚合」列为排除项**：本行里的 `attempt_count` / `correct_count` / `mastery` 全部是**该生自己的**计数；形状里刻意**没有**平均分 / 排名 / 分布 / 热力图字段（连可算的原料都不给页面的「顺手聚合」留口子）。",
+      "compat": "只新增一个 `definitions` 条目 + 一处跨文件 `$ref`（指向**已存在**的 `mastery` 定义）：没有任何既有字段被删改或收紧；`docs/04 §5` 口径下属兼容变更。"
     }
   },
   "examples": [

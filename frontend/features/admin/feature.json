@@ -1,0 +1,11 @@
+{
+  "id": "admin",
+  "dir": "admin",
+  "title": "管理",
+  "icon": "⚙",
+  "route": "admin",
+  "group": "教师",
+  "order": 50,
+  "class": "product",
+  "subtitle": "学生数据 / 账号管理 / 审计（F15 · docs/02 §6.1 的管理行）"
+}

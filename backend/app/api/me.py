@@ -5,6 +5,7 @@
 | `GET /api/me` | 是 | 200 账号对象（`contracts/user.schema.json` 的**顶层**） | 401 `unauthenticated` |
 | `GET /api/me/wrong` | 是 | 200 `pagination` 信封 + `attempt` 视图（C6 + C2） | 400 `invalid_argument`（limit / cursor） |
 | `GET /api/me/progress` | 是 | 200 `mastery` 响应（C8：总作答数 + 逐知识点正确率 + 薄弱占位） | 401 `unauthenticated` |
+| `DELETE /api/me/data` | 是 | 200 `deleteResult`（F16 的**四类处置 + 两条边界**，逐项读回） | 401 `unauthenticated` · 403 `must_change_pw` |
 
 ★ **为什么这个端点值得单独一个文件与一条约束**：外壳的 "刷新页面" 这一步靠它 ——
   `frontend/core/auth.js` 的注释写明"刷新后角色由服务端 ``/api/me`` 重新取"，
@@ -18,6 +19,26 @@
 ★ 返回体一律经 :func:`app.identity.users.to_public` —— **白名单投影**，因此
   `password_hash` / `failed_count` / `locked_until` 不可能"顺手"出现在响应里
   （契约 `additionalProperties: false` 把"多一个字段"本身判成违约）。
+
+## `DELETE /api/me/data` —— F16 的四类处置（2026-10-20 接通）
+
+次序不是任意的（`docs/02 §3.1` · §5.3）：① 先**读**四张表的行数（审计里的「删了几行」，
+必须在删之前取）→ ② 四张 per-user 表**硬删**并**重新数**（契约的 `deleted_rows` 是
+**删除之后**的数，恒应为 0 —— 这就是 F16 的验收断言，不是"没报错"）→ ③ 账号**脱敏**
+（`status='deleted'` · 空哈希 · 令牌全撤）并返回被撤销的令牌数 → ④ 写一条
+`delete_own_data` 审计（`actor_role` 可以是 `student`，`target_id` 是自己），再**读回**
+保留的审计行数（审计**保留**是已裁定的 —— 删掉它等于删掉监督记录）。
+
+★ **为什么先删数据、后写审计**：反过来会留下一条"声称删了、其实没删"的审计（更坏的谎）。
+  中途失败的真实形态是「数据已删、账号还活着」—— 用户可以重跑一次（幂等），
+  而 `tokens_deleted` 会是 0（真话：这次没有令牌可撤）。
+★ **`must_change_pw` 也拦这个端点**（`password_gate("data")`，不在放行集合里）：
+  临时密码下的会话不做任何持久化动作；改密只需一次，删除权不会因此少一分。
+★ **不含管理员删除他人**：那是 `DELETE /api/admin/users/{id}`（`actor_role=admin` ·
+  `action=delete_user`）—— 两个动作在审计里**必须可区分**（契约 `auditRow.action`）。
+★ **两条边界恒为常量**（契约把它们写成 `const`）：`logs_in_scope=false`（日志按 R-O
+  只记 ID 与动作，内容本来就没落盘）· `third_party_irrevocable=true`（第三方模型服务
+  已经收到的请求删不掉）。`const` 是为了逼前端与告知文案**同屏声明**它们。
 """
 from __future__ import annotations
 
@@ -28,7 +49,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import current_context, get_conn, password_gate
 from app.core.errors import AppError
-from app.identity import users
+from app.identity import audit, users
 from app.identity.auth import AuthContext
 from app.learning import store
 
@@ -82,3 +103,36 @@ def read_progress(
 ) -> "dict[str, Any]":
     """进度（F11）：总作答数按 `attempt` 去重 + 逐知识点正确率；`weak` 是显式占位（决策 7A）。"""
     return store.progress(conn, context.user_id)
+
+
+@router.delete("/api/me/data")
+def delete_own_data(
+    context: AuthContext = Depends(password_gate("data")),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> "dict[str, Any]":
+    """删除**自己的**全部学习数据（F16）—— 四类处置逐项读回（契约 `deleteResult`）。
+
+    见模块说明的次序与理由；本函数只做"读 → 删 → 脱敏 → 记账"四步，判定全在下层。
+    """
+    before = store.count_user_rows(conn, context.user_id)
+    deleted_rows = store.delete_user_data(conn, context.user_id)
+    if any(count != 0 for count in deleted_rows.values()):
+        raise AppError("internal_error", "删除后仍有残留行，已中止（不返回成功回执）")
+    tokens_revoked = users.anonymize_user(conn, context.user_id)
+    audit.write_audit(
+        conn,
+        actor_id=context.user_id,
+        actor_role=context.role,
+        action="delete_own_data",
+        target_id=context.user_id,
+        detail={"deleted_rows": sum(before.values())},
+    )
+    return {
+        "user_id": context.user_id,
+        "status": "deleted",
+        "deleted_rows": deleted_rows,
+        "tokens_deleted": tokens_revoked,
+        "audit_rows_retained": audit.count_rows_for_user(conn, context.user_id),
+        "logs_in_scope": False,
+        "third_party_irrevocable": True,
+    }

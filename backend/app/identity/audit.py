@@ -21,9 +21,10 @@ import sqlite3
 import time
 from typing import Any
 
+from app.core import paging
 from app.core.errors import is_sensitive_key
 
-__all__ = ["AUDIT_ACTIONS", "count_rows", "write_audit"]
+__all__ = ["AUDIT_ACTIONS", "audit_page", "count_rows", "count_rows_for_user", "write_audit"]
 
 #: 契约 `auditRow.action` 的 8 个取值（**只增不改**）。
 AUDIT_ACTIONS = frozenset(
@@ -88,6 +89,78 @@ def write_audit(
     )
     conn.commit()
     return audit_id
+
+
+def count_rows_for_user(conn: sqlite3.Connection, user_id: str) -> int:
+    """该用户**相关**的审计行数（`actor_id` 或 `target_id` 指向他）—— `deleteResult` 的读回面。
+
+    ★ 为什么是 **OR** 而不是两次相加：同一条审计可能既是他做的、对象也是他自己
+      （`delete_own_data` 正是这种），相加会把同一行数成两行 —— 于是
+      `audit_rows_retained` 会比真实值大，而它唯一的用途就是"读回一个真实的数字"。
+    ★ 它是 F16「审计**保留**」这一半的断言：删除之后这个数字**不该变成 0**
+      （`docs/02 §3.1` 的裁定 —— 删掉审计等于删掉监督记录）。
+    """
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM student_audit WHERE actor_id = ? OR target_id = ?",
+        (user_id, user_id),
+    ).fetchone()
+    return int(row["n"])
+
+
+def audit_page(
+    conn: sqlite3.Connection,
+    *,
+    limit: int,
+    cursor: "str | None",
+    actor_id: "str | None" = None,
+    action: "str | None" = None,
+) -> "tuple[list[dict[str, Any]], str | None]":
+    """审计列表一页（`GET /api/admin/audit`）—— 排序 `created_at DESC, audit_id DESC`。
+
+    ★ **看审计本身也要留痕**（`view_audit`）：写入点不在这里，而在 `api/admin.py` ——
+      「读函数的副作用」不该藏在存储层（那会让任何一次内部调用都被记成管理员行为）。
+    """
+    clauses: list[str] = []
+    params: list[Any] = []
+    if actor_id is not None:
+        clauses.append("actor_id = ?")
+        params.append(actor_id)
+    if action is not None:
+        clauses.append("action = ?")
+        params.append(action)
+    if cursor:
+        payload = paging.decode(cursor)
+        created, audit_id = payload.get("t"), payload.get("id")
+        if not isinstance(created, (int, float)) or not isinstance(audit_id, str):
+            raise AppError("invalid_argument", "游标不合法（缺少位置）", {"field": "cursor"})
+        clauses.append("(created_at < ? OR (created_at = ? AND audit_id < ?))")
+        params.extend([created, created, audit_id])
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(limit + 1)
+    rows = conn.execute(
+        f"SELECT * FROM student_audit{where} ORDER BY created_at DESC, audit_id DESC LIMIT ?",
+        tuple(params),
+    ).fetchall()
+    has_more = len(rows) > limit
+    page = rows[:limit]
+    items = [
+        {
+            "audit_id": row["audit_id"],
+            "actor_id": row["actor_id"],
+            "actor_role": row["actor_role"],
+            "target_id": row["target_id"],
+            "action": row["action"],
+            "detail": json.loads(row["detail"]) if row["detail"] else {},
+            "created_at": row["created_at"],
+        }
+        for row in page
+    ]
+    next_cursor = (
+        paging.encode({"t": page[-1]["created_at"], "id": page[-1]["audit_id"]})
+        if has_more and page
+        else None
+    )
+    return items, next_cursor
 
 
 def count_rows(

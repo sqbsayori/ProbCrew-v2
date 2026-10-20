@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api import admin as admin_routes
 from app.api import auth as auth_routes
 from app.api import me as me_routes
 from app.api import practice as practice_routes
@@ -27,3 +28,4 @@ router = APIRouter()
 router.include_router(auth_routes.router)
 router.include_router(me_routes.router)
 router.include_router(practice_routes.router)
+router.include_router(admin_routes.router)

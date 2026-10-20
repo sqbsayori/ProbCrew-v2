@@ -30,7 +30,9 @@ from app.domain.normalize import normalize
 from app.learning import catalog, paging
 
 __all__ = [
+    "ADMIN_RECENT_ATTEMPTS",
     "COUNTER_TABLES",
+    "admin_student_stats",
     "count_hints",
     "count_hints_total",
     "count_user_rows",
@@ -84,6 +86,76 @@ def delete_user_data(conn: sqlite3.Connection, user_id: str) -> "dict[str, int]"
         conn.execute(f"DELETE FROM {_TABLE_BY_KEY[key]} WHERE user_id = ?", (user_id,))
     conn.commit()
     return count_user_rows(conn, user_id)
+
+
+#: 管理员数据视图里每个学生**最多带几条**最近作答（契约 `adminStudentRow.recent_attempts` 的 `maxItems`）。
+ADMIN_RECENT_ATTEMPTS = 20
+
+
+def admin_student_stats(
+    conn: sqlite3.Connection, user_ids: "list[str]"
+) -> "dict[str, dict[str, Any]]":
+    """管理员数据视图的**逐人**读回：作答计数 + 掌握度 + 最近作答（`docs/02 §6.1` 管理行）。
+
+    ★ **只产 per-student 的量**：`attempt_count` / `correct_count` / `mastery[]` 全是「这个人自己的」——
+      `docs/01 §9` 把「跨用户聚合」列为排除项，因此这里**没有**平均分 / 排名 / 分布 / 热力图；
+      管理页也不得由这些数字自己算一个出来（那是同一条边界）。
+    ★ `recent_attempts` **硬编码上限 20**：管理页要的是"逐条查看作答记录"，不是全量导出 ——
+      全量会随学期增长成一次几十万行的响应（`docs/02 §6.1` 的 `limit` 上界同理）。
+    ★ 批量读（`IN (…)`）而不是逐人 N+1：一页最多 50 个学生，N+1 就是 150 次往返；
+      只有「每人的最近 20 条」需要逐人取（窗口函数的可读性不如这条循环）。
+    """
+    stats: dict[str, dict[str, Any]] = {
+        user_id: {
+            "attempt_count": 0,
+            "correct_count": 0,
+            "mastery": [],
+            "recent_attempts": [],
+        }
+        for user_id in user_ids
+    }
+    if not user_ids:
+        return stats
+    marks = ",".join("?" * len(user_ids))
+    for row in conn.execute(
+        "SELECT user_id, COUNT(*) AS n, COALESCE(SUM(correct), 0) AS c FROM student_attempt"
+        f" WHERE user_id IN ({marks}) GROUP BY user_id",
+        tuple(user_ids),
+    ):
+        stats[row["user_id"]]["attempt_count"] = int(row["n"])
+        stats[row["user_id"]]["correct_count"] = int(row["c"])
+    for row in conn.execute(
+        "SELECT user_id, topic, attempts, correct, updated_at FROM student_mastery"
+        f" WHERE user_id IN ({marks}) ORDER BY user_id ASC, topic ASC",
+        tuple(user_ids),
+    ):
+        stats[row["user_id"]]["mastery"].append(
+            {
+                "topic": row["topic"],
+                "attempts": int(row["attempts"]),
+                "correct": int(row["correct"]),
+                "updated_at": row["updated_at"],
+            }
+        )
+    for user_id in user_ids:
+        rows = conn.execute(
+            "SELECT attempt_id, item_id, correct, hint_used, source, created_at"
+            " FROM student_attempt WHERE user_id = ?"
+            " ORDER BY created_at DESC, attempt_id DESC LIMIT ?",
+            (user_id, ADMIN_RECENT_ATTEMPTS),
+        ).fetchall()
+        stats[user_id]["recent_attempts"] = [
+            {
+                "attempt_id": row["attempt_id"],
+                "item_id": row["item_id"],
+                "correct": None if row["correct"] is None else bool(row["correct"]),
+                "hint_used": int(row["hint_used"]),
+                "source": row["source"],
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+    return stats
 
 
 # ---------------------------------------------------------------------------

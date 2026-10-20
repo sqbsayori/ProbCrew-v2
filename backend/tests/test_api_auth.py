@@ -221,18 +221,24 @@ def test_must_change_pw_does_not_block_the_identity_endpoints(client):
 
 
 def test_no_endpoint_accepts_an_identity_parameter(client):
-    """★ **除 login 外，没有任何端点接受 `user_id` / `username` / `role` 入参。**
+    """★ **除 login 与 `/api/admin/*` 外，没有任何端点接受 `user_id` / `username` / `role` 入参。**
 
     这是 F15「以 A 的令牌访问 B 的资源」的**结构性**断言面：越权不是"记得校验"的问题，
     而是**没有可越权的入参**。若将来有人给某端点加上 `user_id` 查询参数，这条用例会立刻失败 ——
     那时正确的做法是回到"身份只来自 `Authorization`"，而不是放宽这条断言。
+
+    ★ **2026-10-20 的唯一例外**：`/api/admin/*` 的**管理入参**（`/users/{user_id}` · `?user=`）
+      只存在于 `require_admin` 之后 —— 它管的就是别人。例外因此**不是放宽**：本用例同时断言
+      这些路径**全部**挂在管理员闸门下（学生令牌一律 403 `forbidden`，见
+      `test_api_admin.py::test_student_is_forbidden_on_every_admin_endpoint`）。
+      学生可见面（`me/*` · `practice/*` · `problems`）仍然一个身份入参都没有。
     """
     spec = app.openapi()
     schemas = spec.get("components", {}).get("schemas", {})
     offenders: list[str] = []
     for path, methods in spec["paths"].items():
-        if path == "/api/auth/login":
-            continue  # 登录是唯一的例外（它必须收 username）
+        if path == "/api/auth/login" or path.startswith("/api/admin/"):
+            continue  # 登录必须收 username；管理端的管理入参由 role 闸门守着
         for method, operation in methods.items():
             names = {parameter["name"] for parameter in operation.get("parameters", [])}
             body = operation.get("requestBody")
@@ -249,8 +255,8 @@ def test_no_endpoint_accepts_an_identity_parameter(client):
 def test_forbidden_code_is_reserved_for_role_shortage():
     """`403 forbidden` 只留给"角色不足"（`docs/02 §6.3`）：`require_admin` 是它的唯一出处。
 
-    ★ 本批没有 `/api/admin/*`（属 P3），因此这条直接调用依赖函数 —— 它断言的是
-      "这个 code 的语义没有被别的事情借用"，而不是某个端点的行为。
+    ★ 本用例直接调用依赖函数断言"这个 code 的语义没有被别的事情借用"；
+      `/api/admin/*` 的**端点行为**在 `test_api_admin.py` 里逐条断言（学生令牌 403 · 五个端点）。
     """
     student = auth.AuthContext(
         user_id="usr_000000000001", role="student", status="active",
