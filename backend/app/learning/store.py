@@ -27,7 +27,7 @@ from typing import Any
 
 from app.core.errors import AppError
 from app.domain.normalize import normalize
-from app.learning import paging
+from app.learning import catalog, paging
 
 __all__ = [
     "COUNTER_TABLES",
@@ -110,11 +110,21 @@ def count_hints_total(conn: sqlite3.Connection, user_id: str, item_id: str) -> i
     return int(row["n"])
 
 
-def has_attempt(conn: sqlite3.Connection, user_id: str, item_id: str) -> bool:
-    """该 `(user,item)` 是否已作答 —— 提示第 3 级的可取判据（`hint.schema.json` 的 invariant）。"""
+def has_attempt(
+    conn: sqlite3.Connection, user_id: str, item_id: str, session_id: str
+) -> bool:
+    """该 `(user,item,session)` **本会话**是否已提交 —— 提示第 3 级的可取判据。
+
+    ★ **2026-10-20 收紧**（`docs/02 §11-18` 的裁定）：判据从「该 `(user,item)` 有过
+      任一次作答」改为「**本会话已提交**」。旧判据允许重做一道做过的题时，在**新会话**
+      里连点三次就于本次未提交的情况下拿到完整解析 —— F6 的伦理约束在正常路径上被绕过。
+    ★ 作用域与 `hint_used` 同为 `(user,item,session)`：**同一份流水、同一个「会话」定义**，
+      不引入第二套口径（`docs/02 §3.2` 的 `hint_used` 行）。
+    """
     row = conn.execute(
-        "SELECT 1 AS hit FROM student_attempt WHERE user_id = ? AND item_id = ? LIMIT 1",
-        (user_id, item_id),
+        "SELECT 1 AS hit FROM student_attempt"
+        " WHERE user_id = ? AND item_id = ? AND session_id = ? LIMIT 1",
+        (user_id, item_id, session_id),
     ).fetchone()
     return row is not None
 
@@ -262,6 +272,11 @@ def _attempt_view(conn: sqlite3.Connection, row: sqlite3.Row, user_id: str) -> "
     view["correct"] = None if view["correct"] is None else bool(view["correct"])
     view["mistake_matched"] = bool(view["mistake_matched"])
     view["hint_used_total"] = count_hints_total(conn, user_id, str(view["item_id"]))
+    #: ★ **2026-10-20 新增的视图字段**（`attempt.schema.json` v1.1）：错题本要显示题干。
+    #:   来自题库资产、**不落 attempt 行**；资产里找不到就省略（不编空题干）。
+    stem = catalog.stem_of(str(view["item_id"]))
+    if stem is not None:
+        view["stem"] = stem
     return view
 
 

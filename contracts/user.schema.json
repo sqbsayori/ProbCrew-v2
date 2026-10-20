@@ -455,7 +455,7 @@
             "delete_user",
             "delete_own_data"
           ],
-          "description": "★ **建议取值（2026-09-24 起草 —— ★ 待 W1 / 域2 确认）**，逐项对应一条**已发布**的动作：`view_students` = `GET /api/admin/students`（数据视图）· `view_users` = `GET /api/admin/users` · `view_audit` = `GET /api/admin/audit`（**看审计本身也要留痕**）· `import_users` = `POST /api/admin/users/import` · `update_user` = `PATCH /api/admin/users/{id}` 的其余字段（角色 / 状态 / 锁定）· `reset_password` = 同一个 `PATCH` 的**重置密码**分支（它同时写 `adminPasswordResetResult.audit_written`）· `delete_user` = `DELETE /api/admin/users/{id}` · `delete_own_data` = **学生自己**的 `DELETE /api/me/data`（`docs/02 §3.1` 已裁定「**删除动作本身必须写一条审计**（谁删的、删了几行）」⇒ 因此 `actor_role` 可以是 `student`）。★ **不含 `export_students`**：`ADR-0002` 的散文里提到管理员「导出 CSV」，但 v2 的 **25 条 path 里没有导出端点** ⇒ 按 `docs/04 §5` 口径 3「从未发布过的取值不进枚举」处理。★ **只增不改**：新增动作 = 加一个枚举值 + 记一笔（`docs/04 §6`）。"
+          "description": "★ **已确认取值（2026-09-24 起草 · ✅ 2026-10-20 由 W1 / 域2 确认照用、不增删；枚举未变 ⇒ version 仍为 v1.3）**，逐项对应一条**已发布**的动作：`view_students` = `GET /api/admin/students`（数据视图）· `view_users` = `GET /api/admin/users` · `view_audit` = `GET /api/admin/audit`（**看审计本身也要留痕**）· `import_users` = `POST /api/admin/users/import` · `update_user` = `PATCH /api/admin/users/{id}` 的其余字段（角色 / 状态 / 锁定）· `reset_password` = 同一个 `PATCH` 的**重置密码**分支（它同时写 `adminPasswordResetResult.audit_written`）· `delete_user` = `DELETE /api/admin/users/{id}` · `delete_own_data` = **学生自己**的 `DELETE /api/me/data`（`docs/02 §3.1` 已裁定「**删除动作本身必须写一条审计**（谁删的、删了几行）」⇒ 因此 `actor_role` 可以是 `student`）。★ **不含 `export_students`**：`ADR-0002` 的散文里提到管理员「导出 CSV」，但 v2 的 **25 条 path 里没有导出端点** ⇒ 按 `docs/04 §5` 口径 3「从未发布过的取值不进枚举」处理。★ **只增不改**：新增动作 = 加一个枚举值 + 记一笔（`docs/04 §6`）。"
         },
         "detail": {
           "type": "object",
@@ -539,7 +539,7 @@
     "increment_v1_3": {
       "changed": "新增 `definitions.auditRow`（`GET /api/admin/audit` 的审计行），本文件 version 提到 v1.3",
       "why": "★ **缺口的形态是「声明了、契约里没有」**：`docs/04 §3` 的覆盖表把该端点映射到「C3（审计行）」，而本文件的 `definitions` **恰好 10 个里没有审计行**（`audit` 只以 `deleteResult.audit_rows_retained` 的计数与 `adminPasswordResetResult.audit_written` 的布尔出现）。★ 而校验④只断言「每一条 path 都出现在覆盖表里」，这条 path **在表里** ⇒ 它**永远绿**（`docs/04 §9` 缺口 9 原文）。",
-      "enum_evaluation": "★ **`action` 的 8 个取值与 `target_id` 的两条口径是 2026-09-24 起草的建议值 —— 待 W1 / 域2 确认**（`docs/04 §9` 缺口 9 的建议形状只给了字段名与「枚举 / 对象」两类，没有给取值集合）。`docs/04 §5` 把「新增枚举值」列为兼容变更 ⇒ 确认后若要增删，按 `docs/04 §6` 再走一次提案即可，不构成破坏性变更。",
+      "enum_evaluation": "★ **`action` 的 8 个取值与 `target_id` 的两条口径是 2026-09-24 起草的建议值 —— ✅ 2026-10-20 由 W1 / 域2 确认：8 个取值照用、不增删**（`docs/04 §9` 缺口 9 的建议形状只给了字段名与「枚举 / 对象」两类，没有给取值集合）。★ 确认后它不再是「起草值」：新增动作仍按 `docs/04 §6` 走提案（`docs/04 §5` 把「新增枚举值」列为兼容变更），但**确认本身不构成变更** —— 枚举集合逐字未动，因此本文件 version 仍是 **v1.3**（确认记录写在 `docs/04 §9` 缺口 9 与 `docs/06 §14.5`）。",
       "shape_deviation": "★ 与 `docs/04 §9` 建议形状的**一处偏差**：`target_id` 在建议形状里标为可选（`target_id?`），本契约取为**必填但可空**（`[\"string\",\"null\"]`）—— 理由与 `qa-log.answer` 相同：「必填」是为了让写入方**显式表态**（没有对象就写 `null`），而不是漏写一个字段让读方去猜。",
       "compat": "只新增一个 `definitions` 条目：**没有任何字段被删改、没有既有对象的形状被收紧** ⇒ 对既有消费方零影响；且 v2 尚未发布，不存在已发布客户端。"
     }
