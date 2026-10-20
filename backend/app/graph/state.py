@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Protocol, Sequence, TypedDict
 
 from app.tools import ToolResult
+from app.tools.endpoint import EndpointConfig
 
 
 def elapsed_ms(started: float) -> float:
@@ -49,6 +50,8 @@ def endpoint_label(ctx: "NodeContext") -> "dict[str, Any] | None":
     """
     endpoint = ctx.endpoint
     if not isinstance(endpoint, Mapping):
+        if isinstance(endpoint, EndpointConfig):
+            return {"provider": endpoint.provider, "model": endpoint.model}
         return None
     label = {key: endpoint[key] for key in ("provider", "model") if key in endpoint}
     return label or None
@@ -194,7 +197,7 @@ class NodeContext:
     tools: ToolBox
     events: EventSink
     #: 本次请求的端点三件套（``provider`` / ``model`` / ``base_url``）—— **不含凭据**。
-    endpoint: "Mapping[str, Any] | None" = None
+    endpoint: "Mapping[str, Any] | EndpointConfig | None" = None
     #: ★ 本次请求的凭据（``X-Model-Key``）—— 请求级、**不进帧 / 日志 / repr**。
     credential: "str | None" = field(default=None, repr=False)
 
@@ -204,7 +207,7 @@ class NodeContext:
         node: str,
         events: "EventSink | None" = None,
         *,
-        endpoint: "Mapping[str, Any] | None" = None,
+        endpoint: "Mapping[str, Any] | EndpointConfig | None" = None,
         credential: "str | None" = None,
     ) -> "NodeContext":
         return cls(

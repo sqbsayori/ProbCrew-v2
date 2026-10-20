@@ -141,7 +141,9 @@ def chat(
                 session_id=session_id,
                 query=payload.query,
                 context=body.get("context"),
-                endpoint=payload.endpoint.model_dump(),
+                # ★ 传**已校验**的 EndpointConfig：它带着 `egress` / loopback 许可；
+                #   再降回原始字典会让 `llm.call_model` 二次校验时丢掉单机例外。
+                endpoint=config,
                 credential=credential,
                 owner_id=context.user_id,
             ):

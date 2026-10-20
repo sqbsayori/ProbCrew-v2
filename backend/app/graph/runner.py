@@ -42,6 +42,7 @@ from app.graph.events import Frame, FrameSink
 from app.core.logging import log_action
 from app.graph.nodes import route, solve, verify
 from app.graph.state import NodeContext
+from app.tools.endpoint import EndpointConfig
 
 #: 已终结快照的**上限**（首次取值；提案原文未入仓）：单 worker 下防无界增长。
 MAX_TERMINAL_SNAPSHOTS = 20
@@ -265,7 +266,7 @@ async def stream_run(
     session_id: str,
     query: str,
     context: "Mapping[str, Any] | None" = None,
-    endpoint: "Mapping[str, Any] | None" = None,
+    endpoint: "Mapping[str, Any] | EndpointConfig | None" = None,
     credential: "str | None" = None,
     store: "RunStore | None" = None,
     owner_id: "str | None" = None,
@@ -384,7 +385,7 @@ async def _drive(
     state: "Mapping[str, Any]",
     sink: FrameSink,
     *,
-    endpoint: "Mapping[str, Any] | None",
+    endpoint: "Mapping[str, Any] | EndpointConfig | None",
     credential: "str | None",
 ) -> "tuple[Mapping[str, Any], list[Frame], BaseException | None]":
     """跑一跳 —— 同步节点**丢线程池**（`docs/03 §3.2` 第 3 条）。

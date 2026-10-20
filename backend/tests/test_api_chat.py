@@ -348,3 +348,37 @@ def test_f17_invented_model_id_becomes_explicitly_null(client, monkeypatch):
     )
     assert decomposition["model_id"] is None
     assert decomposition["note"]
+
+
+def test_chat_loopback_endpoint_requires_single_deployment(client, monkeypatch):
+    """★ 回归：chat 传下去的必须是**已校验**的 EndpointConfig，不能降回原始字典。
+
+    2026-10-20 浏览器验收抓到的缺陷：ping 通过、chat 却在 `llm.call_model` 的
+    二次校验里丢掉 loopback 许可 ⇒ 一律 `model_unreachable`。
+    """
+    _seed()
+    monkeypatch.setattr(llm, "_TRANSPORT", FakeTransport())
+    token = _token(client)
+    local = {
+        "provider": "custom",
+        "model": "local-model",
+        "base_url": "http://127.0.0.1:8899/v1",
+    }
+
+    monkeypatch.delenv("PROBCREW_DEPLOYMENT", raising=False)
+    rejected = client.post(
+        "/api/chat",
+        json={"query": "hosted 形态", "endpoint": local},
+        headers=_auth(token, key=None),
+    )
+    assert rejected.status_code == 503
+    assert rejected.json()["error"]["code"] == "model_unreachable"
+
+    monkeypatch.setenv("PROBCREW_DEPLOYMENT", "single")
+    accepted = client.post(
+        "/api/chat",
+        json={"query": "single 形态", "endpoint": local},
+        headers=_auth(token, key=None),
+    )
+    assert accepted.status_code == 200, accepted.text
+    assert _frames(accepted.text)[-1]["type"] == "done"
