@@ -37,13 +37,18 @@ __all__ = [
     "count_hints_total",
     "count_user_rows",
     "delete_user_data",
+    "finish_qa",
     "has_attempt",
     "latest_attempt_id",
+    "latest_qa",
+    "mark_notice_ack",
     "next_attempt_no",
-    "next_attempt_no",
+    "notice_ack_at",
     "progress",
+    "qa_page",
     "record_attempt",
     "record_hint",
+    "record_qa_start",
     "wrong_page",
 ]
 
@@ -433,3 +438,104 @@ def progress(conn: sqlite3.Connection, user_id: str) -> "dict[str, Any]":
         "topics": topics,
         "weak": {"available": False, "note": "数据不足，暂不显示薄弱点"},
     }
+
+
+# --------------------------------------------------------------------------- #
+# W3：问答流水（`qa_log`）与告知确认
+# --------------------------------------------------------------------------- #
+_QA_COLUMNS = "qa_id, query, answer, provider, model, egress, created_at"
+
+
+def record_qa_start(
+    conn: sqlite3.Connection,
+    *,
+    qa_id: str,
+    user_id: str,
+    query: str,
+    provider: str,
+    model: str,
+    egress: str,
+    created_at: float,
+) -> None:
+    """**先落流水再答**（`docs/02 §4.2`）：`answer` 先置 `NULL`，跑完再补。
+
+    ★ 无凭据（P3）不会调用本函数 —— 没发起就没有流水（`docs/02 §3.1`）。
+    """
+    conn.execute(
+        "INSERT INTO student_qa_log"
+        " (qa_id, user_id, query, answer, provider, model, egress, created_at)"
+        " VALUES (?, ?, ?, NULL, ?, ?, ?, ?)",
+        (qa_id, user_id, query, provider, model, egress, created_at),
+    )
+    conn.commit()
+
+
+def finish_qa(conn: sqlite3.Connection, qa_id: str, answer: "str | None") -> None:
+    """补回答正文；失败/断流时 `answer` 保持 `NULL`（契约允许，且必须留下这一行）。"""
+    conn.execute(
+        "UPDATE student_qa_log SET answer = ? WHERE qa_id = ?",
+        (None if answer is None else answer[:8000], qa_id),
+    )
+    conn.commit()
+
+
+def latest_qa(conn: sqlite3.Connection, user_id: str) -> "dict[str, Any] | None":
+    """最近一次问答流水（告知页的"当前去向"来源）。"""
+    row = conn.execute(
+        f"SELECT {_QA_COLUMNS} FROM student_qa_log"
+        " WHERE user_id = ? ORDER BY created_at DESC, qa_id DESC LIMIT 1",
+        (user_id,),
+    ).fetchone()
+    return None if row is None else {key: row[key] for key in row.keys()}
+
+
+def qa_page(
+    conn: sqlite3.Connection,
+    *,
+    user_id: str,
+    limit: int,
+    cursor: "str | None",
+) -> "tuple[list[dict[str, Any]], str | None]":
+    """`GET /api/me/qa` 的一页（C2 + C9）：稳定序 `created_at DESC, qa_id DESC`。"""
+    clauses = ["user_id = ?"]
+    params: list[Any] = [user_id]
+    if cursor:
+        payload = paging.decode(cursor)
+        created, qa_id = payload.get("t"), payload.get("id")
+        if not isinstance(created, (int, float)) or not isinstance(qa_id, str):
+            raise AppError("invalid_argument", "游标不合法（缺少位置）", {"field": "cursor"})
+        clauses.append("(created_at < ? OR (created_at = ? AND qa_id < ?))")
+        params.extend([created, created, qa_id])
+    params.append(limit + 1)
+    rows = conn.execute(
+        f"SELECT {_QA_COLUMNS} FROM student_qa_log"
+        f" WHERE {' AND '.join(clauses)}"
+        " ORDER BY created_at DESC, qa_id DESC LIMIT ?",
+        tuple(params),
+    ).fetchall()
+    has_more = len(rows) > limit
+    page = rows[:limit]
+    items = [{key: row[key] for key in row.keys()} for row in page]
+    next_cursor = (
+        paging.encode({"t": page[-1]["created_at"], "id": page[-1]["qa_id"]})
+        if has_more and page
+        else None
+    )
+    return items, next_cursor
+
+
+def notice_ack_at(conn: sqlite3.Connection, user_id: str) -> "float | None":
+    row = conn.execute(
+        "SELECT notice_ack_at FROM student_user WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    return None if row is None else row["notice_ack_at"]
+
+
+def mark_notice_ack(conn: sqlite3.Connection, user_id: str, now: float) -> "float | None":
+    """告知确认**只能置位、不能清除**（契约 `noticeAckRequest`）。"""
+    conn.execute(
+        "UPDATE student_user SET notice_ack_at = COALESCE(notice_ack_at, ?) WHERE user_id = ?",
+        (now, user_id),
+    )
+    conn.commit()
+    return notice_ack_at(conn, user_id)

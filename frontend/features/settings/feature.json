@@ -1,0 +1,11 @@
+{
+  "id": "settings",
+  "dir": "settings",
+  "title": "设置",
+  "icon": "⚙️",
+  "route": "settings",
+  "group": "账号",
+  "order": 20,
+  "class": "product",
+  "subtitle": "模型端点与凭据 · 外传告知（N14 · N15 · N16）"
+}

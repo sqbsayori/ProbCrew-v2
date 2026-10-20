@@ -42,6 +42,7 @@ from app.graph.events import Frame, FrameSink
 from app.core.logging import log_action
 from app.graph.nodes import route, solve, verify
 from app.graph.state import NodeContext
+from app.tools.endpoint import EndpointConfig
 
 #: 已终结快照的**上限**（首次取值；提案原文未入仓）：单 worker 下防无界增长。
 MAX_TERMINAL_SNAPSHOTS = 20
@@ -94,6 +95,7 @@ class RunRecord:
 
     run_id: str
     session_id: str
+    owner_id: "str | None" = None
     status: str = STATUS_RUNNING
     steps: "list[Any]" = field(default_factory=list)
     verification: "Mapping[str, Any] | None" = None
@@ -119,8 +121,15 @@ class RunStore:
         self._max_terminal = max_terminal
         self._clock = clock
 
-    def start(self, *, run_id: str, session_id: str) -> RunRecord:
-        record = RunRecord(run_id=run_id, session_id=session_id, updated_at=self._clock())
+    def start(
+        self, *, run_id: str, session_id: str, owner_id: "str | None" = None
+    ) -> RunRecord:
+        record = RunRecord(
+            run_id=run_id,
+            session_id=session_id,
+            owner_id=owner_id,
+            updated_at=self._clock(),
+        )
         self._records[run_id] = record
         return record
 
@@ -159,6 +168,17 @@ class RunStore:
         if record.verification is not None:
             snapshot["verification"] = record.verification
         return snapshot
+
+    def snapshot_for(self, run_id: str, owner_id: str) -> "dict[str, Any] | None":
+        """按**归属**取快照：别人的 run 一律当作不存在（对外 404，`docs/02 §6.3`）。
+
+        ★ 契约的 `runSnapshot` 没有 `user_id`（`additionalProperties: false`），
+          所以归属只留在内存记录里，不进入响应。
+        """
+        record = self._records.get(run_id)
+        if record is None or record.owner_id != owner_id:
+            return None
+        return self.snapshot(run_id)
 
     @property
     def active(self) -> "list[str]":
@@ -246,9 +266,10 @@ async def stream_run(
     session_id: str,
     query: str,
     context: "Mapping[str, Any] | None" = None,
-    endpoint: "Mapping[str, Any] | None" = None,
+    endpoint: "Mapping[str, Any] | EndpointConfig | None" = None,
     credential: "str | None" = None,
     store: "RunStore | None" = None,
+    owner_id: "str | None" = None,
 ) -> "AsyncIterator[Frame]":
     """跑一次答疑并逐帧 yield；**最后一帧一定是 `done` 或 `error`**（取消是唯一例外）。
 
@@ -256,7 +277,7 @@ async def stream_run(
     它们**不进任何帧**（`tool.call.args` 只用 `state.endpoint_label` 那种只含标识的视图）。
     """
     runs = store if store is not None else RUNS
-    runs.start(run_id=run_id, session_id=session_id)
+    runs.start(run_id=run_id, session_id=session_id, owner_id=owner_id)
     sink = FrameSink()
     state: "dict[str, Any]" = {
         "run_id": run_id,
@@ -364,7 +385,7 @@ async def _drive(
     state: "Mapping[str, Any]",
     sink: FrameSink,
     *,
-    endpoint: "Mapping[str, Any] | None",
+    endpoint: "Mapping[str, Any] | EndpointConfig | None",
     credential: "str | None",
 ) -> "tuple[Mapping[str, Any], list[Frame], BaseException | None]":
     """跑一跳 —— 同步节点**丢线程池**（`docs/03 §3.2` 第 3 条）。

@@ -33,3 +33,6 @@
 .practice-chat__type { font-family: var(--font-family-mono); font-size: var(--font-size-sm); color: var(--color-text-muted); }
 .practice-chat__delta { margin: 0; white-space: pre-wrap; }
 .practice-chat__steps { margin: 0; padding-left: var(--space-5); }
+.practice-decomposition { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; }
+.practice-decomposition dt { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.practice-decomposition dd { margin: 0; }
