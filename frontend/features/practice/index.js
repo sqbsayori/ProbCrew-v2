@@ -272,6 +272,19 @@ function renderChatFrame(frame) {
   } else if (type === 'artifact') {
     const artifact = payload.payload || {}
     body.push(el('span', { text: `产物：${payload.kind || 'artifact'}${artifact.title ? ` · ${artifact.title}` : ''}` }))
+    if (payload.kind === 'decomposition' && (artifact.known || artifact.asked)) {
+      body.push(el('dl', { class: 'practice-decomposition' }, [
+        el('dt', { text: '已知' }),
+        el('dd', { text: artifact.known || '—' }),
+        el('dt', { text: '所求' }),
+        el('dd', { text: artifact.asked || '—' }),
+        el('dt', { text: '适用模型' }),
+        el('dd', { text: artifact.model_id || '未匹配模型' }),
+      ]))
+      if (!artifact.model_id && artifact.note) {
+        body.push(el('p', { class: 'practice-chat__delta', text: artifact.note }))
+      }
+    }
     if (Array.isArray(artifact.steps)) {
       body.push(el('ol', { class: 'practice-chat__steps' }, artifact.steps.map((step) => el('li', {}, compact([
         step.explanation ? el('span', { text: step.explanation }) : null,

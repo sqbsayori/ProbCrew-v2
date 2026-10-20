@@ -150,7 +150,7 @@ def _notice_status(conn: sqlite3.Connection, user_id: str) -> "dict[str, Any]":
     ack_at = store.notice_ack_at(conn, user_id)
     if latest is None:
         egress = provider = model = None
-        message = "当前尚未配置模型凭据，也没有发生问答外传。" + _DELETE_BOUNDARY
+        message = "当前还没有问答记录，未发生问答外传。" + _DELETE_BOUNDARY
     else:
         egress = latest["egress"]
         provider = latest["provider"]

@@ -9,10 +9,12 @@
  *   - R-E：只用 `core/dom.js`；R-D：颜色等只取 `tokens.css`。
  */
 import { el, mount, qs } from '../../core/dom.js';
-import { register, parse } from '../../core/router.js';
+import { register, parse, navigate } from '../../core/router.js';
 import { get, post } from '../../core/api.js';
+import { emit, EVENTS } from '../../core/bus.js';
 import {
   clearModelKey,
+  clearSession,
   endpoint,
   modelKey,
   setEndpoint,
@@ -102,6 +104,11 @@ function buildPage(main, providers, current, noticeStatus, box) {
   const save = el('button', { class: 'button button--primary', type: 'submit', text: '保存配置' });
   const ping = el('button', { class: 'button', type: 'button', text: '保存并自检' });
   const clear = el('button', { class: 'button', type: 'button', text: '清除已保存凭据' });
+  const oldPw = input('settings-old-pw', 'password');
+  const newPw = input('settings-new-pw', 'password');
+  const confirmPw = input('settings-confirm-pw', 'password');
+  const changePw = el('button', { class: 'button button--primary', type: 'submit', text: '修改密码' });
+  const securityBox = statusBox();
 
   function syncProviderHint() {
     const selected = providers.find((item) => item.provider === providerSelect.value);
@@ -190,6 +197,44 @@ function buildPage(main, providers, current, noticeStatus, box) {
     showStatus(box, '已清除本机保存的模型凭据。', 'info');
   });
 
+  const securityForm = el('form', { class: 'settings-form' }, [
+    field('settings-old-pw', '当前密码', oldPw, ''),
+    field('settings-new-pw', '新密码', newPw, '1–72 个字符；修改后所有设备都需要重新登录。'),
+    field('settings-confirm-pw', '确认新密码', confirmPw, ''),
+    el('div', { class: 'settings-actions' }, [changePw]),
+  ]);
+  securityForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!oldPw.value || !newPw.value) {
+      showStatus(securityBox, '当前密码与新密码都必须填写。', 'warn');
+      return;
+    }
+    if (newPw.value !== confirmPw.value) {
+      showStatus(securityBox, '两次输入的新密码不一致。', 'danger');
+      return;
+    }
+    changePw.disabled = true;
+    try {
+      await post('/api/auth/password', {
+        old_password: oldPw.value,
+        new_password: newPw.value,
+      });
+      // 改密成功 ⇒ 服务端撤销该用户全部令牌（含本次）⇒ 必须重新登录。
+      clearSession();
+      window.addEventListener('hashchange', () => {
+        emit(EVENTS.NOTICE, { message: '密码已修改，请用新密码重新登录。', tone: 'success' });
+      }, { once: true });
+      navigate('#/login');
+    } catch (error) {
+      const message = error?.code === 'bad_credentials'
+        ? '当前密码不正确。'
+        : `修改失败：${error?.message || '未知错误'}`;
+      showStatus(securityBox, message, 'danger');
+    } finally {
+      changePw.disabled = false;
+    }
+  });
+
   const egress = noticeStatus?.egress === 'remote'
     ? `远程（${noticeStatus.provider || '未知供应商'} / ${noticeStatus.model || '未知模型'}）`
     : noticeStatus?.egress === 'loopback' ? '本机端点（不发往第三方）' : '尚无问答记录';
@@ -227,7 +272,7 @@ function buildPage(main, providers, current, noticeStatus, box) {
         title: '数据去向与告知',
         body: el('div', { class: 'settings-body' }, [
           el('p', { class: 'settings-meta' }, [
-            el('span', { class: 'settings-meta__label', text: '当前去向：' }),
+            el('span', { class: 'settings-meta__label', text: '最近一次实际去向：' }),
             el('strong', { text: egress }),
           ]),
           el('p', { class: 'settings-meta' }, [
@@ -237,6 +282,14 @@ function buildPage(main, providers, current, noticeStatus, box) {
           noticeBox,
           el('div', { class: 'settings-actions' }, [ack]),
           el('p', { class: 'settings-field__hint', text: '告知确认是每账号一次；换设备仍会再次提示。' }),
+        ]),
+      }),
+      card({
+        title: '账号安全',
+        body: el('div', { class: 'settings-body' }, [
+          notice({ message: '修改密码会撤销本账号在所有设备上的登录令牌，需要重新登录。', tone: 'info' }),
+          securityForm,
+          securityBox,
         ]),
       }),
     ]),
