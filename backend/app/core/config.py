@@ -24,6 +24,13 @@ from pathlib import Path
 
 ENV_PREFIX = "PROBCREW_"
 
+#: 部署形态（`docs/02 §1.5①`）。★ 权威实现在 `app.main.resolve_deployment`；
+#: 这里只提供 **api 层可读的同一判据**，避免 `api/` 为了一个布尔值 import `main`
+#: （那会形成 api → main → api 的循环）。
+DEPLOYMENT_ENV = "PROBCREW_DEPLOYMENT"
+DEPLOYMENT_HOSTED = "hosted"
+DEPLOYMENT_SINGLE = "single"
+
 #: 日志轮转参数（docs/02 §1.4 规则 1：10MB × 5）
 LOG_MAX_BYTES = 10 * 1024 * 1024
 LOG_BACKUP_COUNT = 5
@@ -63,3 +70,13 @@ def load_settings(env: "dict[str, str] | None" = None) -> Settings:
         content_dir=Path(source.get(ENV_PREFIX + "CONTENT_DIR", str(root / "content"))),
         db_path=Path(source.get(ENV_PREFIX + "DB_PATH", str(root / "backend" / "data" / DB_FILENAME))),
     )
+
+
+def deployment_allows_loopback(env: "dict[str, str] | None" = None) -> bool:
+    """P1 的**服务端那一半**：仅 `PROBCREW_DEPLOYMENT=single` 时允许本机端点。
+
+    ★ 缺省与坏值都按 `hosted`（拒绝）处理 —— 与 `main.resolve_deployment` 的
+      "缺省取最严档 / 坏值拒绝启动"一致；启动阶段已经拒绝坏值，请求期不必再抛。
+    """
+    source = os.environ if env is None else env
+    return source.get(DEPLOYMENT_ENV, "").strip().lower() == DEPLOYMENT_SINGLE

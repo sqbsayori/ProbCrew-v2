@@ -22,15 +22,22 @@
 """
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "AdminImportRequest",
     "AdminImportRow",
     "AdminUserPatch",
+    "ChatContext",
+    "ChatContextRef",
+    "ChatEndpoint",
+    "ChatRequest",
     "GradeRequest",
     "HintRequest",
     "LoginRequest",
+    "NoticeAckRequest",
     "PasswordChangeRequest",
 ]
 
@@ -83,6 +90,52 @@ class HintRequest(BaseModel):
 
     item_id: str = Field(pattern=r"^prob_[a-z0-9_]+$", max_length=64)
     session_id: str = Field(min_length=1, max_length=64)
+
+
+class ChatContextRef(BaseModel):
+    """`POST /api/chat` 的 `context.refs[]`（契约 `contextResolvedPayload.context`）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["problem", "kc", "corpus"]
+    id: str = Field(min_length=1, max_length=64)
+
+
+class ChatContext(BaseModel):
+    """答疑上下文：正文 + 最多 20 个标识（R-A 的嵌套深度 ≤ 3）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(max_length=4000)
+    refs: "list[ChatContextRef]" = Field(default_factory=list, max_length=20)
+
+
+class ChatEndpoint(BaseModel):
+    """用户提供的模型端点（`contracts/chat.schema.json#/definitions/endpoint`）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider: Literal["deepseek", "qwen", "glm", "custom"]
+    model: str = Field(min_length=1, max_length=128)
+    base_url: str = Field(min_length=1, max_length=2048)
+
+
+class ChatRequest(BaseModel):
+    """`POST /api/chat` 的请求体（凭据不在这里 —— 只走 `X-Model-Key` 头）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(min_length=1, max_length=2000)
+    context: "ChatContext | None" = None
+    endpoint: ChatEndpoint
+
+
+class NoticeAckRequest(BaseModel):
+    """`POST /api/me/notice` 的请求体：只能置位，不能清除。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ack: Literal[True]
 
 
 class AdminImportRow(BaseModel):

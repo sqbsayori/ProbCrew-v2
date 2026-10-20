@@ -108,7 +108,7 @@ SCHEMA_SQL: tuple[str, ...] = (
       qa_id      TEXT PRIMARY KEY,
       user_id    TEXT NOT NULL REFERENCES student_user(user_id) ON DELETE CASCADE,
       query      TEXT NOT NULL,
-      answer     TEXT NOT NULL,
+      answer     TEXT,
       provider   TEXT,
       model      TEXT,
       egress     TEXT NOT NULL CHECK (egress IN ('loopback','remote')),
@@ -216,7 +216,47 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     """
     for statement in SCHEMA_SQL:
         conn.execute(statement)
+    _ensure_qa_answer_nullable(conn)
     conn.commit()
+
+
+def _ensure_qa_answer_nullable(conn: sqlite3.Connection) -> None:
+    """把已发布的 `student_qa_log.answer` 从 `NOT NULL` 迁到可空。
+
+    ★ 契约 `qa-log.schema.json` 明写 `answer` 可为 `null`（"问了就算数"：
+      中途失败/断流也要留下一条流水）；W1 的建表把它写成了 `NOT NULL`，
+      两者只能有一个成立。这里按"已发布列要改就走迁移"的纪律做一次**表重建**，
+      保留既有行（新库建表时已是可空，不会走到重建分支）。
+    """
+    columns = conn.execute("PRAGMA table_info(student_qa_log)").fetchall()
+    answer = next((row for row in columns if row["name"] == "answer"), None)
+    if answer is None or int(answer["notnull"]) == 0:
+        return
+    conn.execute("ALTER TABLE student_qa_log RENAME TO student_qa_log_pre_nullable")
+    conn.execute(
+        """
+        CREATE TABLE student_qa_log (
+          qa_id      TEXT PRIMARY KEY,
+          user_id    TEXT NOT NULL REFERENCES student_user(user_id) ON DELETE CASCADE,
+          query      TEXT NOT NULL,
+          answer     TEXT,
+          provider   TEXT,
+          model      TEXT,
+          egress     TEXT NOT NULL CHECK (egress IN ('loopback','remote')),
+          created_at REAL NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        "INSERT INTO student_qa_log"
+        " (qa_id, user_id, query, answer, provider, model, egress, created_at)"
+        " SELECT qa_id, user_id, query, answer, provider, model, egress, created_at"
+        " FROM student_qa_log_pre_nullable"
+    )
+    conn.execute("DROP TABLE student_qa_log_pre_nullable")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS ix_qa_user_created ON student_qa_log(user_id, created_at)"
+    )
 
 
 def initialize(path: "str | Path | None" = None) -> sqlite3.Connection:
