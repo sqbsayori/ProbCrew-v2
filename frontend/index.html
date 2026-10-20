@@ -55,6 +55,7 @@
     import './features/wrong/index.js'
     import './features/knowledge/index.js'
     import './features/admin/index.js'
+    import './features/settings/index.js'
 
     /** 骨架版本号（广播进 `app:ready`，便于确认"跑的是哪一版外壳"）。 */
     const SHELL_VERSION = 'w0a'
@@ -65,11 +66,9 @@
      * ★ **某个页面真正上线时，必须把它的那一行从这里删掉**（`docs/03 §7④` 第 3 步）——
      *   `router.register` 是**后注册者生效**，而本清单在 feature 的 `import` **之后**注册，
      *   不删就会用占位盖住真页面（`#/login` 已于 W1 ④ 上线；`#/practice` / `#/wrong` /
-     *   `#/knowledge` 已于 2026-10-20 挂载，故都不在本清单里）。
+     *   `#/knowledge` / `#/admin` / `#/settings` 均已于 2026-10-20 挂载，故本清单为空）。
      */
-    const PAGES = [
-      { path: '#/settings', title: '设置', subtitle: '模型端点与凭据 · 外传告知（N14 · N15 · N16）' },
-    ]
+    const PAGES = []
 
     const main = qs('#app-main')
     const sessionBadge = qs('#app-session')
