@@ -28,6 +28,7 @@ __all__ = [
     "PASSWORD_CHANGE_ALLOWLIST",
     "AuthContext",
     "Session",
+    "admin_reset_password",
     "assert_password_changed",
     "authenticate",
     "change_password",
@@ -101,6 +102,32 @@ def authenticate(
     plaintext, expires_at = tokens.issue_token(conn, found["user_id"], stamp)
     refreshed = users.find_by_id(conn, found["user_id"]) or found
     return Session(token=plaintext, expires_at=expires_at, user=users.to_public(refreshed))
+
+
+def admin_reset_password(
+    conn: sqlite3.Connection,
+    user_id: str,
+    new_password: str,
+    *,
+    must_change_pw: bool = True,
+) -> int:
+    """管理员重置密码：写新哈希 → 置 ``must_change_pw`` → **撤销该用户全部令牌**。
+
+    返回被撤销的令牌数（契约 `adminPasswordResetResult.tokens_revoked` 是必填 ——
+    「撤销了几条」必须由**读回**给出；`tokens.revoke_all_for_user()` 的 ``rowcount`` 就是它）。
+
+    ★ **三件事是一个动作**（契约 `adminPasswordResetResult` 把三件全列为必填且取值固定）：
+      只改哈希 = 管理员**知道**学生的新密码（旧会话还能用、学生也不会去改）——
+      那条"重置密码等于降级安全性"的洞正是这样形成的（`docs/02 §5.3` 的自环）。
+    ★ 目标不存在 / 已脱敏 ⇒ 404 `not_found`：已删除的账号**不接受**重置（否则它会被"复活"成一个
+      密码已知的不可登录账号，而 `status='deleted'` 的语义是终点）。
+    """
+    users.check_password_bytes(new_password)
+    owner = users.find_by_id(conn, user_id)
+    if owner is None or owner["status"] == "deleted":
+        raise AppError("not_found", "账号不存在")
+    users.set_password(conn, user_id, users.hash_password(new_password), must_change_pw=must_change_pw)
+    return tokens.revoke_all_for_user(conn, user_id)
 
 
 def resolve_bearer(

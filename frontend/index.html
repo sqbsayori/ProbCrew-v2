@@ -54,6 +54,7 @@
     import './features/practice/index.js'
     import './features/wrong/index.js'
     import './features/knowledge/index.js'
+    import './features/admin/index.js'
 
     /** 骨架版本号（广播进 `app:ready`，便于确认"跑的是哪一版外壳"）。 */
     const SHELL_VERSION = 'w0a'
@@ -68,7 +69,6 @@
      */
     const PAGES = [
       { path: '#/settings', title: '设置', subtitle: '模型端点与凭据 · 外传告知（N14 · N15 · N16）' },
-      { path: '#/admin', title: '管理', subtitle: '教师侧（#/admin?tab=students&user=…）' },
     ]
 
     const main = qs('#app-main')
