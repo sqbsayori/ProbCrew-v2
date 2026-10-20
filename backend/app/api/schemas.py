@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-__all__ = ["LoginRequest", "PasswordChangeRequest"]
+__all__ = ["GradeRequest", "HintRequest", "LoginRequest", "PasswordChangeRequest"]
 
 
 class LoginRequest(BaseModel):
@@ -48,3 +48,30 @@ class PasswordChangeRequest(BaseModel):
 
     old_password: str = Field(min_length=1, max_length=72)
     new_password: str = Field(min_length=1, max_length=72)
+
+
+class GradeRequest(BaseModel):
+    """`POST /api/practice/grade` 的请求体（`docs/02 §4.3`）。
+
+    ★ **`extra="ignore"` 而不是 `forbid`**：契约 invariant 写死「请求体里出现
+      `hint_used` / `level` 时**一律忽略、不报错**（避免旧客户端崩），但绝不采信」。
+      这两个值由服务端从流水派生，客户端传什么都不影响结果。
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    item_id: str = Field(pattern=r"^prob_[a-z0-9_]+$", max_length=64)
+    answer: str = Field(min_length=1, max_length=200)
+    session_id: str = Field(min_length=1, max_length=64)
+    #: ★ 契约 `attempt.duration_ms` 是**非空整数**（`type: integer`，没有 null 支）⇒
+    #:   缺省取 0（= 未提供）。它是**客户端自陈值，不参与任何验收**（`docs/01` F7 已记账）。
+    duration_ms: int = Field(default=0, ge=0, le=86_400_000)
+
+
+class HintRequest(BaseModel):
+    """`POST /api/practice/hint` 的请求体 —— **没有 `level`**（级别由服务端按流水推进）。"""
+
+    model_config = ConfigDict(extra="ignore")
+
+    item_id: str = Field(pattern=r"^prob_[a-z0-9_]+$", max_length=64)
+    session_id: str = Field(min_length=1, max_length=64)

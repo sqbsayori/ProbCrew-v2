@@ -19,9 +19,9 @@ from fastapi import Depends, Header
 
 from app.core import db
 from app.core.errors import AppError
-from app.identity.auth import AuthContext, resolve_bearer
+from app.identity.auth import AuthContext, assert_password_changed, resolve_bearer
 
-__all__ = ["current_context", "get_conn", "require_admin"]
+__all__ = ["current_context", "get_conn", "password_gate", "require_admin"]
 
 
 def get_conn() -> Iterator[sqlite3.Connection]:
@@ -54,3 +54,20 @@ def require_admin(context: AuthContext = Depends(current_context)) -> AuthContex
     if context.role != "admin":
         raise AppError("forbidden", "无权访问")
     return context
+
+
+def password_gate(area: str):
+    """`must_change_pw` 的**逐请求**闸门（`docs/02 §5.3`）。
+
+    ★ 为什么做成依赖工厂而不是在每个端点里手写一行：漏写一个端点的症状是
+      「管理员设了临时密码，学生直接调学习接口就绕过去了」—— 而漏写**没有任何报错**。
+      把区域名放在签名里，至少让"这个端点属于放行区还是受控区"成为**每个端点的一行声明**。
+    ★ `area` 取 `identity/auth.py` 的 :data:`PASSWORD_CHANGE_ALLOWLIST` 里的名字时放行
+      （`login` / `logout` / `password` / `me`），其余一律 403 ``must_change_pw``。
+    """
+
+    def dependency(context: AuthContext = Depends(current_context)) -> AuthContext:
+        assert_password_changed(context, area)
+        return context
+
+    return dependency

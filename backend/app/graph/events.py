@@ -365,9 +365,9 @@ class FrameSink:
     def close(self, *, cancelled: bool = False) -> None:
         """收口：**没发终帧就是实现缺陷**（``x-frame-conventions.terminal``）。
 
-        ★ ``cancelled=True`` 是**唯一例外**（``_plan/提案-01-events-runSnapshot-cancelled.md``）：
-        客户端断开时**没有接收方**，发终帧没有意义 ⇒ 取消路径不该被这条断言挡住。
-        该提案待 R1 审批，因此这个例外是**内部状态**、不外发（核对表 §四 第 2 条）。
+        ★ ``cancelled=True`` 是**唯一例外**（早先的「events · runSnapshot.cancelled」契约增补提案，
+        提案原文未入仓）：客户端断开时**没有接收方**，发终帧没有意义 ⇒ 取消路径不该被这条断言挡住。
+        该提案待 R1 审批，因此这个例外是**内部状态**、不外发。
         """
         if self._terminal_seen or cancelled:
             return

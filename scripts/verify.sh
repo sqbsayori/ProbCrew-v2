@@ -633,7 +633,7 @@ def rd_hardcoded_colors() -> str:
 
 
 def frontend_smoke_static() -> str:
-    """前端冒烟的**静态面**（ADR-0006）：挂载点 · import 图闭合 · 路由监听 · 尺寸令牌被用。
+    """前端冒烟的**静态面**（ADR-0006）：挂载点 · import 图闭合 · **反向挂载** · 路由监听 · 尺寸令牌被用。
 
     ★ **渲染面不在这里** —— 真实点击尺寸（R-F①）· 键盘可达与语义标签（R-F②）· 哈希跳转**是否
       真的发生**（R-G）· `must_render` 是否**真的上屏**（R-I）都要真跑 DOM，而 ADR-0006 决定
@@ -662,6 +662,18 @@ def frontend_smoke_static() -> str:
                 seen.add(target)
                 queue.append(target)
 
+    # ★ **反向挂载检查（2026-10-20 补）**：`frontend/features/*/index.js` 的**每一个**都必须
+    #   出现在从入口出发的 import 图里。上面那张图只从 `index.html` 走 —— **未挂载的页面它
+    #   根本看不到**：`#/practice` / `#/wrong` 的代码在仓、页面却被 `PAGES` 占位盖住，
+    #   门禁照样 28/0/1 全绿，就是这个盲区（`docs/03 §7④` 第 3 步）。
+    features = sorted(glob.glob("frontend/features/*/index.js"))
+    unmounted = [path for path in features if os.path.normpath(path) not in seen]
+    assert not unmounted, (
+        "以下页面入口没有被任何模块 import（打开只会看到 `PAGES` 占位）："
+        + "；".join(unmounted)
+        + " —— 按 `docs/03 §7④` 第 3 步：`index.html` 加 `import`，并删掉对应的 `PAGES` 占位"
+    )
+
     router = read("frontend/core/router.js")
     for event in ("hashchange", "popstate"):
         # ★ 认**注册**那一句，不认"词出现过" —— 第一版写成 `event in router` 时，"监听被删掉、
@@ -675,7 +687,9 @@ def frontend_smoke_static() -> str:
     assert shell, "外壳与页面样式里没有一处使用 `var(--target-min)` —— N8① 的声明面没接上"
     names = " · ".join(os.path.basename(os.path.dirname(path)) + "/" + os.path.basename(path)
                        for path in targets)
-    return f"import 图 {len(seen)} 文件 / {edges} 条边闭合 · 挂载点 + hashchange/popstate · --target-min {len(targets)} 处（{names}）"
+    mounted = " · ".join(os.path.basename(os.path.dirname(path)) for path in features)
+    return (f"import 图 {len(seen)} 文件 / {edges} 条边闭合 · 反向挂载 {len(features)}/{len(features)}"
+            f"（{mounted}）· 挂载点 + hashchange/popstate · --target-min {len(targets)} 处（{names}）")
 
 
 def vendor_integrity() -> str:

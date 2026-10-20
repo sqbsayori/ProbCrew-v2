@@ -1,0 +1,403 @@
+{
+  "asset": "mistakes",
+  "rev": "mistakes-2026.10.20.1",
+  "title": "概率论常见错因库（首版 44 条，4 类）",
+  "items": [
+    {
+      "mp_id": "mp_direction_reversed",
+      "name": "方向颠倒",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_conditional_probability"
+      ],
+      "explanation": "把 P(A|B) 写成 P(B|A)：条件的对象被对调，分母因此换成了另一个事件。"
+    },
+    {
+      "mp_id": "mp_prior_posterior_swap",
+      "name": "先验后验颠倒",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_bayes_formula"
+      ],
+      "explanation": "用后验概率去当先验，或把 P(原因|结果) 与 P(结果|原因) 直接等同。"
+    },
+    {
+      "mp_id": "mp_numerator_denominator_swap",
+      "name": "分子分母颠倒",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_classical_probability"
+      ],
+      "explanation": "把有利结果数与总结果数的位置写反，得到的是原概率的倒数。"
+    },
+    {
+      "mp_id": "mp_conditional_base_swap",
+      "name": "条件对象颠倒",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_conditional_probability"
+      ],
+      "explanation": "把条件事件的概率放进了所求位置，导致条件与被条件的事件互换。"
+    },
+    {
+      "mp_id": "mp_total_probability_direction",
+      "name": "全概率方向反用",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_total_probability"
+      ],
+      "explanation": "把全概率公式当成求条件概率的工具，或把求和项与加权项的位置写反。"
+    },
+    {
+      "mp_id": "mp_inverse_event_confusion",
+      "name": "逆事件与条件颠倒",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_event_operation"
+      ],
+      "explanation": "把「在 A 下 B」误写成「在 B 下 A」，或把补事件的概率当成条件概率。"
+    },
+    {
+      "mp_id": "mp_joint_marginal_swap",
+      "name": "联合与边缘颠倒",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_joint_distribution"
+      ],
+      "explanation": "把联合分布 P(X,Y) 与边缘分布 P(X) 混用，或把求和方向写反。"
+    },
+    {
+      "mp_id": "mp_cause_effect_reverse",
+      "name": "因果方向反转",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_bayes_formula"
+      ],
+      "explanation": "从结果推原因时把因果箭头反向，直接用了正向的条件概率。"
+    },
+    {
+      "mp_id": "mp_sensitivity_specificity_swap",
+      "name": "灵敏度特异度互换",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_bayes_formula"
+      ],
+      "explanation": "把灵敏度 P(阳性|患病) 与特异度 P(阴性|未患病) 的分子分母对调。"
+    },
+    {
+      "mp_id": "mp_time_order_reverse",
+      "name": "时间顺序反转",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_markov_property"
+      ],
+      "explanation": "把「已知后一时刻推前一时刻」写成「已知前一时刻推后一时刻」，忽略了转移方向。"
+    },
+    {
+      "mp_id": "mp_condition_scope_error",
+      "name": "条件范围错位",
+      "category": "direction_reversed",
+      "kc_ids": [
+        "kc_conditional_distribution"
+      ],
+      "explanation": "把条件写在联合分布上却按边缘分布计算，条件的范围与积分区域不一致。"
+    },
+    {
+      "mp_id": "mp_unit_error",
+      "name": "单位错",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_expectation"
+      ],
+      "explanation": "数值本身算对，但单位与题目要求不一致，例如把米写成厘米。"
+    },
+    {
+      "mp_id": "mp_percent_decimal_error",
+      "name": "百分数与小数混淆",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_classical_probability"
+      ],
+      "explanation": "把 50% 当成 50 或把 0.05 当成 5%，相差 100 倍。"
+    },
+    {
+      "mp_id": "mp_unit_prefix_error",
+      "name": "单位前缀错",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_expectation"
+      ],
+      "explanation": "毫、千、万等前缀换算错位，结果差 10 的整数次幂。"
+    },
+    {
+      "mp_id": "mp_probability_range_error",
+      "name": "概率取值范围错",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_classical_probability"
+      ],
+      "explanation": "结果落在 [0,1] 之外，却没有回头检查分子分母或事件定义。"
+    },
+    {
+      "mp_id": "mp_scale_factor_error",
+      "name": "数量级错误",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_expectation"
+      ],
+      "explanation": "小数点位置或 10 的幂次错位，答案与正确值相差一个数量级。"
+    },
+    {
+      "mp_id": "mp_missing_unit",
+      "name": "漏写单位",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_variance"
+      ],
+      "explanation": "只写了数字没有写单位，读者无法判断是方差还是标准差。"
+    },
+    {
+      "mp_id": "mp_variance_unit_error",
+      "name": "方差单位错",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_variance"
+      ],
+      "explanation": "方差带的是原变量单位的平方，写成一次方或用标准差单位代替。"
+    },
+    {
+      "mp_id": "mp_std_unit_error",
+      "name": "标准差单位错",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_variance"
+      ],
+      "explanation": "标准差与原变量同单位，却按方差单位书写或换算。"
+    },
+    {
+      "mp_id": "mp_time_unit_error",
+      "name": "时间单位错",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "explanation": "把小时与分钟、天与年混用，速率与时间窗不在同一单位下。"
+    },
+    {
+      "mp_id": "mp_rate_unit_error",
+      "name": "速率单位错",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_poisson_process"
+      ],
+      "explanation": "强度 λ 的单位与时间窗单位不匹配，概率因此整体偏移。"
+    },
+    {
+      "mp_id": "mp_percent_point_confusion",
+      "name": "百分点与百分比混淆",
+      "category": "unit_error",
+      "kc_ids": [
+        "kc_normal_approximation"
+      ],
+      "explanation": "把「提高 5 个百分点」当成「提高 5%」，基数不同导致结果不同。"
+    },
+    {
+      "mp_id": "mp_missing_partition",
+      "name": "漏完备组",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_total_probability"
+      ],
+      "explanation": "全概率公式要求互斥且完备的分组，答案只保留了其中一部分分组。"
+    },
+    {
+      "mp_id": "mp_missing_case",
+      "name": "漏分类情况",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_classical_probability"
+      ],
+      "explanation": "分类讨论时漏掉了某一类结果，样本空间因此不完整。"
+    },
+    {
+      "mp_id": "mp_incomplete_sample_space",
+      "name": "样本空间不完整",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_event_operation"
+      ],
+      "explanation": "只列出了部分基本事件，分母因此偏小、概率偏大。"
+    },
+    {
+      "mp_id": "mp_ignored_disjoint_case",
+      "name": "忽略互斥分支",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_total_probability"
+      ],
+      "explanation": "各分支互斥时本应相加，却只取了其中一个分支的概率。"
+    },
+    {
+      "mp_id": "mp_missing_boundary",
+      "name": "漏边界情形",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_continuous_density"
+      ],
+      "explanation": "积分区间没有覆盖边界点或端点包含关系，概率质量被漏掉。"
+    },
+    {
+      "mp_id": "mp_missing_complement",
+      "name": "漏补集情形",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_event_operation"
+      ],
+      "explanation": "用 1 减去某事件时漏掉了它的补集分支，或补集定义写错。"
+    },
+    {
+      "mp_id": "mp_partial_union",
+      "name": "并事件漏项",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_event_operation"
+      ],
+      "explanation": "P(A∪B) 只写了 P(A)+P(B)，漏掉或错减了交事件。"
+    },
+    {
+      "mp_id": "mp_omitted_condition",
+      "name": "漏条件分支",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_conditional_probability"
+      ],
+      "explanation": "分情况讨论时漏掉了某个条件分支，条件概率的分母因此不完整。"
+    },
+    {
+      "mp_id": "mp_incomplete_tree",
+      "name": "概率树漏枝",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_total_probability"
+      ],
+      "explanation": "概率树某些节点没有展开到叶子，求和时少了整条路径。"
+    },
+    {
+      "mp_id": "mp_missing_zero_probability",
+      "name": "漏零概率情形",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_discrete_pmf"
+      ],
+      "explanation": "把概率为零的取值直接从分布里删掉，导致归一化或期望求和范围出错。"
+    },
+    {
+      "mp_id": "mp_missing_tail",
+      "name": "漏尾部情形",
+      "category": "missing_partition",
+      "kc_ids": [
+        "kc_distribution_function"
+      ],
+      "explanation": "分布函数在尾部区间没有取到 1，或端点处的跳跃被漏算。"
+    },
+    {
+      "mp_id": "mp_independence_confusion",
+      "name": "独立性混淆",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_independence"
+      ],
+      "explanation": "未判断独立就使用乘法公式，把 P(AB)=P(A)P(B) 当成普遍成立。"
+    },
+    {
+      "mp_id": "mp_multiply_without_independence",
+      "name": "未判独立就相乘",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_independence"
+      ],
+      "explanation": "两个事件相关，却直接把概率相乘，忽略了条件概率。"
+    },
+    {
+      "mp_id": "mp_replace_with_replacement",
+      "name": "有放回无放回混淆",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_classical_probability"
+      ],
+      "explanation": "题目是无放回抽样，计算时却按有放回处理，分母没有随抽取递减。"
+    },
+    {
+      "mp_id": "mp_repeat_trial_factor",
+      "name": "重复试验倍数错",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_binomial_distribution"
+      ],
+      "explanation": "把 n 次独立重复的概率写成单次概率乘以 n，或把 n 放到了指数上。"
+    },
+    {
+      "mp_id": "mp_mutual_exclusive_independence",
+      "name": "互斥与独立混淆",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_independence"
+      ],
+      "explanation": "把互斥当成独立：互斥事件的交概率为 0，而独立要求等于两者乘积。"
+    },
+    {
+      "mp_id": "mp_conditional_independence_error",
+      "name": "条件独立误用",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_independent_random_variables"
+      ],
+      "explanation": "在给定条件下独立，却当成无条件独立，或反之。"
+    },
+    {
+      "mp_id": "mp_bernoulli_trial_error",
+      "name": "伯努利试验次数错",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_binomial_distribution"
+      ],
+      "explanation": "成功次数与试验次数的对应关系写错，组合数 C(n,k) 的 k 取错。"
+    },
+    {
+      "mp_id": "mp_sequence_probability_error",
+      "name": "序列概率连乘错",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_independence"
+      ],
+      "explanation": "有序序列的概率应逐项相乘，却按组合数或加法处理。"
+    },
+    {
+      "mp_id": "mp_sampling_without_replacement",
+      "name": "无放回当有放回",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_classical_probability"
+      ],
+      "explanation": "无放回抽样的联合概率没有按逐步递减的分母计算。"
+    },
+    {
+      "mp_id": "mp_dependent_event_product",
+      "name": "相关事件直接相乘",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_covariance"
+      ],
+      "explanation": "协方差不为零的两个事件/变量，仍按独立情形直接相乘。"
+    },
+    {
+      "mp_id": "mp_repeat_count_error",
+      "name": "重复次数计错",
+      "category": "independence_confusion",
+      "kc_ids": [
+        "kc_geometric_distribution"
+      ],
+      "explanation": "几何分布里首次成功的试验次数与失败次数差一，指数位置写错。"
+    }
+  ]
+}
