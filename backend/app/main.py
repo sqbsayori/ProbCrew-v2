@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import mimetypes
 import os
 import sys
 from pathlib import Path
@@ -261,6 +262,7 @@ app.include_router(api_router)
 # ⚠️ 后续工作包的 `app.include_router(...)` 一律加在**本行之上**。
 # 同源静态托管：`/` 就是 `frontend/`，`html=True` 让目录请求回落到 `index.html`。
 # ★ 不配 CORS —— 前后端同源（`docs/03 §8.4`），没有跨域这回事。
+mimetypes.add_type("text/javascript", ".mjs")
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 

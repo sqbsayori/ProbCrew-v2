@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/knowledge.schema.json",
   "title": "知识点与公式（Knowledge · API 视图）",
   "description": "知识页两个端点的响应形状：`GET /api/knowledge/tree`（知识点 DAG）与 `GET /api/knowledge/formula`（按名称的公式检索，F18）。★ **本文件是「视图可直接复用资产条目」的例外**，理由写在 `x-view-vs-asset`：DAG 节点里**没有答案**，公式条目**正是 F18 要展示的东西**（学生主动检索一个定理，展示它就是功能本身）—— 因此它们不需要像 `problem.schema.json` 那样另立一份「去掉秘密」的形状。**判断标准不是「资产还是视图」，而是「这条目里有没有不该给学生看的字段」。**",
-  "version": "v1.0",
+  "version": "v1.1",
   "oneOf": [
     {
       "title": "知识点树（GET /api/knowledge/tree）",
@@ -48,6 +48,65 @@
       "$ref": "content.schema.json#/definitions/formulaEntry"
     }
   ],
+  "definitions": {
+    "kcId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^kc_[a-z0-9_]+$",
+      "description": "知识点标识；与 dagEntry.kc_id 和 formulaEntry.kc_ids.items 使用同一 pattern。"
+    },
+    "formulaQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "description": "GET /api/knowledge/formula 的查询参数形状，不是请求体。",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "定理 / 公式名；按名称精确匹配，资产保证名称唯一。"
+        },
+        "kc": {
+          "$ref": "#/definitions/kcId",
+          "description": "可选知识点筛选。"
+        }
+      }
+    }
+  },
+  "x-query-params": {
+    "description": "本契约负责 GET /api/knowledge/formula 的查询参数形状。",
+    "endpoints": [
+      {
+        "path": "GET /api/knowledge/formula",
+        "definition": "#/definitions/formulaQuery",
+        "response": "oneOf 的第二支（formulaEntry）",
+        "not_found": "未命中返回 404 not_found，不增加 null 响应分支"
+      }
+    ],
+    "not_covered": "GET /api/knowledge/tree 无查询参数；分页参数归 pagination.schema.json。"
+  },
+  "x-changelog": {
+    "description": "契约变更记录；历史由 git log 承担。",
+    "entries": [
+      {
+        "version": "v1.1",
+        "date": "2026-10-31",
+        "type": "兼容增量",
+        "change": "新增 definitions.kcId 与 definitions.formulaQuery，补 GET /api/knowledge/formula 查询参数形状",
+        "why": "查询参数此前只有散文口径、没有契约形状，前后端无法共享同一套输入规则。",
+        "compat": "新增定义与可选查询参数；oneOf 响应形状和 25 条 path 不变，未命中由 404 not_found 承担。"
+      },
+      {
+        "version": "v1.0",
+        "date": "2026-09-16",
+        "type": "新建",
+        "change": "本契约首次落地",
+        "why": "F9 / F17 / F18 的形状落点"
+      }
+    ]
+  },
   "x-view-vs-asset": {
     "description": "★ 为什么这两种视图可以直接复用资产条目，而题目视图不行。",
     "rule": "判断标准是「这条目里有没有不该给学生看的字段」，而不是「它是资产还是视图」。",

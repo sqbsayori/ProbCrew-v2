@@ -1113,6 +1113,50 @@ def content_assets() -> str:
         failures.append(f"{path}: {brief_schema_error(picked or errors)}")
     assert not failures, "；".join(failures[:4])
 
+    if os.path.exists("content/dag.json"):
+        dag_items = items_of("dag")
+        dag_ids = {item["kc_id"] for item in dag_items}
+        assert len(dag_ids) == len(dag_items), "DAG 存在重复 kc_id"
+        graph = {item["kc_id"]: list(item["depends_on"]) for item in dag_items}
+        unknown_edges = {node: sorted(set(deps) - dag_ids) for node, deps in graph.items() if set(deps) - dag_ids}
+        assert not unknown_edges, f"DAG 依赖指向不存在的节点：{unknown_edges}"
+        visiting: set[str] = set()
+        visited: set[str] = set()
+        def visit(node_id: str) -> None:
+            assert node_id not in visiting, f"DAG 有环：{node_id}"
+            if node_id in visited:
+                return
+            visiting.add(node_id)
+            for dependency in graph[node_id]:
+                visit(dependency)
+            visiting.remove(node_id)
+            visited.add(node_id)
+        for node_id in graph:
+            visit(node_id)
+        chapters = len({int(item["chapter"]) for item in dag_items})
+        assert len(dag_items) >= floors["dag"]["minItems"], "DAG 节点数低于下界"
+        assert chapters >= floors["dag"]["min_chapters"], "DAG 章节数低于下界"
+        for asset in ("problems", "types", "mistakes", "formula"):
+            if not os.path.exists(f"content/{asset}.json"):
+                continue
+            items = items_of(asset)
+            used = {kc for item in items for kc in item.get("kc_ids", [])}
+            missing_kc = sorted(used - dag_ids)
+            assert not missing_kc, f"{asset} 引用了 DAG 外知识点：{missing_kc}"
+        for asset in ("types", "mistakes", "formula"):
+            items = items_of(asset)
+            counts: dict[str, int] = {}
+            for item in items:
+                for kc in set(item.get("kc_ids", [])):
+                    counts[kc] = counts.get(kc, 0) + 1
+            max_share = max(counts.values(), default=0) / len(items) if items else 0
+            assert max_share <= floors["spread_rule"]["max_single_kc_share"], (
+                f"{asset} 单一知识点占比 {max_share:.1%} 超过上限"
+            )
+        names = [item["name"] for item in items_of("formula")]
+        assert len(names) == len(set(names)), "公式库存在重名"
+        notes.append(f"DAG {len(dag_items)} 节点 · {chapters} 章 · 无环 · kc_ids 引用闭包成立 · 公式名称唯一")
+
     sample = sorted(glob.glob("content/eval/sample/*.json"))
     if sample:
         cases = [case for path in sample for case in json.loads(read(path))["cases"]]
