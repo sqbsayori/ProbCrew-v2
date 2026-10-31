@@ -14,6 +14,7 @@ import asyncio
 import json
 
 import pytest
+from fastapi.testclient import TestClient
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.errors import AppError
@@ -22,6 +23,7 @@ from app.main import (
     DEPLOYMENT_HOSTED,
     DEPLOYMENT_SINGLE,
     REFUSE_EXIT_CODE,
+    app,
     app_error_handler,
     assert_deployment_consistent,
     describe_deployment,
@@ -117,3 +119,10 @@ def test_validation_error_returns_invalid_argument() -> None:
     body = json.loads(response.body)
     assert response.status_code == 400
     assert body["error"]["code"] == "invalid_argument"
+
+
+def test_mjs_is_served_as_javascript_module() -> None:
+    with TestClient(app) as client:
+        response = client.get('/vendor/katex/katex.mjs')
+    assert response.status_code == 200
+    assert response.headers['content-type'].startswith('text/javascript')

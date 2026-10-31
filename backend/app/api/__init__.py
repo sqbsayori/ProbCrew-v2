@@ -19,6 +19,7 @@ from fastapi import APIRouter
 from app.api import admin as admin_routes
 from app.api import auth as auth_routes
 from app.api import chat as chat_routes
+from app.api import knowledge as knowledge_routes
 from app.api import me as me_routes
 from app.api import practice as practice_routes
 from app.api import runs as run_routes
@@ -32,4 +33,5 @@ router.include_router(me_routes.router)
 router.include_router(practice_routes.router)
 router.include_router(admin_routes.router)
 router.include_router(chat_routes.router)
+router.include_router(knowledge_routes.router)
 router.include_router(run_routes.router)

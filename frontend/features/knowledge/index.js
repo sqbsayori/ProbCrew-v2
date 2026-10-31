@@ -14,12 +14,20 @@ import { el, mount } from '../../core/dom.js'
 import { register } from '../../core/router.js'
 import { get } from '../../core/api.js'
 import { card, emptyState, notice } from '../../components/index.js'
+import katex from '../../vendor/katex/katex.mjs'
 
 if (!document.querySelector('link[data-knowledge-style]')) {
   document.head.append(el('link', {
     rel: 'stylesheet',
     href: '/features/knowledge/styles.css',
     dataset: { knowledgeStyle: 'true' },
+  }))
+}
+if (!document.querySelector('link[data-katex-style]')) {
+  document.head.append(el('link', {
+    rel: 'stylesheet',
+    href: '/vendor/katex/katex.min.css',
+    dataset: { katexStyle: 'true' },
   }))
 }
 
@@ -53,7 +61,7 @@ export const EMPTY_TRACE_MESSAGE = '未定位到前置薄弱点'
 /** F17 / F18 的降级话术（`docs/01` 的闭环完整性行给出 F17 的原文；F18 由接口状态如实说明）。 */
 const DEGRADE = {
   F17: '本次未拆分题目',
-  F18: '公式检索接口尚未实现（属域2）—— 如实降级，不编造条目',
+  F18: '未找到匹配的公式或定理',
 }
 
 /** 翻页上限 —— 防"下一页永远有"时的死循环；触顶就**如实说没取全**（不冒充全量）。 */
@@ -146,9 +154,62 @@ async function paint(body, { kc, view }) {
   if (view !== 'graph') {
     blocks.push(notice({ message: `视图 ${view} 尚未实现 —— 本页只实现 graph`, tone: 'warn' }))
   }
+  blocks.push(formulaSearch(kc))
   blocks.push(await traceBlock(tree, kc))
-  blocks.push(notice({ message: DEGRADE.F18, tone: 'info' }))
   mount(body, ...blocks)
+}
+
+function formulaSearch(kc) {
+  const input = el('input', {
+    class: 'knowledge__input',
+    type: 'search',
+    placeholder: '输入完整公式或定理名称，例如：贝叶斯公式',
+    maxlength: 64,
+    'aria-label': '公式或定理名称',
+  })
+  const submit = el('button', { class: 'button button--primary', type: 'submit', text: '精确检索' })
+  const result = el('div', { class: 'knowledge__formula-result', role: 'status', 'aria-live': 'polite' })
+  const form = el('form', { class: 'knowledge__form' }, [input, submit])
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const name = input.value.trim()
+    if (!name) {
+      mount(result, notice({ message: '请输入完整的公式或定理名称。', tone: 'warn' }))
+      return
+    }
+    submit.disabled = true
+    mount(result, notice({ message: '正在检索…', tone: 'info' }))
+    try {
+      const query = new URLSearchParams({ name })
+      if (kc) query.set('kc', kc)
+      const item = await get(`/api/knowledge/formula?${query.toString()}`, { silent: true })
+      mount(result, formulaEntry(item))
+    } catch (error) {
+      const message = error?.code === 'not_found'
+        ? `${DEGRADE.F18}（${name}${kc ? ` · ${kc}` : ''}）`
+        : `公式检索暂不可用：${error?.message || '未知错误'}`
+      mount(result, notice({ message, tone: error?.code === 'not_found' ? 'warn' : 'danger' }))
+    } finally {
+      submit.disabled = false
+    }
+  })
+  return card({ title: '公式 / 定理检索（F18）', body: el('div', { class: 'knowledge__formula' }, [
+    form,
+    el('p', { class: 'knowledge__note', text: kc ? `已按知识点 ${kc} 筛选；名称必须精确匹配。` : '名称必须精确匹配，不做模糊检索。' }),
+    result,
+  ]) })
+}
+
+function formulaEntry(item) {
+  const formula = el('div', { class: 'knowledge__latex' })
+  katex.render(String(item?.latex || ''), formula, { throwOnError: false, displayMode: true })
+  return el('article', { class: 'knowledge__formula-entry' }, [
+    el('h3', { text: item?.name || item?.fm_id || '公式' }),
+    formula,
+    el('p', {}, [el('strong', { text: '适用条件：' }), el('span', { text: item?.conditions || '—' })]),
+    item?.counterexample ? el('p', {}, [el('strong', { text: '反例：' }), el('span', { text: item.counterexample })]) : null,
+    el('p', { class: 'knowledge__note', text: `知识点：${(item?.kc_ids || []).join('、') || '—'} · ${item?.fm_id || '—'}` }),
+  ].filter(Boolean))
 }
 
 function sourceLine(tree) {

@@ -23,7 +23,7 @@ from app.core.config import load_settings
 from app.core.errors import AppError
 from app.learning import paging
 
-__all__ = ["content_rev", "find_problem", "hint_content", "problems_page", "stem_of"]
+__all__ = ["content_rev", "find_formula", "find_problem", "hint_content", "knowledge_tree", "problems_page", "stem_of"]
 
 #: `contracts/problem.schema.json` 的**全部**字段（`additionalProperties: false`）。
 _VIEW_FIELDS: tuple[str, ...] = ("prob_id", "stem", "kc_ids", "pt_id", "answer_kind", "difficulty")
@@ -50,20 +50,45 @@ def _items(key: str) -> "list[dict[str, Any]]":
 
 
 def content_rev() -> str:
-    """**作答快照里的资产版本**（`contracts/attempt.schema.json` 的 `asset_version`：12 位十六进制）。
-
-    算法 = `docs/02 §3.3` 规则 2：``sha256("dag=..;formula=..;mistakes=..;problems=..;types=..")[:12]``
-    （键按字母序、分号连接）。★ 对**当前已产出**的资产复算：`MANIFEST.json` 尚未派生（五类未齐），
-    因此现在覆盖四类；`dag.json` 合入后输入集自动扩展，值与将来的 MANIFEST 一致 ——
-    历史作答保留当时的值，这正是 `content_rev` 要的「可反解到资产版本」。
-    """
-    revs: dict[str, str] = {}
-    for key in ("problems", "types", "mistakes", "dag", "formula"):
-        path = load_settings().content_dir / f"{key}.json"
-        if path.exists():
-            revs[key] = str(_document(str(path), path.stat().st_mtime_ns)["rev"])
+    """作答快照里的资产版本；有 MANIFEST 时以它为准并逐项复算。"""
+    keys = ("dag", "formula", "mistakes", "problems", "types")
+    revs = {
+        key: str(_asset(key)["rev"])
+        for key in keys
+    }
     payload = ";".join(f"{key}={revs[key]}" for key in sorted(revs))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
+    computed = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
+    manifest_path = load_settings().content_dir / "MANIFEST.json"
+    if not manifest_path.exists():
+        return computed
+    manifest = _document(str(manifest_path), manifest_path.stat().st_mtime_ns)
+    declared = manifest.get("revs")
+    if declared != revs or manifest.get("content_rev") != computed:
+        raise AppError("dependency_unavailable", "内容资产与 MANIFEST 不一致，拒绝使用不可复算的版本")
+    return computed
+
+
+def knowledge_tree() -> "dict[str, Any]":
+    """`GET /api/knowledge/tree` 的数据面：全量 DAG + 服务端统计。"""
+    nodes = _items("dag")
+    return {
+        "nodes": nodes,
+        "counts": {
+            "nodes": len(nodes),
+            "chapters": len({int(node["chapter"]) for node in nodes}),
+        },
+    }
+
+
+def find_formula(name: str, kc: "str | None" = None) -> "dict[str, Any] | None":
+    """按名称精确取唯一公式；可选知识点筛选，未命中返回 None。"""
+    for item in _items("formula"):
+        if item.get("name") != name:
+            continue
+        if kc is not None and kc not in item.get("kc_ids", []):
+            continue
+        return item
+    return None
 
 
 def find_problem(item_id: str) -> "dict[str, Any] | None":

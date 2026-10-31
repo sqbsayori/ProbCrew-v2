@@ -1,0 +1,680 @@
+{
+  "asset": "dag",
+  "rev": "dag-2026.10.31.1",
+  "title": "概率论与数理统计知识点依赖图",
+  "items": [
+    {
+      "kc_id": "kc_event_operation",
+      "name": "事件运算",
+      "chapter": 1,
+      "depends_on": []
+    },
+    {
+      "kc_id": "kc_classical_probability",
+      "name": "古典概率",
+      "chapter": 1,
+      "depends_on": [
+        "kc_event_operation"
+      ]
+    },
+    {
+      "kc_id": "kc_conditional_probability",
+      "name": "条件概率",
+      "chapter": 1,
+      "depends_on": [
+        "kc_event_operation"
+      ]
+    },
+    {
+      "kc_id": "kc_total_probability",
+      "name": "全概率公式",
+      "chapter": 1,
+      "depends_on": [
+        "kc_conditional_probability"
+      ]
+    },
+    {
+      "kc_id": "kc_bayes_formula",
+      "name": "贝叶斯公式",
+      "chapter": 1,
+      "depends_on": [
+        "kc_conditional_probability",
+        "kc_total_probability"
+      ]
+    },
+    {
+      "kc_id": "kc_independence",
+      "name": "事件独立性",
+      "chapter": 1,
+      "depends_on": [
+        "kc_conditional_probability"
+      ]
+    },
+    {
+      "kc_id": "kc_random_variable",
+      "name": "随机变量",
+      "chapter": 2,
+      "depends_on": [
+        "kc_event_operation"
+      ]
+    },
+    {
+      "kc_id": "kc_discrete_pmf",
+      "name": "离散概率质量函数",
+      "chapter": 2,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_continuous_density",
+      "name": "连续概率密度",
+      "chapter": 2,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_distribution_function",
+      "name": "分布函数",
+      "chapter": 2,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_binomial_distribution",
+      "name": "二项分布",
+      "chapter": 2,
+      "depends_on": [
+        "kc_discrete_pmf"
+      ]
+    },
+    {
+      "kc_id": "kc_poisson_distribution",
+      "name": "泊松分布",
+      "chapter": 2,
+      "depends_on": [
+        "kc_discrete_pmf"
+      ]
+    },
+    {
+      "kc_id": "kc_geometric_distribution",
+      "name": "几何分布",
+      "chapter": 2,
+      "depends_on": [
+        "kc_discrete_pmf"
+      ]
+    },
+    {
+      "kc_id": "kc_uniform_distribution",
+      "name": "均匀分布",
+      "chapter": 2,
+      "depends_on": [
+        "kc_continuous_density"
+      ]
+    },
+    {
+      "kc_id": "kc_exponential_distribution",
+      "name": "指数分布",
+      "chapter": 2,
+      "depends_on": [
+        "kc_continuous_density"
+      ]
+    },
+    {
+      "kc_id": "kc_normal_distribution",
+      "name": "正态分布",
+      "chapter": 2,
+      "depends_on": [
+        "kc_continuous_density"
+      ]
+    },
+    {
+      "kc_id": "kc_joint_distribution",
+      "name": "联合分布",
+      "chapter": 3,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_marginal_distribution",
+      "name": "边缘分布",
+      "chapter": 3,
+      "depends_on": [
+        "kc_joint_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_conditional_distribution",
+      "name": "条件分布",
+      "chapter": 3,
+      "depends_on": [
+        "kc_joint_distribution",
+        "kc_conditional_probability"
+      ]
+    },
+    {
+      "kc_id": "kc_independent_random_variables",
+      "name": "随机变量独立性",
+      "chapter": 3,
+      "depends_on": [
+        "kc_joint_distribution",
+        "kc_independence"
+      ]
+    },
+    {
+      "kc_id": "kc_function_distribution",
+      "name": "随机变量函数分布",
+      "chapter": 3,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_covariance",
+      "name": "协方差",
+      "chapter": 3,
+      "depends_on": [
+        "kc_joint_distribution",
+        "kc_expectation"
+      ]
+    },
+    {
+      "kc_id": "kc_correlation",
+      "name": "相关系数",
+      "chapter": 3,
+      "depends_on": [
+        "kc_covariance",
+        "kc_variance"
+      ]
+    },
+    {
+      "kc_id": "kc_normal_sum",
+      "name": "正态变量之和",
+      "chapter": 3,
+      "depends_on": [
+        "kc_normal_distribution",
+        "kc_independent_random_variables"
+      ]
+    },
+    {
+      "kc_id": "kc_linear_combination_variance",
+      "name": "线性组合方差",
+      "chapter": 3,
+      "depends_on": [
+        "kc_variance",
+        "kc_independent_random_variables"
+      ]
+    },
+    {
+      "kc_id": "kc_expectation",
+      "name": "数学期望",
+      "chapter": 4,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_moment",
+      "name": "矩",
+      "chapter": 4,
+      "depends_on": [
+        "kc_expectation"
+      ]
+    },
+    {
+      "kc_id": "kc_variance",
+      "name": "方差",
+      "chapter": 4,
+      "depends_on": [
+        "kc_expectation"
+      ]
+    },
+    {
+      "kc_id": "kc_chebyshev_inequality",
+      "name": "切比雪夫不等式",
+      "chapter": 4,
+      "depends_on": [
+        "kc_variance"
+      ]
+    },
+    {
+      "kc_id": "kc_law_large_numbers",
+      "name": "大数定律",
+      "chapter": 4,
+      "depends_on": [
+        "kc_chebyshev_inequality"
+      ]
+    },
+    {
+      "kc_id": "kc_central_limit_theorem",
+      "name": "中心极限定理",
+      "chapter": 4,
+      "depends_on": [
+        "kc_law_large_numbers",
+        "kc_normal_sum"
+      ]
+    },
+    {
+      "kc_id": "kc_normal_approximation",
+      "name": "正态近似",
+      "chapter": 4,
+      "depends_on": [
+        "kc_central_limit_theorem"
+      ]
+    },
+    {
+      "kc_id": "kc_population_sample",
+      "name": "总体与样本",
+      "chapter": 5,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_sample_statistic",
+      "name": "统计量",
+      "chapter": 5,
+      "depends_on": [
+        "kc_population_sample"
+      ]
+    },
+    {
+      "kc_id": "kc_sample_mean",
+      "name": "样本均值",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sample_statistic"
+      ]
+    },
+    {
+      "kc_id": "kc_sampling_distribution_mean",
+      "name": "样本均值抽样分布",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sample_mean",
+        "kc_central_limit_theorem"
+      ]
+    },
+    {
+      "kc_id": "kc_chi_square_distribution",
+      "name": "卡方分布",
+      "chapter": 5,
+      "depends_on": [
+        "kc_normal_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_sampling_distribution_variance",
+      "name": "样本方差抽样分布",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sample_statistic",
+        "kc_chi_square_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_point_estimation",
+      "name": "点估计",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sample_statistic"
+      ]
+    },
+    {
+      "kc_id": "kc_unbiased_estimator",
+      "name": "无偏估计",
+      "chapter": 5,
+      "depends_on": [
+        "kc_point_estimation",
+        "kc_expectation"
+      ]
+    },
+    {
+      "kc_id": "kc_method_of_moments",
+      "name": "矩估计",
+      "chapter": 5,
+      "depends_on": [
+        "kc_point_estimation",
+        "kc_moment"
+      ]
+    },
+    {
+      "kc_id": "kc_maximum_likelihood",
+      "name": "最大似然估计",
+      "chapter": 5,
+      "depends_on": [
+        "kc_point_estimation"
+      ]
+    },
+    {
+      "kc_id": "kc_confidence_interval",
+      "name": "置信区间",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sampling_distribution_mean",
+        "kc_normal_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_hypothesis_testing",
+      "name": "假设检验",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sampling_distribution_mean"
+      ]
+    },
+    {
+      "kc_id": "kc_t_distribution",
+      "name": "t 分布",
+      "chapter": 5,
+      "depends_on": [
+        "kc_normal_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_z_test",
+      "name": "z 检验",
+      "chapter": 5,
+      "depends_on": [
+        "kc_hypothesis_testing",
+        "kc_normal_distribution",
+        "kc_confidence_interval"
+      ]
+    },
+    {
+      "kc_id": "kc_t_test",
+      "name": "t 检验",
+      "chapter": 5,
+      "depends_on": [
+        "kc_hypothesis_testing",
+        "kc_t_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_f_distribution",
+      "name": "F 分布",
+      "chapter": 5,
+      "depends_on": [
+        "kc_chi_square_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_anova",
+      "name": "方差分析",
+      "chapter": 5,
+      "depends_on": [
+        "kc_f_distribution",
+        "kc_hypothesis_testing"
+      ]
+    },
+    {
+      "kc_id": "kc_p_value",
+      "name": "p 值",
+      "chapter": 5,
+      "depends_on": [
+        "kc_hypothesis_testing"
+      ]
+    },
+    {
+      "kc_id": "kc_type_error",
+      "name": "两类错误",
+      "chapter": 5,
+      "depends_on": [
+        "kc_hypothesis_testing"
+      ]
+    },
+    {
+      "kc_id": "kc_multiple_testing",
+      "name": "多重检验",
+      "chapter": 5,
+      "depends_on": [
+        "kc_p_value"
+      ]
+    },
+    {
+      "kc_id": "kc_bootstrap",
+      "name": "自助法",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sample_statistic"
+      ]
+    },
+    {
+      "kc_id": "kc_excel_statistics",
+      "name": "Excel 统计分析",
+      "chapter": 5,
+      "depends_on": [
+        "kc_sample_statistic"
+      ]
+    },
+    {
+      "kc_id": "kc_regression",
+      "name": "回归分析",
+      "chapter": 5,
+      "depends_on": [
+        "kc_correlation"
+      ]
+    },
+    {
+      "kc_id": "kc_r_squared",
+      "name": "决定系数",
+      "chapter": 5,
+      "depends_on": [
+        "kc_regression"
+      ]
+    },
+    {
+      "kc_id": "kc_random_process_basic",
+      "name": "随机过程基础",
+      "chapter": 6,
+      "depends_on": [
+        "kc_random_variable"
+      ]
+    },
+    {
+      "kc_id": "kc_markov_property",
+      "name": "马尔可夫性",
+      "chapter": 6,
+      "depends_on": [
+        "kc_random_process_basic"
+      ]
+    },
+    {
+      "kc_id": "kc_transition_matrix",
+      "name": "转移矩阵",
+      "chapter": 6,
+      "depends_on": [
+        "kc_markov_property"
+      ]
+    },
+    {
+      "kc_id": "kc_stationary_distribution",
+      "name": "平稳分布",
+      "chapter": 6,
+      "depends_on": [
+        "kc_transition_matrix"
+      ]
+    },
+    {
+      "kc_id": "kc_hitting_time",
+      "name": "首达时间",
+      "chapter": 6,
+      "depends_on": [
+        "kc_markov_property"
+      ]
+    },
+    {
+      "kc_id": "kc_absorption_probability",
+      "name": "吸收概率",
+      "chapter": 6,
+      "depends_on": [
+        "kc_hitting_time"
+      ]
+    },
+    {
+      "kc_id": "kc_communication_classes",
+      "name": "状态互通类",
+      "chapter": 6,
+      "depends_on": [
+        "kc_transition_matrix"
+      ]
+    },
+    {
+      "kc_id": "kc_periodicity",
+      "name": "周期性",
+      "chapter": 6,
+      "depends_on": [
+        "kc_communication_classes"
+      ]
+    },
+    {
+      "kc_id": "kc_reversibility",
+      "name": "可逆性",
+      "chapter": 6,
+      "depends_on": [
+        "kc_stationary_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_ergodicity",
+      "name": "遍历性",
+      "chapter": 6,
+      "depends_on": [
+        "kc_stationary_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_poisson_process",
+      "name": "泊松过程",
+      "chapter": 6,
+      "depends_on": [
+        "kc_poisson_distribution",
+        "kc_random_process_basic"
+      ]
+    },
+    {
+      "kc_id": "kc_brownian_motion",
+      "name": "布朗运动",
+      "chapter": 6,
+      "depends_on": [
+        "kc_random_process_basic",
+        "kc_normal_distribution"
+      ]
+    },
+    {
+      "kc_id": "kc_stationary_increment",
+      "name": "平稳增量",
+      "chapter": 6,
+      "depends_on": [
+        "kc_random_process_basic",
+        "kc_brownian_motion"
+      ]
+    },
+    {
+      "kc_id": "kc_time_series",
+      "name": "时间序列",
+      "chapter": 7,
+      "depends_on": [
+        "kc_random_process_basic"
+      ]
+    },
+    {
+      "kc_id": "kc_autocovariance",
+      "name": "自协方差",
+      "chapter": 7,
+      "depends_on": [
+        "kc_time_series",
+        "kc_covariance"
+      ]
+    },
+    {
+      "kc_id": "kc_autocorrelation",
+      "name": "自相关",
+      "chapter": 7,
+      "depends_on": [
+        "kc_autocovariance",
+        "kc_variance"
+      ]
+    },
+    {
+      "kc_id": "kc_white_noise",
+      "name": "白噪声",
+      "chapter": 7,
+      "depends_on": [
+        "kc_time_series",
+        "kc_autocovariance"
+      ]
+    },
+    {
+      "kc_id": "kc_ma1_process",
+      "name": "MA(1) 过程",
+      "chapter": 7,
+      "depends_on": [
+        "kc_white_noise"
+      ]
+    },
+    {
+      "kc_id": "kc_ar1_process",
+      "name": "AR(1) 过程",
+      "chapter": 7,
+      "depends_on": [
+        "kc_white_noise"
+      ]
+    },
+    {
+      "kc_id": "kc_arma_model",
+      "name": "ARMA 模型",
+      "chapter": 7,
+      "depends_on": [
+        "kc_ma1_process",
+        "kc_ar1_process"
+      ]
+    },
+    {
+      "kc_id": "kc_difference_stationarity",
+      "name": "差分平稳化",
+      "chapter": 7,
+      "depends_on": [
+        "kc_time_series"
+      ]
+    },
+    {
+      "kc_id": "kc_wide_sense_stationary",
+      "name": "宽平稳",
+      "chapter": 7,
+      "depends_on": [
+        "kc_autocovariance",
+        "kc_autocorrelation"
+      ]
+    },
+    {
+      "kc_id": "kc_forecasting",
+      "name": "预测",
+      "chapter": 7,
+      "depends_on": [
+        "kc_arma_model"
+      ]
+    },
+    {
+      "kc_id": "kc_yule_walker",
+      "name": "Yule-Walker 方程",
+      "chapter": 7,
+      "depends_on": [
+        "kc_ar1_process",
+        "kc_autocovariance"
+      ]
+    },
+    {
+      "kc_id": "kc_gaussian_process",
+      "name": "高斯过程",
+      "chapter": 7,
+      "depends_on": [
+        "kc_random_process_basic",
+        "kc_covariance"
+      ]
+    }
+  ]
+}
