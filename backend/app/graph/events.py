@@ -166,6 +166,7 @@ def tool_result(
     ok: bool,
     data: "Mapping[str, Any] | None" = None,
     duration_ms: "float | None" = None,
+    reason: "str | None" = None,
 ) -> "dict[str, Any]":
     """``tool.result`` —— ★ **R-Q ② 的落点**：``ok`` 必须来自**真实执行结果**，禁止硬编码。
 
@@ -176,6 +177,8 @@ def tool_result(
         body["data"] = dict(data)
     if duration_ms is not None:
         body["duration_ms"] = duration_ms
+    if not ok and reason:
+        body["reason"] = str(reason)[:64]
     return body
 
 
@@ -365,9 +368,8 @@ class FrameSink:
     def close(self, *, cancelled: bool = False) -> None:
         """收口：**没发终帧就是实现缺陷**（``x-frame-conventions.terminal``）。
 
-        ★ ``cancelled=True`` 是**唯一例外**（早先的「events · runSnapshot.cancelled」契约增补提案，
-        提案原文未入仓）：客户端断开时**没有接收方**，发终帧没有意义 ⇒ 取消路径不该被这条断言挡住。
-        该提案待 R1 审批，因此这个例外是**内部状态**、不外发。
+        ★ ``cancelled=True`` 是**唯一例外**：客户端断开时没有接收方，发终帧没有意义；
+        `runSnapshot.status` 会以契约 v1.3 的 `cancelled` 留痕。
         """
         if self._terminal_seen or cancelled:
             return

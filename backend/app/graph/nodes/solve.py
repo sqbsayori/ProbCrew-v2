@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import time
+from pathlib import Path
 from typing import Any, Mapping
 
 from app.graph.state import (
@@ -36,6 +37,7 @@ from app.graph.state import (
     emit_tool_call,
     emit_tool_result,
     endpoint_label,
+    prompt_query,
     tool_update,
 )
 
@@ -60,9 +62,15 @@ _SYSTEM_PROMPT = (
     "你是概率论助教。**只输出一个 JSON 对象**，不要输出任何其它字符：\n"
     '{"title": "一句话标题", "answer": "最终结果", '
     '"expression": "可被 SymPy 独立重算的表达式（纯数值或代数式，不含中文、不含单位）", '
-    '"steps": [{"explanation": "这一步的说明", "formula": "这一步的式子"}]}\n'
+    '"steps": [{"explanation": "这一步的说明", "formula": "这一步的式子"}], '
+    '"decomposition": {"known": "已知条件", "asked": "所求", '
+    '"model_id": "pt_ 开头的题型 ID；无法判定时为 null", "note": "可选说明"}}\n'
     f"steps 至少 {MIN_STEPS} 步；每步的 explanation 与 formula 都必须非空。\n"
 )
+
+#: `content/types.json` —— F17 的 `model_id` 必须命中这里（不得由模型现编）。
+_TYPES_PATH = Path(__file__).resolve().parents[4] / "content" / "types.json"
+_TYPE_IDS: "frozenset[str] | None" = None
 
 #: 重算时的"换一条策略"提示（`docs/02 §4.2-4`）。
 STRATEGY_HINTS: "dict[int, str]" = {
@@ -93,7 +101,7 @@ def run(state: Mapping[str, Any], ctx: NodeContext) -> Mapping[str, Any]:
     answer = ctx.call_model(
         (
             {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": f"{hint}\n题目：{query}"},
+            {"role": "user", "content": f"{hint}\n{prompt_query(state)}"},
         )
     )
     elapsed = elapsed_ms(started)
@@ -107,6 +115,8 @@ def run(state: Mapping[str, Any], ctx: NodeContext) -> Mapping[str, Any]:
     text = str((answer.value or {}).get("text") or "") if isinstance(answer.value, Mapping) else ""
     parsed = parse_solution(text)
     steps = parsed["steps"] if parsed else []
+    if parsed and parsed.get("decomposition"):
+        ctx.events.emit("artifact", kind="decomposition", payload=parsed["decomposition"])
 
     if intent == "solve" and len(steps) >= MIN_STEPS:
         kind = "solution"
@@ -131,13 +141,37 @@ def run(state: Mapping[str, Any], ctx: NodeContext) -> Mapping[str, Any]:
         {
             "steps": steps,  # ★ 与解答事件的 payload.steps **同一个对象**（F2 两处逐值一致）
             "artifact_kind": kind,
-            "answer_text": text[:BODY_MAX],  # 原始回答（`done.final_answer` 与结构检查都用它）
+            "answer_text": text[:BODY_MAX],  # 原始回答：验证与降级仍可读取
+            "final_answer": concise_final_answer(parsed, text),
             "answer": (parsed or {}).get("answer", ""),
             "expression": (parsed or {}).get("expression", ""),
             "cite_id": cite_id,
         }
     )
     return update
+
+
+def concise_final_answer(parsed: "Mapping[str, Any] | None", raw_text: str) -> str:
+    """从模型结构化输出中取面向用户的最终答案；绝不把内部协议 JSON 原样上屏。"""
+    if parsed:
+        answer = str(parsed.get("answer") or "").strip()
+        if answer:
+            return answer[:BODY_MAX]
+        steps = parsed.get("steps")
+        if isinstance(steps, list):
+            parts = [
+                str(step.get("explanation") or "").strip()
+                for step in steps
+                if isinstance(step, Mapping)
+            ]
+            summary = "；".join(part for part in parts if part).strip()
+            if summary:
+                return summary[:BODY_MAX]
+        return "本次未生成简洁最终答案，请查看结构化步骤。"
+    text = raw_text.strip()
+    if text.startswith("{") and text.endswith("}"):
+        return "本次未生成简洁最终答案，请查看结构化步骤。"
+    return text[:BODY_MAX] or "本次未生成可展示的最终答案。"
 
 
 def first_cite(result: Any) -> "str | None":
@@ -184,7 +218,48 @@ def parse_solution(text: str) -> "dict[str, Any] | None":
         "steps": steps,
         "answer": str(payload.get("answer") or "").strip()[:EXPRESSION_MAX],
         "expression": str(payload.get("expression") or "").strip()[:EXPRESSION_MAX],
+        "decomposition": parse_decomposition(payload.get("decomposition")),
     }
+
+
+def parse_decomposition(raw: Any) -> "dict[str, Any] | None":
+    """校验 F17 拆解（`hint.schema.json#/definitions/decomposition`）。
+
+    ★ `model_id` **必须命中 `content/types.json`**；模型编造一个不存在的 ID
+      ⇒ 置 `null` 并写明原因（F17："未匹配模型"必须显式，不得装懂）。
+    """
+    if not isinstance(raw, Mapping):
+        return None
+    known = str(raw.get("known") or "").strip()[:1000]
+    asked = str(raw.get("asked") or "").strip()[:1000]
+    if not known or not asked:
+        return None
+    proposed = raw.get("model_id")
+    model_id = proposed if isinstance(proposed, str) and proposed in _type_ids() else None
+    note = str(raw.get("note") or "").strip()[:300]
+    if proposed and model_id is None:
+        note = (note or "模型给出的题型 ID 不在资产内")[:300]
+    body: "dict[str, Any]" = {"known": known, "asked": asked, "model_id": model_id}
+    if note:
+        body["note"] = note
+    return body
+
+
+def _type_ids() -> "frozenset[str]":
+    """题型 ID 集合（惰性读一次资产；资产缺失时返回空集 ⇒ 一律 `model_id=null`）。"""
+    global _TYPE_IDS
+    if _TYPE_IDS is None:
+        try:
+            data = json.loads(_TYPES_PATH.read_text(encoding="utf-8"))
+            items = data.get("items") if isinstance(data, dict) else None
+            _TYPE_IDS = frozenset(
+                str(item["pt_id"])
+                for item in items or []
+                if isinstance(item, Mapping) and isinstance(item.get("pt_id"), str)
+            )
+        except (OSError, json.JSONDecodeError):
+            _TYPE_IDS = frozenset()
+    return _TYPE_IDS
 
 
 def _extract_object(text: str) -> "dict[str, Any] | None":
@@ -200,4 +275,13 @@ def _extract_object(text: str) -> "dict[str, Any] | None":
     return payload if isinstance(payload, dict) else None
 
 
-__all__ = ["LABEL", "MIN_STEPS", "STRATEGY_HINTS", "first_cite", "parse_solution", "run"]
+__all__ = [
+    "LABEL",
+    "MIN_STEPS",
+    "STRATEGY_HINTS",
+    "concise_final_answer",
+    "first_cite",
+    "parse_decomposition",
+    "parse_solution",
+    "run",
+]

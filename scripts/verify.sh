@@ -138,9 +138,13 @@ def check(name: str, fn) -> None:
         RESULTS.append((name, False, f"{type(exc).__name__}: {exc}"))
 
 
-DOC_NUMBERED = {os.path.basename(p)[:2]: p for p in sorted(glob.glob("docs/0*.md"))}
-ADR_FILES = {os.path.basename(p)[:4]: p for p in sorted(glob.glob("docs/adr/*.md"))}
-SCAN_FILES = ["README.md"] + sorted(glob.glob("docs/*.md")) + sorted(glob.glob("docs/adr/*.md"))
+def posix_path(path: str) -> str:
+    """仓库内相对路径统一用 `/`，避免 Windows 的反斜杠让 startswith/endswith 判据失效。"""
+    return path.replace(os.sep, "/")
+
+DOC_NUMBERED = {os.path.basename(p)[:2]: posix_path(p) for p in sorted(glob.glob("docs/0*.md"))}
+ADR_FILES = {os.path.basename(p)[:4]: posix_path(p) for p in sorted(glob.glob("docs/adr/*.md"))}
+SCAN_FILES = ["README.md"] + [posix_path(p) for p in sorted(glob.glob("docs/*.md")) + sorted(glob.glob("docs/adr/*.md"))]
 DOC_MAP = read("docs/07-文档地图.md")
 
 
@@ -510,7 +514,7 @@ def walk_files(root: str, suffixes: tuple[str, ...]) -> list[str]:
     found: list[str] = []
     for base, dirs, names in os.walk(root):
         dirs[:] = sorted(d for d in dirs if d != "__pycache__")
-        found.extend(os.path.join(base, name) for name in sorted(names) if name.endswith(suffixes))
+        found.extend(posix_path(os.path.join(base, name)) for name in sorted(names) if name.endswith(suffixes))
     return sorted(found)
 
 

@@ -18,7 +18,7 @@
 import { el, mount, qs } from '../../core/dom.js';
 import { register, navigate } from '../../core/router.js';
 import { post } from '../../core/api.js';
-import { clearSession, role, setSession, token, user } from '../../core/auth.js';
+import { clearCredentials, clearSession, role, setSession, token, user } from '../../core/auth.js';
 import { card, notice } from '../../components/index.js';
 
 if (!document.querySelector('link[data-login-style]')) {
@@ -78,7 +78,8 @@ function renderLoggedIn(main) {
             type: 'button',
             text: '退出登录',
             onclick: () => {
-              clearSession();   // 只清会话，不动模型凭据（docs/02 §1.4 第 3 条）
+              clearCredentials(); // 登出必须保护“下一个人”：Key 与端点一起清
+              clearSession();
               renderLogin();
             },
           }),

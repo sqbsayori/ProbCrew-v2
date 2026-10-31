@@ -43,11 +43,13 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import current_context, get_conn, password_gate
+from app.api.schemas import NoticeAckRequest
 from app.core.errors import AppError
 from app.identity import audit, users
 from app.identity.auth import AuthContext
@@ -103,6 +105,75 @@ def read_progress(
 ) -> "dict[str, Any]":
     """进度（F11）：总作答数按 `attempt` 去重 + 逐知识点正确率；`weak` 是显式占位（决策 7A）。"""
     return store.progress(conn, context.user_id)
+
+
+@router.get("/api/me/qa")
+def read_qa_history(
+    limit: int = Query(default=20, ge=1, le=100),
+    cursor: "str | None" = Query(default=None, max_length=256),
+    context: AuthContext = Depends(password_gate("qa")),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> "dict[str, Any]":
+    """我的问答历史（C2 + C9）：身份只来自令牌，不能读别人的流水。"""
+    items, next_cursor = store.qa_page(
+        conn, user_id=context.user_id, limit=limit, cursor=cursor
+    )
+    return {"items": items, "next_cursor": next_cursor}
+
+
+@router.get("/api/me/notice")
+def read_notice(
+    context: AuthContext = Depends(current_context),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> "dict[str, Any]":
+    """N15 的读取口：判据是**最近一次实际去向**（`docs/02 §1.5①`），不是部署形态。"""
+    return _notice_status(conn, context.user_id)
+
+
+@router.post("/api/me/notice")
+def ack_notice(
+    payload: NoticeAckRequest,
+    context: AuthContext = Depends(current_context),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> "dict[str, Any]":
+    """确认告知（只能置位；重复确认返回原时刻）。"""
+    store.mark_notice_ack(conn, context.user_id, time.time())
+    return _notice_status(conn, context.user_id)
+
+
+_PAYLOAD_FIELDS = ["query", "context", "system_prompt", "corpus_excerpt"]
+_DELETE_BOUNDARY = "删除权边界：可删除本账号的问答记录与作答数据，但已发送给第三方的请求无法撤回。"
+
+
+def _notice_status(conn: sqlite3.Connection, user_id: str) -> "dict[str, Any]":
+    latest = store.latest_qa(conn, user_id)
+    ack_at = store.notice_ack_at(conn, user_id)
+    if latest is None:
+        egress = provider = model = None
+        message = "当前还没有问答记录，未发生问答外传。" + _DELETE_BOUNDARY
+    else:
+        egress = latest["egress"]
+        provider = latest["provider"]
+        model = latest["model"]
+        if egress == "remote":
+            message = (
+                f"提问会发送到第三方模型服务（{provider} / {model}）；"
+                "发送范围：提问原文、上下文片段、系统提示、教材片段。" + _DELETE_BOUNDARY
+            )
+        else:
+            message = (
+                "当前使用本机模型端点，提问不会发送到第三方；"
+                "发送范围：提问原文、上下文片段、系统提示、教材片段。" + _DELETE_BOUNDARY
+            )
+    return {
+        "ask": ack_at is None,
+        "egress": egress,
+        "provider": provider,
+        "model": model,
+        "payload_fields": list(_PAYLOAD_FIELDS),
+        "message": message[:512],
+        "ack_at": ack_at,
+    }
 
 
 @router.delete("/api/me/data")

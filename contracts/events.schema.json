@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/events.schema.json",
   "title": "答疑事件协议（SSE Frame · 14 类）",
   "description": "答疑链路（`POST /api/chat`）的流式事件协议：**帧信封 + 14 类事件的 payload 形状**。★ `docs/02 §6.5` 把「14 类」这件事推给了本契约（「帧格式与 14 类事件由 `events.schema.json` 定义（A3）」），因此**本文件是事件词汇表的唯一权威**。★ 本文件是**重写**（`ADR-0003` 决策 1 的搬运清单里只有 `user.schema.json`）；相对旧仓有三处**必须**改名，各带依据（见 `x-rename-from-old`）。★ 帧形状与旧仓**根本不同**：旧仓是**扁平**的（`type` + `ts` + 二十多个可选字段平铺顶层），v2 是 `docs/02 §4.2` 写死的**嵌套 payload**。",
-  "version": "v1.2",
+  "version": "v1.3",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -438,6 +438,12 @@
         "duration_ms": {
           "type": "number",
           "minimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "失败原因的短代码，**只在 `ok=false` 时出现**；`ok=true` 时必须省略。取值来自工具层对内原因或四个模型类 code，刻意不设 enum。"
         }
       }
     },
@@ -820,9 +826,10 @@
             "running",
             "hitl_pending",
             "done",
-            "error"
+            "error",
+            "cancelled"
           ],
-          "description": "run 的当前状态。★ **已确认取值（2026-09-24 起草 · ✅ 2026-10-20 由 W3 / 域3 确认照用）**：`running`（生产中）· `hitl_pending`（图在 `interrupt()` 处挂起 ⇒ `hitl` 必须存在）· `done`（正常终帧）· `error`（错误终帧，`code` 见 `error.schema.json`）。★ 它与 SSE 的 `done` / `error` / `hitl.request` **必须一致**：同一时刻只能有一个权威状态（两处打架时前端无法判断该显示进度条还是终态）。★ **`cancelled` 不在本枚举里**（`docs/02 §4.2-2` 的取消语义仍是**内部状态**、不外发）—— 要外发须按 `docs/04 §6` 另提一次案。"
+          "description": "run 的当前状态。★ **已确认取值**：`running`（生产中）· `hitl_pending`（图在 `interrupt()` 处挂起 ⇒ `hitl` 必须存在）· `done`（正常终帧）· `error`（错误终帧，`code` 见 `error.schema.json`）· `cancelled`（客户端断开 ⇒ 图被取消）。★ 它与 SSE 的 `done` / `error` / `hitl.request` **必须一致**：同一时刻只能有一个权威状态。★ **`cancelled` 是唯一例外**：取消触发点在客户端，此时没有接收方，因此不发终帧；快照仍可查询，并以本状态为准。"
         },
         "steps": {
           "type": "array",
@@ -970,6 +977,14 @@
   "x-changelog": {
     "description": "★ 契约变更记录（`docs/04 §6` 第 4 步：新增枚举值属兼容变更，但必须记账）。**v2 不另设 `contracts/CHANGELOG.md`** —— 记录就在契约文件里，历史由 git log 承担。",
     "entries": [
+      {
+        "version": "v1.3",
+        "date": "2026-10-31",
+        "type": "兼容增量",
+        "change": "`runSnapshot.status` 增补 `cancelled`；`toolResultPayload` 增补可选 `reason`，仅失败时输出",
+        "why": "客户端断开是用户主动取消，不能伪装成 error；工具失败已有 `ok=false` 但缺少机器可读原因，日志又只记 ID 与短代码。两项都补在现有契约内，不新增事件类目或端点。",
+        "compat": "新增枚举值与可选字段；14 类事件、25 条 path 和既有 payload 校验结果不变，旧客户端可忽略未知状态或可选字段。"
+      },
       {
         "version": "v1.2",
         "date": "2026-09-24",
