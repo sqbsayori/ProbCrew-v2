@@ -268,7 +268,7 @@ function renderChatFrame(frame) {
   } else if (type === 'tool.call') {
     body.push(el('span', { text: `调用工具：${payload.tool || '—'}` }))
   } else if (type === 'tool.result') {
-    body.push(el('span', { text: `工具 ${payload.tool || '—'}：${payload.ok ? '成功' : '失败'}` }))
+    body.push(el('span', { text: `工具 ${payload.tool || '—'}：${payload.ok ? '成功' : `失败${payload.reason ? `（${payload.reason}）` : ''}`}` }))
   } else if (type === 'artifact') {
     const artifact = payload.payload || {}
     body.push(el('span', { text: `产物：${payload.kind || 'artifact'}${artifact.title ? ` · ${artifact.title}` : ''}` }))
@@ -315,17 +315,27 @@ function renderChatFrame(frame) {
   ])
 }
 
+function modelErrorMessage(code) {
+  if (code === 'model_key_missing') return '还没有配置模型凭据，请先到设置页填写 Key。'
+  if (code === 'model_key_invalid') return '模型凭据无效或已被撤销，请到设置页重新填写。'
+  if (code === 'model_unreachable') return '模型端点暂不可达或响应无效，可稍后重试。'
+  if (code === 'model_quota_exceeded') return '模型额度不足或欠费；费用由凭据持有人承担。'
+  return ''
+}
+
 async function startChat() {
   if (!state?.selected || state.chat.status === 'running') return
   const configuredEndpoint = endpoint()
   if (!configuredEndpoint) {
     state.chat.error = '尚未配置模型端点。请先到设置页配置 provider / model / base_url。'
+    state.chat.errorCode = 'model_key_missing'
     draw()
     return
   }
   const query = state.chat.query.trim()
   if (!query) {
     state.chat.error = '请先输入要问的问题。'
+    state.chat.errorCode = ''
     draw()
     return
   }
@@ -336,6 +346,7 @@ async function startChat() {
   chatState.frames = []
   chatState.status = 'running'
   chatState.error = ''
+  chatState.errorCode = ''
   draw()
 
   try {
@@ -355,12 +366,19 @@ async function startChat() {
     })
     if (state?.chat === chatState) {
       chatState.status = result.endType === 'done' ? 'done' : 'error'
-      if (result.endType === 'error') chatState.error = '答疑流返回了 error 终帧。'
+      if (result.endType === 'error') {
+        const end = [...chatState.frames].reverse().find((frame) => frame?.type === 'error')
+        chatState.errorCode = end?.payload?.code || ''
+        chatState.error = modelErrorMessage(chatState.errorCode) || '答疑流返回了 error 终帧。'
+      }
     }
   } catch (error) {
     if (state?.chat === chatState) {
       chatState.status = 'error'
-      chatState.error = error?.name === 'AbortError' ? '已停止本次答疑。' : `答疑失败：${error?.message || '未知错误'}`
+      chatState.errorCode = error?.code || ''
+      chatState.error = error?.name === 'AbortError'
+        ? '已停止本次答疑。'
+        : modelErrorMessage(error?.code) || `答疑失败：${error?.message || '未知错误'}`
     }
   } finally {
     if (activeChatAbort === controller) activeChatAbort = null
@@ -407,10 +425,14 @@ function buildChat() {
     startChat()
   })
 
+  const settingsAction = ['model_key_missing', 'model_key_invalid'].includes(chat.errorCode)
+    ? el('a', { class: 'button', href: '#/settings?tab=model', text: '去设置模型' })
+    : null
   const notices = compact([
     !state.selected ? notice({ message: '请先选择一道题，再把题目作为上下文提问。', tone: 'info' }) : null,
     state.selected && !configuredEndpoint ? notice({ message: '尚未配置模型端点，请先到设置页配置 provider / model / base_url。', tone: 'warn' }) : null,
     chat.error ? notice({ message: chat.error, tone: 'danger' }) : null,
+    settingsAction,
   ])
   const statusText = running ? '答疑进行中…' : chat.status === 'done' ? '答疑完成' : chat.status === 'error' ? '答疑失败' : '尚未开始'
   return el('div', { class: 'practice-chat' }, [
@@ -549,7 +571,7 @@ export async function renderPractice(route = { query: {} }) {
     answer: '',
     hints: [],
     result: null,
-    chat: { query: '', frames: [], status: 'idle', error: '' },
+    chat: { query: '', frames: [], status: 'idle', error: '', errorCode: '' },
     loading: false,
     error: '',
     backendUnavailable,

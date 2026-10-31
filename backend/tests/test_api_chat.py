@@ -16,6 +16,7 @@ from jsonschema import Draft7Validator
 from referencing import Registry, Resource
 
 from app.core import db
+from app.graph import runner
 from app.identity import users
 from app.main import app
 from app.tools import llm
@@ -98,12 +99,14 @@ class FakeTransport:
         decomposition: "dict | None" = None,
     ) -> None:
         self.requests = 0
+        self.bodies: "list[str]" = []
         self.solve_text = solve_text
         self.status = status
         self.decomposition = decomposition
 
     def __call__(self, request, *, timeout_s, max_bytes):
         self.requests += 1
+        self.bodies.append(request.body.decode("utf-8"))
         if self.status != 200:
             return llm.TransportResponse(status=self.status, body=b"")
         body = json.loads(request.body.decode("utf-8"))
@@ -158,6 +161,7 @@ def test_chat_streams_contract_frames_and_reads_back_run_and_qa(client, monkeypa
         EVENT_VALIDATOR.validate(frame)
     assert frames[-1]["type"] == "done"
     assert frames[-1]["payload"]["status"] == "ok"
+    assert frames[-1]["payload"]["final_answer"] == "1/2"
     artifact = next(frame for frame in frames if frame["type"] == "artifact")
     assert artifact["payload"]["kind"] == "solution"
 
@@ -175,7 +179,7 @@ def test_chat_streams_contract_frames_and_reads_back_run_and_qa(client, monkeypa
     item = qa.json()["items"][0]
     Draft7Validator(QA_LOG).validate(item)
     assert item["provider"] == "deepseek" and item["egress"] == "remote"
-    assert item["answer"]
+    assert item["answer"] == "1/2"
 
 
 def test_chat_failure_keeps_a_qa_row_with_null_answer(client, monkeypatch):
@@ -207,6 +211,63 @@ def test_chat_without_a_key_is_503_and_writes_no_qa_row(client):
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "model_key_missing"
     assert client.get("/api/me/qa", headers=_auth(token)).json()["items"] == []
+
+
+@pytest.mark.parametrize(
+    ("kind", "ref_id"),
+    [
+        ("problem", "prob_bayes_0012"),
+        ("kc", "kc_bayes_formula"),
+        ("corpus", "src_demo_001"),
+    ],
+)
+def test_f1_context_text_reaches_the_model_payload(client, monkeypatch, kind, ref_id):
+    _seed()
+    transport = FakeTransport()
+    monkeypatch.setattr(llm, "_TRANSPORT", transport)
+    token = _token(client)
+    marker = f"F1_CONTEXT_{kind}_9f3a"
+    response = client.post(
+        "/api/chat",
+        json={
+            "query": "请结合参考资料解释",
+            "context": {"text": marker, "refs": [{"kind": kind, "id": ref_id}]},
+            "endpoint": REMOTE,
+        },
+        headers=_auth(token),
+    )
+    assert response.status_code == 200
+    assert len(transport.bodies) == 2
+    assert all(marker in body for body in transport.bodies)
+    resolved = _frames(response.text)[1]
+    assert resolved["type"] == "context.resolved"
+    assert resolved["payload"]["context"]["text"] == marker
+    assert resolved["payload"]["reason"] is None
+
+
+def test_f1_missing_context_still_degrades_explicitly(client, monkeypatch):
+    _seed()
+    monkeypatch.setattr(llm, "_TRANSPORT", FakeTransport())
+    token = _token(client)
+    response = client.post(
+        "/api/chat",
+        json={"query": "没有上下文", "endpoint": REMOTE},
+        headers=_auth(token),
+    )
+    resolved = _frames(response.text)[1]
+    assert resolved["payload"]["context"] is None
+    assert resolved["payload"]["reason"]
+
+
+def test_cancelled_run_snapshot_is_public_contract_valid(client):
+    user = _seed()
+    token = _token(client)
+    runner.RUNS.start(run_id="qa_cancelled_contract", session_id="ses_1", owner_id=user["user_id"])
+    runner.RUNS.finish("qa_cancelled_contract", status=runner.STATUS_CANCELLED)
+    snap = client.get("/api/runs/qa_cancelled_contract", headers=_auth(token))
+    assert snap.status_code == 200
+    Draft7Validator(EVENTS["definitions"]["runSnapshot"], registry=_registry()).validate(snap.json())
+    assert snap.json()["status"] == "cancelled"
 
 
 def test_run_snapshot_is_owned_by_the_token_user(client, monkeypatch):

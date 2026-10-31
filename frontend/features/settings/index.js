@@ -13,7 +13,7 @@ import { register, parse, navigate } from '../../core/router.js';
 import { get, post } from '../../core/api.js';
 import { emit, EVENTS } from '../../core/bus.js';
 import {
-  clearModelKey,
+  clearCredentials,
   clearSession,
   endpoint,
   modelKey,
@@ -92,8 +92,9 @@ function buildPage(main, providers, current, noticeStatus, box) {
   const providerHint = el('p', { class: 'settings-field__hint' });
   const defaultOf = (id) => providers.find((item) => item.provider === id)?.default_base_url ?? '';
   const initialProvider = providerSelect.value;
+  let autoUrl = current?.base_url ?? defaultOf(initialProvider);
   const modelInput = input('settings-model', 'text', current?.model ?? '');
-  const urlInput = input('settings-base-url', 'url', current?.base_url ?? defaultOf(initialProvider));
+  const urlInput = input('settings-base-url', 'url', autoUrl);
   const keyInput = input('settings-model-key', 'password');
   keyInput.placeholder = modelKey() ? '已保存；留空表示不修改' : '粘贴你的 API Key';
   const loopback = el('input', {
@@ -120,7 +121,8 @@ function buildPage(main, providers, current, noticeStatus, box) {
 
   providerSelect.addEventListener('change', () => {
     const next = defaultOf(providerSelect.value);
-    if (next && (!urlInput.value || urlInput.value === defaultOf(initialProvider))) urlInput.value = next;
+    if (!urlInput.value || urlInput.value === autoUrl) urlInput.value = next;
+    autoUrl = next;
     syncProviderHint();
   });
 
@@ -191,7 +193,7 @@ function buildPage(main, providers, current, noticeStatus, box) {
   });
 
   clear.addEventListener('click', () => {
-    clearModelKey();
+    clearCredentials();
     keyInput.value = '';
     keyInput.placeholder = '粘贴你的 API Key';
     showStatus(box, '已清除本机保存的模型凭据。', 'info');
@@ -220,6 +222,7 @@ function buildPage(main, providers, current, noticeStatus, box) {
         new_password: newPw.value,
       });
       // 改密成功 ⇒ 服务端撤销该用户全部令牌（含本次）⇒ 必须重新登录。
+      clearCredentials();
       clearSession();
       window.addEventListener('hashchange', () => {
         emit(EVENTS.NOTICE, { message: '密码已修改，请用新密码重新登录。', tone: 'success' });
@@ -259,6 +262,24 @@ function buildPage(main, providers, current, noticeStatus, box) {
     tone: noticeStatus?.egress === 'remote' ? 'warn' : 'info',
   }));
 
+  const noticeCard = card({
+    title: '数据去向与告知',
+    body: el('div', { class: 'settings-body' }, [
+      el('p', { class: 'settings-meta' }, [
+        el('span', { class: 'settings-meta__label', text: '最近一次实际去向：' }),
+        el('strong', { text: egress }),
+      ]),
+      el('p', { class: 'settings-meta' }, [
+        el('span', { class: 'settings-meta__label', text: '载荷范围：' }),
+        el('span', { text: (noticeStatus?.payload_fields || []).join('、') || '—' }),
+      ]),
+      noticeBox,
+      el('div', { class: 'settings-actions' }, [ack]),
+      el('p', { class: 'settings-field__hint', text: '告知确认是每账号一次；未确认时切页也会继续提示。' }),
+    ]),
+  });
+  noticeCard.dataset.settingsCard = 'notice';
+
   mount(main, el('section', { class: 'page settings-page', dataset: { block: 'settings' } }, [
     el('header', { class: 'page__header' }, [
       el('div', { class: 'page__titles' }, [
@@ -268,22 +289,7 @@ function buildPage(main, providers, current, noticeStatus, box) {
     ]),
     el('div', { class: 'settings-grid' }, [
       card({ title: '模型端点', body: el('div', { class: 'settings-body' }, [form, box]) }),
-      card({
-        title: '数据去向与告知',
-        body: el('div', { class: 'settings-body' }, [
-          el('p', { class: 'settings-meta' }, [
-            el('span', { class: 'settings-meta__label', text: '最近一次实际去向：' }),
-            el('strong', { text: egress }),
-          ]),
-          el('p', { class: 'settings-meta' }, [
-            el('span', { class: 'settings-meta__label', text: '载荷范围：' }),
-            el('span', { text: (noticeStatus?.payload_fields || []).join('、') || '—' }),
-          ]),
-          noticeBox,
-          el('div', { class: 'settings-actions' }, [ack]),
-          el('p', { class: 'settings-field__hint', text: '告知确认是每账号一次；换设备仍会再次提示。' }),
-        ]),
-      }),
+      noticeCard,
       card({
         title: '账号安全',
         body: el('div', { class: 'settings-body' }, [
@@ -315,7 +321,7 @@ export async function renderSettings(route = parse()) {
     if (seq !== settingsSeq) return;
     buildPage(main, providers, endpoint(), noticeStatus, box);
     if (route.query?.tab === 'notice') {
-      const target = qs('.settings-grid > :last-child', main);
+      const target = qs('[data-settings-card="notice"]', main);
       if (target) target.scrollIntoView({ block: 'start' });
     }
   } catch (error) {

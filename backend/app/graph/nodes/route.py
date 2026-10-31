@@ -27,6 +27,7 @@ from app.graph.state import (
     emit_tool_call,
     emit_tool_result,
     endpoint_label,
+    prompt_query,
     tool_update,
 )
 
@@ -61,7 +62,7 @@ def run(state: Mapping[str, Any], ctx: NodeContext) -> Mapping[str, Any]:
     result = ctx.call_model(
         (
             {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": query},
+            {"role": "user", "content": prompt_query(state)},
         )
     )
     elapsed = elapsed_ms(started)

@@ -608,16 +608,33 @@ def test_error_messages_are_bounded_and_say_nothing_internal() -> None:
     assert runner.message_for("not_a_code")
 
 
+def test_tool_result_reason_is_present_only_on_failure() -> None:
+    sink = events.FrameSink()
+    failed = sink.emit(
+        "tool.result",
+        tool="llm",
+        ok=False,
+        data=None,
+        duration_ms=1.0,
+        reason="timeout",
+    )
+    succeeded = sink.emit("tool.result", tool="llm", ok=True, data={"text": "ok"}, duration_ms=1.0)
+    assert failed.payload["reason"] == "timeout"
+    assert "reason" not in succeeded.payload
+
+
 def test_tool_result_data_is_dropped_when_it_is_not_an_object() -> None:
     """契约要求 `tool.result.data` 是**对象或 null** ⇒ 非 Mapping 的返回值不进帧（失败必为 null）。"""
     collector = runner.FrameCollector(events.FrameSink())
     ctx = NodeContext.for_node("solve", events=collector)
-    state.emit_tool_result(ctx, "llm", ToolResult(ok=SUCCEEDED, value="这不是对象"))
+    state.emit_tool_result(ctx, "llm", ToolResult(ok=False, value="这不是对象", reason="timeout"))
     state.emit_tool_result(ctx, "llm", ToolResult(ok=SUCCEEDED, value={"text": "0.0833"}))
 
-    plain, objectful = collector.frames
-    assert "data" not in plain.payload
+    failed, objectful = collector.frames
+    assert "data" not in failed.payload
+    assert failed.payload["reason"] == "timeout"
     assert objectful.payload["data"] == {"text": "0.0833"}
+    assert "reason" not in objectful.payload
     assert objectful.payload["ok"] is bool(SUCCEEDED)  # ok 来自 ToolResult，不在这里重判
     for frame in collector.frames:
         EVENT_VALIDATOR.validate(frame.to_dict())

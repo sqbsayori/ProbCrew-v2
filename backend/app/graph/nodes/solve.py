@@ -37,6 +37,7 @@ from app.graph.state import (
     emit_tool_call,
     emit_tool_result,
     endpoint_label,
+    prompt_query,
     tool_update,
 )
 
@@ -100,7 +101,7 @@ def run(state: Mapping[str, Any], ctx: NodeContext) -> Mapping[str, Any]:
     answer = ctx.call_model(
         (
             {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": f"{hint}\n题目：{query}"},
+            {"role": "user", "content": f"{hint}\n{prompt_query(state)}"},
         )
     )
     elapsed = elapsed_ms(started)
@@ -140,13 +141,37 @@ def run(state: Mapping[str, Any], ctx: NodeContext) -> Mapping[str, Any]:
         {
             "steps": steps,  # ★ 与解答事件的 payload.steps **同一个对象**（F2 两处逐值一致）
             "artifact_kind": kind,
-            "answer_text": text[:BODY_MAX],  # 原始回答（`done.final_answer` 与结构检查都用它）
+            "answer_text": text[:BODY_MAX],  # 原始回答：验证与降级仍可读取
+            "final_answer": concise_final_answer(parsed, text),
             "answer": (parsed or {}).get("answer", ""),
             "expression": (parsed or {}).get("expression", ""),
             "cite_id": cite_id,
         }
     )
     return update
+
+
+def concise_final_answer(parsed: "Mapping[str, Any] | None", raw_text: str) -> str:
+    """从模型结构化输出中取面向用户的最终答案；绝不把内部协议 JSON 原样上屏。"""
+    if parsed:
+        answer = str(parsed.get("answer") or "").strip()
+        if answer:
+            return answer[:BODY_MAX]
+        steps = parsed.get("steps")
+        if isinstance(steps, list):
+            parts = [
+                str(step.get("explanation") or "").strip()
+                for step in steps
+                if isinstance(step, Mapping)
+            ]
+            summary = "；".join(part for part in parts if part).strip()
+            if summary:
+                return summary[:BODY_MAX]
+        return "本次未生成简洁最终答案，请查看结构化步骤。"
+    text = raw_text.strip()
+    if text.startswith("{") and text.endswith("}"):
+        return "本次未生成简洁最终答案，请查看结构化步骤。"
+    return text[:BODY_MAX] or "本次未生成可展示的最终答案。"
 
 
 def first_cite(result: Any) -> "str | None":
@@ -254,6 +279,7 @@ __all__ = [
     "LABEL",
     "MIN_STEPS",
     "STRATEGY_HINTS",
+    "concise_final_answer",
     "first_cite",
     "parse_decomposition",
     "parse_solution",

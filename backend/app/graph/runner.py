@@ -55,7 +55,7 @@ STATUS_ERROR = "error"
 #: （`docs/06 §5`）⇒ 本轮不会产生它；留着常量是为了让快照形状与契约对得上。
 STATUS_HITL_PENDING = "hitl_pending"
 
-#: ★ **内部状态**：提案 01（`runSnapshot.status` 增补 `cancelled`）批准前不外发。
+#: 客户端断开后的公开终态（events.schema.json v1.3）。
 STATUS_CANCELLED = "cancelled"
 
 #: 终态（进这个集合就参与"最多 20 条"的淘汰）。
@@ -356,7 +356,7 @@ async def stream_run(
                 break
 
         # ⑤ 终帧（`uncertain` 也是 `done`：它是"如实标注"，不是错误）
-        final_answer = str(state.get("answer_text") or "")[:8000] or None
+        final_answer = str(state.get("final_answer") or "")[:8000] or None
         runs.finish(run_id, status=STATUS_DONE)
         yield sink.emit(
             "done",

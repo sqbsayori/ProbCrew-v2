@@ -138,3 +138,9 @@ export function setEndpoint(config) {
 export function clearEndpoint() {
   drop(STORAGE_KEYS.ENDPOINT)
 }
+
+/** 显式账号生命周期动作：凭据与端点配置同生命周期，必须一起清除。 */
+export function clearCredentials() {
+  clearModelKey()
+  clearEndpoint()
+}
