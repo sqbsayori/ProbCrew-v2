@@ -23,7 +23,8 @@ from fastapi.testclient import TestClient
 from jsonschema import Draft7Validator
 
 from app.core import db
-from app.identity import users
+from app.core.errors import AppError
+from app.identity import tombstones, users
 from app.learning import store
 from app.main import app
 
@@ -191,3 +192,44 @@ def test_delete_requires_authentication_and_a_changed_password(client):
     assert blocked.status_code == 403
     assert blocked.json()["error"]["code"] == "must_change_pw"
     assert _counts(user_id)["attempt"] == 1
+
+
+def test_delete_writes_a_tombstone_without_content_or_credentials(client):
+    """B2.1：删除前写墓碑；墓碑**不含**答案、凭据、题目（`docs/02 §1.4`）。"""
+    user_id = _seed()
+    _fill_rows(user_id)
+    token = _token(client)
+
+    assert client.delete("/api/me/data", headers=_auth(token)).status_code == 200
+
+    path = Path(db.db_path()).parent / "tombstones.jsonl"
+    raw = path.read_text(encoding="utf-8")
+    entries = [json.loads(line) for line in raw.splitlines() if line.strip()]
+    assert len(entries) == 1
+    assert entries[0]["user_id"] == user_id
+    assert entries[0]["action"] == tombstones.ACTION_DELETE_OWN_DATA
+    assert set(entries[0]) == {"v", "tombstone_id", "user_id", "deleted_at", "action", "content_rev"}
+    for needle in ("什么是条件概率", "deepseek-chat", "1/2", "1/6", GOOD_PASSWORD, "prob_bayes_01"):
+        assert needle not in raw
+
+
+def test_delete_aborts_when_the_tombstone_cannot_be_written(client, monkeypatch):
+    """墓碑写不进去 ⇒ 503，且**一行都不动**（fail-closed：宁可这次删不掉，也不留会复活的删除）。"""
+    user_id = _seed()
+    _fill_rows(user_id)
+    token = _token(client)
+
+    def boom(**_kwargs):
+        raise AppError("dependency_unavailable", "磁盘满")
+
+    monkeypatch.setattr(tombstones, "record", boom)
+    response = client.delete("/api/me/data", headers=_auth(token))
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "dependency_unavailable"
+    assert _counts(user_id) == {"qa_log": 1, "hint_log": 1, "attempt": 1, "mastery": 1}
+    conn = db.initialize()
+    try:
+        assert users.find_by_id(conn, user_id)["status"] == "active"
+    finally:
+        conn.close()

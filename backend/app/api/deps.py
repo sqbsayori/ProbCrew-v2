@@ -25,7 +25,7 @@ from app.identity.auth import (
     resolve_bearer,
 )
 
-__all__ = ["current_context", "get_conn", "password_gate", "require_admin"]
+__all__ = ["content_rev_best_effort", "current_context", "get_conn", "password_gate", "require_admin"]
 
 
 def get_conn() -> Iterator[sqlite3.Connection]:
@@ -82,3 +82,21 @@ def password_gate(area: str):
         return context
 
     return dependency
+
+
+def content_rev_best_effort() -> "str | None":
+    """当前 `content_rev`，**尽力而为**：资产不可复算时返回 `None`（不阻断调用方）。
+
+    ★ 唯一消费点是删除墓碑的排障字段（`identity/tombstones.py`）：记下"这次删除发生在哪一版内容上"，
+      方便恢复后对账。它**不是**业务判定条件 —— 因此资产坏掉时墓碑照写（`null`），
+      而不是让删除权因为内容资产的问题失效。
+    ★ 放在 `api/` 而不是 `identity/`：`identity` 的依赖白名单不包含 `app.learning`
+      （`scripts/verify.sh` 的 `import_direction`），而本函数只是"替调用方取一个数"。
+    """
+    from app.core.errors import AppError
+    from app.learning import catalog
+
+    try:
+        return catalog.content_rev()
+    except (AppError, OSError, KeyError, ValueError):
+        return None

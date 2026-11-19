@@ -22,10 +22,11 @@
 
 ## `DELETE /api/me/data` —— F16 的四类处置（2026-10-20 接通）
 
-次序不是任意的（`docs/02 §3.1` · §5.3）：① 先**读**四张表的行数（审计里的「删了几行」，
-必须在删之前取）→ ② 四张 per-user 表**硬删**并**重新数**（契约的 `deleted_rows` 是
-**删除之后**的数，恒应为 0 —— 这就是 F16 的验收断言，不是"没报错"）→ ③ 账号**脱敏**
-（`status='deleted'` · 空哈希 · 令牌全撤）并返回被撤销的令牌数 → ④ 写一条
+次序不是任意的（`docs/02 §3.1` · §5.3）：① ★ **先写删除墓碑**（`docs/02 §1.4` 的 2026-11-08 裁定：
+在线数据立即删、**删除前**写墓碑、恢复时重放 —— 写不进去就**不删**，`0`）→ ② 先**读**四张表的行数
+（审计里的「删了几行」，必须在删之前取）→ ③ 四张 per-user 表**硬删**并**重新数**（契约的 `deleted_rows` 是
+**删除之后**的数，恒应为 0 —— 这就是 F16 的验收断言，不是"没报错"）→ ④ 账号**脱敏**
+（`status='deleted'` · 空哈希 · 令牌全撤）并返回被撤销的令牌数 → ⑤ 写一条
 `delete_own_data` 审计（`actor_role` 可以是 `student`，`target_id` 是自己），再**读回**
 保留的审计行数（审计**保留**是已裁定的 —— 删掉它等于删掉监督记录）。
 
@@ -48,10 +49,10 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import current_context, get_conn, password_gate
+from app.api.deps import content_rev_best_effort, current_context, get_conn, password_gate
 from app.api.schemas import NoticeAckRequest
 from app.core.errors import AppError
-from app.identity import audit, users
+from app.identity import audit, tombstones, users
 from app.identity.auth import AuthContext
 from app.learning import store
 
@@ -142,7 +143,10 @@ def ack_notice(
 
 
 _PAYLOAD_FIELDS = ["query", "context", "system_prompt", "corpus_excerpt"]
-_DELETE_BOUNDARY = "删除权边界：可删除本账号的问答记录与作答数据，但已发送给第三方的请求无法撤回。"
+_DELETE_BOUNDARY = (
+    "删除权边界：可删除本账号的问答记录与作答数据，但已发送给第三方的请求无法撤回。"
+    "备份最多保留 7 天；从备份恢复时会重放删除记录，已删除的账号不会复活。"
+)
 
 
 def _notice_status(conn: sqlite3.Connection, user_id: str) -> "dict[str, Any]":
@@ -183,8 +187,15 @@ def delete_own_data(
 ) -> "dict[str, Any]":
     """删除**自己的**全部学习数据（F16）—— 四类处置逐项读回（契约 `deleteResult`）。
 
-    见模块说明的次序与理由；本函数只做"读 → 删 → 脱敏 → 记账"四步，判定全在下层。
+    见模块说明的次序与理由；本函数只做"墓碑 → 读 → 删 → 脱敏 → 记账"五步，判定全在下层。
+    ★ 墓碑写不进去（磁盘满 / 权限）⇒ `dependency_unavailable` 503，且**一行数据都不动**
+      （`identity/tombstones.py` 的 fail-closed 语义）。
     """
+    tombstones.record(
+        user_id=context.user_id,
+        action=tombstones.ACTION_DELETE_OWN_DATA,
+        content_rev=content_rev_best_effort(),
+    )
     before = store.count_user_rows(conn, context.user_id)
     deleted_rows = store.delete_user_data(conn, context.user_id)
     if any(count != 0 for count in deleted_rows.values()):
