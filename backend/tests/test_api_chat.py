@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from jsonschema import Draft7Validator
 from referencing import Registry, Resource
 
+from app.api import chat as chat_api
 from app.core import db
 from app.graph import runner
 from app.identity import users
@@ -140,6 +141,39 @@ def _frames(text: str) -> "list[dict]":
         if line.startswith("data: "):
             frames.append(json.loads(line[6:]))
     return frames
+
+
+def test_chat_concurrency_gate_rejects_before_qa_log_and_releases_after_stream(client, monkeypatch):
+    _seed()
+    monkeypatch.setattr(llm, "_TRANSPORT", FakeTransport())
+    gate = runner.ConcurrencyGate(limit=1)
+    monkeypatch.setattr(chat_api, "CHAT_SLOTS", gate)
+    token = _token(client)
+
+    held = gate.try_acquire()
+    assert held is not None
+    rejected = client.post(
+        "/api/chat",
+        json={"query": "第 11 路", "endpoint": REMOTE},
+        headers=_auth(token),
+    )
+    assert rejected.status_code == 503
+    assert rejected.json()["error"]["code"] == "server_busy"
+    conn = db.initialize()
+    try:
+        assert conn.execute("SELECT COUNT(*) AS n FROM student_qa_log").fetchone()["n"] == 0
+    finally:
+        conn.close()
+    held.release()
+
+    normal = client.post(
+        "/api/chat",
+        json={"query": "闸门释放", "endpoint": REMOTE},
+        headers=_auth(token),
+    )
+    assert normal.status_code == 200
+    assert _frames(normal.text)[-1]["type"] == "done"
+    assert gate.active == 0
 
 
 def test_chat_streams_contract_frames_and_reads_back_run_and_qa(client, monkeypatch):

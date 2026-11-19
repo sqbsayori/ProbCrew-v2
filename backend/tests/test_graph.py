@@ -15,6 +15,7 @@ S4，它们的用例补在本文件（计划 §4.3）—— 因此下面的契�
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import importlib
 import json
 from pathlib import Path
@@ -378,6 +379,26 @@ def collect_frames(**kwargs: "Any") -> "list[Any]":
         return frames
 
     return asyncio.run(scenario())
+
+
+def test_concurrency_gate_caps_slots_releases_idempotently_and_is_thread_safe() -> None:
+    gate = runner.ConcurrencyGate(limit=10)
+    leases = []
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        results = list(pool.map(lambda _: gate.try_acquire(), range(20)))
+    leases = [item for item in results if item is not None]
+    assert len(leases) == 10
+    assert gate.active == 10
+    assert all(gate.try_acquire() is None for _ in range(3))
+
+    assert leases[0].release() is True
+    assert leases[0].release() is False  # 清理路径重复调用不重复扣减
+    assert gate.active == 9
+    replacement = gate.try_acquire()
+    assert replacement is not None and gate.active == 10
+    for lease in leases[1:] + [replacement]:
+        lease.release()
+    assert gate.active == 0
 
 
 def test_runner_node_set_matches_the_registry() -> None:

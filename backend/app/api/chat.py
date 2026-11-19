@@ -29,7 +29,7 @@ from app.core import db
 from app.core.config import deployment_allows_loopback
 from app.core.errors import AppError
 from app.graph.events import encode_frame
-from app.graph.runner import stream_run
+from app.graph.runner import CHAT_SLOTS, message_for, stream_run
 from app.identity.auth import AuthContext
 from app.learning import store
 from app.tools import llm
@@ -119,18 +119,28 @@ def chat(
     config = _checked_endpoint(payload.endpoint)
     credential = _checked_credential(model_key, config.egress)
 
+    # ★ N20：先拿名额，再写 `qa_log`。第 11 路必须是 HTTP 503，
+    #   不能先落一条"看似已发起"的流水。
+    lease = CHAT_SLOTS.try_acquire()
+    if lease is None:
+        raise AppError("server_busy", message_for("server_busy"))
+
     qa_id = f"qa_{uuid.uuid4().hex[:12]}"
     session_id = f"ses_{uuid.uuid4().hex[:12]}"
-    store.record_qa_start(
-        conn,
-        qa_id=qa_id,
-        user_id=context.user_id,
-        query=payload.query,
-        provider=config.provider,
-        model=config.model,
-        egress=config.egress,
-        created_at=time.time(),
-    )
+    try:
+        store.record_qa_start(
+            conn,
+            qa_id=qa_id,
+            user_id=context.user_id,
+            query=payload.query,
+            provider=config.provider,
+            model=config.model,
+            egress=config.egress,
+            created_at=time.time(),
+        )
+    except Exception:
+        lease.release()
+        raise
     body = payload.model_dump()
 
     async def frames():
@@ -153,11 +163,14 @@ def chat(
                 yield encode_frame(frame)
         finally:
             # 响应结束/断流时依赖连接可能已进入关闭流程 ⇒ 用独立连接补最后一笔。
-            done = db.initialize()
             try:
-                store.finish_qa(done, qa_id, answer)
+                done = db.initialize()
+                try:
+                    store.finish_qa(done, qa_id, answer)
+                finally:
+                    done.close()
             finally:
-                done.close()
+                lease.release()
 
     return StreamingResponse(
         frames(),
