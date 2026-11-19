@@ -3,6 +3,7 @@
 W0 最小集只含两个路径配置：
 - ``log_dir``     日志目录（R-O：默认 ``backend/data/logs/``，docs/02 §1.4 规则 1 / ADR-0005）
 - ``content_dir`` 内容资产目录（默认 ``content/``，W2 判定链吃题库时使用）
+- ``corpus_dir`` L1 教材语料目录（默认 ``backend/data/corpus/``）
 
 ★ **W1 增量（2026-10-16）**：加第三个路径 ``db_path`` —— L2 库文件（``docs/03 §2`` 只写了
 ``backend/data/*.sqlite``，**没定文件名**；首次取值见 :data:`DB_FILENAME`）。它放在本模块而不是
@@ -12,7 +13,7 @@ W0 最小集只含两个路径配置：
 的唯一写入域是**架构与集成** ⇒ 本模块只提供取值，落笔请域1 执行。
 
 约定：
-- 环境变量前缀 ``PROBCREW_``（``PROBCREW_LOG_DIR`` / ``PROBCREW_CONTENT_DIR`` / ``PROBCREW_DB_PATH``）；
+- 环境变量前缀 ``PROBCREW_``（``PROBCREW_LOG_DIR`` / ``PROBCREW_CONTENT_DIR`` / ``PROBCREW_CORPUS_DIR`` / ``PROBCREW_DB_PATH``）；
 - 纯标准库实现（不引入 pydantic-settings；依赖口径归模块一，docs/03 §8.4 三个待定问题）；
 - 路径解析失败不在此处兜底 —— 目录由使用方按需创建（logging 模块创建日志目录，db 模块创建库目录）。
 """
@@ -47,6 +48,7 @@ class Settings:
 
     log_dir: Path
     content_dir: Path
+    corpus_dir: Path
     #: ★ W1 增量：L2 库文件（`backend/data/<DB_FILENAME>`）。
     db_path: Path
     log_max_bytes: int = LOG_MAX_BYTES
@@ -68,6 +70,7 @@ def load_settings(env: "dict[str, str] | None" = None) -> Settings:
     return Settings(
         log_dir=Path(source.get(ENV_PREFIX + "LOG_DIR", str(root / "backend" / "data" / "logs"))),
         content_dir=Path(source.get(ENV_PREFIX + "CONTENT_DIR", str(root / "content"))),
+        corpus_dir=Path(source.get(ENV_PREFIX + "CORPUS_DIR", str(root / "backend" / "data" / "corpus"))),
         db_path=Path(source.get(ENV_PREFIX + "DB_PATH", str(root / "backend" / "data" / DB_FILENAME))),
     )
 
