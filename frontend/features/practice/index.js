@@ -6,7 +6,16 @@
 import { el, mount, qs } from '../../core/dom.js'
 import { register, navigate } from '../../core/router.js'
 import { get, post, stream } from '../../core/api.js'
-import { endpoint } from '../../core/auth.js'
+import { endpoint, modelKey } from '../../core/auth.js'
+import {
+  hitlActionLabel,
+  hitlDoneMessage,
+  hitlRequestBody,
+  hitlResolutionMessage,
+  hitlStatusLabel,
+  normalizeHitlOptions,
+  qaAvailability,
+} from './hitl.js'
 import { card, table, notice, emptyState, skeleton } from '../../components/index.js'
 
 if (!document.querySelector('link[data-practice-style]')) {
@@ -245,9 +254,82 @@ function stopChat() {
     activeChatAbort = null
   }
   if (state?.chat) {
+    const hadPendingHitl = Boolean(state.chat.pendingHitl)
     state.chat.status = 'error'
+    state.chat.pendingHitl = null
+    if (hadPendingHitl) state.chat.hitlStatus = 'aborted'
     state.chat.error = '已停止本次答疑。'
     draw()
+  }
+}
+
+/** 把 HITL 状态从事件流同步到页面状态；按钮集合始终保留服务端原值。 */
+function recordChatFrame(chat, frame) {
+  const type = frame?.type
+  const payload = frame?.payload || {}
+  chat.frames.push(frame)
+  if (type === 'run.start') {
+    chat.runId = typeof payload.run_id === 'string' ? payload.run_id : ''
+  } else if (type === 'hitl.request') {
+    const options = normalizeHitlOptions(payload.options)
+    chat.pendingHitl = {
+      hitlId: typeof payload.hitl_id === 'string' ? payload.hitl_id : '',
+      node: typeof payload.node === 'string' ? payload.node : '',
+      options,
+      error: '',
+    }
+    chat.hitlStatus = 'pending'
+    chat.hitlAction = ''
+    chat.hitlDraft = typeof payload.draft === 'string' ? payload.draft : ''
+  } else if (type === 'hitl.resolved') {
+    const action = typeof payload.action === 'string' ? payload.action : ''
+    chat.pendingHitl = null
+    chat.hitlSubmitting = false
+    chat.hitlAction = action
+    chat.hitlStatus = action === 'continue_uncertain'
+      ? 'continued'
+      : action === 'cancel'
+        ? 'cancelled'
+        : action === 'timeout'
+          ? 'timed_out'
+          : 'resolved'
+  }
+}
+
+function hitlErrorMessage(error) {
+  if (error?.status === 404) return '人工确认已失效：该运行不存在或不属于当前账户。'
+  if (error?.status === 409) return `人工确认状态不允许该动作${error?.message ? `：${error.message}` : '。'}`
+  return `人工确认提交失败：${error?.message || '未知错误'}`
+}
+
+async function submitHitl(action) {
+  const chat = state?.chat
+  const pending = chat?.pendingHitl
+  if (!chat?.runId || !pending || chat.hitlSubmitting) return
+  let body
+  try {
+    body = hitlRequestBody(action, chat.hitlDraft, pending.options)
+  } catch (error) {
+    pending.error = error?.message || '无效的人工确认动作。'
+    draw()
+    return
+  }
+  chat.hitlSubmitting = true
+  pending.error = ''
+  draw()
+  try {
+    await post(`/api/runs/${encodeURIComponent(chat.runId)}/hitl`, body)
+    if (state?.chat === chat && chat.pendingHitl === pending) {
+      chat.hitlStatus = 'submitting'
+      chat.hitlAction = action
+    }
+  } catch (error) {
+    if (state?.chat === chat && chat.pendingHitl === pending) {
+      pending.error = hitlErrorMessage(error)
+    }
+  } finally {
+    chat.hitlSubmitting = false
+    if (state?.chat === chat) draw()
   }
 }
 
@@ -298,16 +380,20 @@ function renderChatFrame(frame) {
     body.push(el('span', { text: `验证：${report.levelLabel || report.level || '未报告'}${payload.ok ? ' · 通过' : ' · 未通过'}` }))
     if (payload.summary) body.push(el('p', { class: 'practice-chat__delta', text: payload.summary }))
   } else if (type === 'hitl.request') {
-    body.push(el('span', { text: `需要人工确认：${payload.draft || '请查看请求'}` }))
-    if (Array.isArray(payload.options)) body.push(el('span', { text: `可选操作 ${payload.options.length} 项。` }))
+    const options = normalizeHitlOptions(payload.options)
+    body.push(el('span', { text: `人工确认挂起${payload.node ? `（节点：${payload.node}）` : ''}。` }))
+    if (payload.draft) body.push(el('p', { class: 'practice-chat__delta', text: `待确认草稿：${payload.draft}` }))
+    body.push(el('span', { text: `服务端提供 ${options.length} 个动作；按钮由 options 动态生成。` }))
   } else if (type === 'hitl.resolved') {
-    body.push(el('span', { text: `人工确认完成：${payload.action || '已处理'}` }))
+    body.push(el('span', { text: hitlResolutionMessage(payload) }))
+    if (payload.final) body.push(el('p', { class: 'practice-chat__delta', text: `人工确认稿：${payload.final}` }))
   } else if (type === 'done') {
-    body.push(el('strong', { text: `完成：${payload.final_answer || payload.status || '完成'}` }))
+    body.push(el('strong', { text: hitlDoneMessage(payload.status, state?.chat?.hitlAction) }))
+    if (payload.final_answer) body.push(el('p', { class: 'practice-chat__delta', text: `最终回答：${payload.final_answer}` }))
   } else if (type === 'error') {
     body.push(el('strong', { text: `错误：${payload.code || 'error'}${payload.message ? ` · ${payload.message}` : ''}` }))
   } else {
-    body.push(el('span', { text: '收到未知事件类型，已按安全文本保留。' }))
+    return null
   }
   return el('li', { class: 'practice-chat__event', dataset: { chatType: type } }, [
     el('span', { class: 'practice-chat__type', text: `#${frame?.seq ?? '—'} ${type}` }),
@@ -325,13 +411,14 @@ function modelErrorMessage(code) {
 
 async function startChat() {
   if (!state?.selected || state.chat.status === 'running') return
-  const configuredEndpoint = endpoint()
-  if (!configuredEndpoint) {
-    state.chat.error = '尚未配置模型端点。请先到设置页配置 provider / model / base_url。'
-    state.chat.errorCode = 'model_key_missing'
+  const availability = qaAvailability(endpoint(), modelKey())
+  if (!availability.available) {
+    state.chat.error = availability.message
+    state.chat.errorCode = availability.code
     draw()
     return
   }
+  const configuredEndpoint = endpoint()
   const query = state.chat.query.trim()
   if (!query) {
     state.chat.error = '请先输入要问的问题。'
@@ -347,6 +434,12 @@ async function startChat() {
   chatState.status = 'running'
   chatState.error = ''
   chatState.errorCode = ''
+  chatState.runId = ''
+  chatState.pendingHitl = null
+  chatState.hitlStatus = 'idle'
+  chatState.hitlAction = ''
+  chatState.hitlDraft = ''
+  chatState.hitlSubmitting = false
   draw()
 
   try {
@@ -360,7 +453,7 @@ async function startChat() {
     }, {
       signal: controller.signal,
       onFrame: (frame) => {
-        chatState.frames.push(frame)
+        recordChatFrame(chatState, frame)
         if (state?.chat === chatState) draw()
       },
     })
@@ -376,6 +469,10 @@ async function startChat() {
     if (state?.chat === chatState) {
       chatState.status = 'error'
       chatState.errorCode = error?.code || ''
+      if (error?.name === 'AbortError' && chatState.hitlStatus !== 'idle') {
+        chatState.pendingHitl = null
+        chatState.hitlStatus = 'aborted'
+      }
       chatState.error = error?.name === 'AbortError'
         ? '已停止本次答疑。'
         : modelErrorMessage(error?.code) || `答疑失败：${error?.message || '未知错误'}`
@@ -386,10 +483,59 @@ async function startChat() {
   }
 }
 
+function buildHitlPanel() {
+  const chat = state.chat
+  const pending = chat.pendingHitl
+  if (pending) {
+    const draft = el('textarea', {
+      class: 'practice-hitl__draft',
+      maxlength: 8000,
+      placeholder: '可在此修改人工确认稿；留空则沿用服务端草稿。',
+      disabled: chat.hitlSubmitting,
+    })
+    draft.value = chat.hitlDraft
+    draft.addEventListener('input', () => { chat.hitlDraft = draft.value })
+
+    const buttons = pending.options.map((action) => el('button', {
+      class: action === 'cancel' ? 'button' : 'button button--primary',
+      type: 'button',
+      text: chat.hitlSubmitting ? '提交中…' : hitlActionLabel(action),
+      disabled: chat.hitlSubmitting,
+      dataset: { hitlAction: action },
+      onclick: () => submitHitl(action),
+    }))
+    return el('section', {
+      class: 'practice-hitl practice-hitl--pending',
+      role: 'status',
+      'aria-live': 'polite',
+      dataset: { hitlState: chat.hitlStatus === 'submitting' ? 'submitting' : 'pending' },
+    }, [
+      el('h3', { class: 'practice-hitl__title', text: '人工确认挂起' }),
+      el('p', { class: 'practice-hitl__message', text: '验证重算后仍不确定。选择服务端提供的动作后，本次答疑才会继续收口；等待过久会进入“超时”。' }),
+      el('p', { class: 'practice-hitl__meta', text: `状态：${hitlStatusLabel(chat.hitlStatus)}${pending.node ? ` · 节点：${pending.node}` : ''}${pending.hitlId ? ` · hitl_id：${pending.hitlId}` : ''}` }),
+      draft,
+      el('div', { class: 'practice-hitl__options' }, buttons.length ? buttons : [
+        el('p', { class: 'practice-hitl__message', text: '服务端没有下发可用动作，当前只能等待超时。' }),
+      ]),
+      pending.error ? notice({ message: pending.error, tone: 'danger' }) : null,
+    ].filter(Boolean))
+  }
+  if (chat.hitlStatus === 'idle') return null
+  return el('section', {
+    class: 'practice-hitl practice-hitl--resolved',
+    role: 'status',
+    'aria-live': 'polite',
+    dataset: { hitlState: chat.hitlStatus },
+  }, [
+    el('h3', { class: 'practice-hitl__title', text: `人工确认：${hitlStatusLabel(chat.hitlStatus)}` }),
+    el('p', { class: 'practice-hitl__message', text: hitlResolutionMessage({ action: chat.hitlAction }) }),
+  ])
+}
+
 function buildChat() {
   const chat = state.chat
-  const configuredEndpoint = endpoint()
-  const unavailable = !state.selected || !configuredEndpoint
+  const availability = qaAvailability(endpoint(), modelKey())
+  const unavailable = !state.selected || !availability.available
   const running = chat.status === 'running'
   const query = el('textarea', {
     class: 'practice-chat__input',
@@ -408,7 +554,7 @@ function buildChat() {
       disabled: unavailable || running,
     }),
   ]
-  if (running) {
+  if (running && !chat.pendingHitl) {
     actions.push(el('button', {
       class: 'button',
       type: 'button',
@@ -425,24 +571,36 @@ function buildChat() {
     startChat()
   })
 
-  const settingsAction = ['model_key_missing', 'model_key_invalid'].includes(chat.errorCode)
+  const settingsAction = !availability.available
     ? el('a', { class: 'button', href: '#/settings?tab=model', text: '去设置模型' })
     : null
   const notices = compact([
     !state.selected ? notice({ message: '请先选择一道题，再把题目作为上下文提问。', tone: 'info' }) : null,
-    state.selected && !configuredEndpoint ? notice({ message: '尚未配置模型端点，请先到设置页配置 provider / model / base_url。', tone: 'warn' }) : null,
+    state.selected && !availability.available ? notice({ message: availability.message, tone: 'warn' }) : null,
     chat.error ? notice({ message: chat.error, tone: 'danger' }) : null,
     settingsAction,
   ])
-  const statusText = running ? '答疑进行中…' : chat.status === 'done' ? '答疑完成' : chat.status === 'error' ? '答疑失败' : '尚未开始'
-  return el('div', { class: 'practice-chat' }, [
+  let statusText = '尚未开始'
+  if (chat.pendingHitl) statusText = '等待人工确认…'
+  else if (running) statusText = '答疑进行中…'
+  else if (chat.status === 'done') statusText = '答疑完成'
+  else if (chat.status === 'error') statusText = '答疑失败'
+  if (!availability.available) statusText = '答疑暂不可用；非答疑功能仍可使用'
+  return el('div', {
+    class: 'practice-chat',
+    dataset: {
+      chatAvailability: availability.available ? 'available' : 'unavailable',
+      chatUnavailableCode: availability.code,
+    },
+  }, [
     ...notices,
     form,
     el('p', { class: 'practice-chat__status', text: statusText }),
+    buildHitlPanel(),
     chat.frames.length
-      ? el('ol', { class: 'practice-chat__events' }, chat.frames.map(renderChatFrame))
+      ? el('ol', { class: 'practice-chat__events' }, chat.frames.map(renderChatFrame).filter(Boolean))
       : emptyState({ title: '暂无答疑事件', hint: '提交问题后，事件会按服务端返回顺序逐步显示。' }),
-  ])
+  ].filter(Boolean))
 }
 
 function buildPage(current) {
@@ -469,7 +627,7 @@ function buildPage(current) {
         card({ title: '作答', body: buildAnswer() }),
         card({ title: '提示', body: buildHints() }),
         card({ title: '判定结果', body: buildResult() }),
-        card({ title: '答疑（W3）', body: buildChat() }),
+        card({ title: '答疑与人工确认', body: buildChat() }),
       ]),
     ]),
   ])
@@ -571,7 +729,19 @@ export async function renderPractice(route = { query: {} }) {
     answer: '',
     hints: [],
     result: null,
-    chat: { query: '', frames: [], status: 'idle', error: '', errorCode: '' },
+    chat: {
+      query: '',
+      frames: [],
+      status: 'idle',
+      error: '',
+      errorCode: '',
+      runId: '',
+      pendingHitl: null,
+      hitlStatus: 'idle',
+      hitlAction: '',
+      hitlDraft: '',
+      hitlSubmitting: false,
+    },
     loading: false,
     error: '',
     backendUnavailable,
