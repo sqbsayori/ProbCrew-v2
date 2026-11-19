@@ -2,8 +2,8 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://probcrew.local/contracts/content.schema.json",
   "title": "内容资产与评测资产（Content & Eval Assets）",
-  "description": "`content/` 下**全部文件的形状**：五类自制内容资产（L0）· `MANIFEST.json`（含 `content_rev`）· 评测资产（样例集与期望判据表）。★ **一个文件承担四种根形状**（用 `oneOf` 分支区分），因为 `docs/01` 附录 A 把 F20 与 N13 这两条 MUST 的「格式与存放位置」一并指派给了 C13 —— 拆成两份契约只会让「资产怎么算版本」与「评测资产放在哪」分成两处记载。★ **为什么规模下界写进契约**：`docs/01` F20 的首版下界（题库 ≥ 30 · DAG ≥ 40 节点 ≥ 5 章 · 错因 ≥ 40 · 题型 ≥ 15 · 公式 ≥ 30）此前只是**散文里的一句话**，写成 `minItems` 之后它变成**启动校验能拦下来的红灯** —— 旧仓的失败模式正是「要求它存在，但没人核对它够不够」。",
-  "version": "v1.1",
+  "description": "`content/` 下**全部文件的形状**：五类自制内容资产（L0）· `MANIFEST.json`（含 `content_rev`）· 评测资产（样例集、开发集与期望判据表）。★ **一个文件承担多种根形状**（用 `oneOf` 分支区分），因为 `docs/01` 附录 A 把 F20 与 N13 这两条 MUST 的「格式与存放位置」一并指派给了 C13 —— 拆成两份契约只会让「资产怎么算版本」与「评测资产放在哪」分成两处记载。★ **为什么规模下界写进契约**：`docs/01` F20 的首版下界（题库 ≥ 30 · DAG ≥ 40 节点 ≥ 5 章 · 错因 ≥ 40 · 题型 ≥ 15 · 公式 ≥ 30）此前只是**散文里的一句话**，写成 `minItems` 之后它变成**启动校验能拦下来的红灯** —— 旧仓的失败模式正是「要求它存在，但没人核对它够不够」。",
+  "version": "v1.2",
   "oneOf": [
     {
       "title": "内容资产文件（content/problems.json）—— 题库",
@@ -260,6 +260,18 @@
                 "minLength": 1,
                 "maxLength": 300,
                 "description": "期望结论（如「判定为错，且命中 `mp_direction_reversed`」）。★ 样例集**可以**含期望值 —— 它是公开的、且只做回归保护。"
+              },
+              "expected_correct": {
+                "type": "boolean",
+                "description": "可选的结构化回归判据；存在时运行器比较 judge.grade 的 correct。"
+              },
+              "expected_mistake_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^mp_[a-z0-9_]+$"
+                },
+                "description": "可选的结构化错因判据；存在时（包括显式空数组）必须与实际命中集合完全一致。"
               }
             }
           }
@@ -390,6 +402,18 @@
                     "minLength": 1,
                     "maxLength": 8000,
                     "description": "已知错误的**解答**（不是错答案）。"
+                  },
+                  "expression": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "可选的结构化重算表达式；与非空 answer 同时存在时，eval_verify 会实际执行 SymPy 验证链。"
+                  },
+                  "answer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "可选的结构化错解最终答案；与 expression 同时存在时供验证链使用。"
                   },
                   "ab_reachable": {
                     "type": "boolean",
@@ -809,11 +833,19 @@
   "x-changelog": {
     "entries": [
       {
+        "version": "v1.2",
+        "date": "2026-11-19",
+        "type": "兼容增量",
+        "change": "冻结 solution_injection 案例新增可选 expression / answer，供 eval_verify 实际执行 SymPy 验证链",
+        "why": "原判据只有自由文本 wrong_solution，运行器无法可靠复算正式集。",
+        "compat": "可选字段；旧冻结集缺少这两个字段时仍明确转人工复核。"
+      },
+      {
         "version": "v1.1",
         "date": "2026-11-19",
         "type": "兼容增量",
-        "change": "新增开发集分支（content/eval/dev/*.json），支持 expected_correct / expected_mistake_ids 与可选内联 item",
-        "why": "阶段 B 需要 20 道入仓开发题形成首次判定基线，同时避免为了制造单位错案例污染生产题库。",
+        "change": "新增开发集分支（content/eval/dev/*.json），支持 expected_correct / expected_mistake_ids 与可选内联 item；样例集增加可选结构化回归判据",
+        "why": "阶段 B 需要 20 道入仓开发题形成首次判定基线，同时避免为了制造单位错案例污染生产题库；样例集需要结构化回归判据。",
         "compat": "新增 oneOf 分支；sample / frozen / 五类资产分支不变。"
       }
     ]
