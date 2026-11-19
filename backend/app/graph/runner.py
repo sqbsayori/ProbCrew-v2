@@ -33,6 +33,7 @@ S4 的判据（节点级用例 · `steps` 两处逐值一致 · 断开后活跃�
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Callable, Mapping
@@ -46,6 +47,9 @@ from app.tools.endpoint import EndpointConfig
 
 #: 已终结快照的**上限**（首次取值；提案原文未入仓）：单 worker 下防无界增长。
 MAX_TERMINAL_SNAPSHOTS = 20
+
+#: N20 的并发上限：第 11 路答疑必须在写 `qa_log` 前显式拒绝。
+MAX_CONCURRENT_CHATS = 10
 
 STATUS_RUNNING = "running"
 STATUS_DONE = "done"
@@ -87,6 +91,69 @@ ERROR_MESSAGES = {
     "internal_error": "服务出了点问题，请稍后重试。",
 }
 _MESSAGE_MAX = 200
+
+
+class ConcurrencyLease:
+    """一次答疑的并发名额；释放幂等，避免断流路径重复扣减。"""
+
+    def __init__(self, gate: "ConcurrencyGate") -> None:
+        self._gate = gate
+        self._lock = threading.Lock()
+        self._released = False
+
+    @property
+    def released(self) -> bool:
+        return self._released
+
+    def release(self) -> bool:
+        """释放名额；重复调用返回 ``False``，不把正常清理误报成故障。"""
+        with self._lock:
+            if self._released:
+                return False
+            self._released = True
+        self._gate._release()
+        return True
+
+
+class ConcurrencyGate:
+    """线程安全的并发名额表（单 worker 下的 N20 闸门）。
+
+    ★ 这里只数"正在答疑的 HTTP 流"，不是数 RunStore 的终态记录。
+      闸门必须在写 `qa_log` 之前获取，否则被拒绝的第 11 路仍会留下一条流水。
+    """
+
+    def __init__(self, limit: int = MAX_CONCURRENT_CHATS) -> None:
+        if limit < 1:
+            raise ValueError("并发上限必须 ≥ 1")
+        self._limit = int(limit)
+        self._active = 0
+        self._lock = threading.Lock()
+
+    @property
+    def limit(self) -> int:
+        return self._limit
+
+    @property
+    def active(self) -> int:
+        with self._lock:
+            return self._active
+
+    def try_acquire(self) -> "ConcurrencyLease | None":
+        with self._lock:
+            if self._active >= self._limit:
+                return None
+            self._active += 1
+            return ConcurrencyLease(self)
+
+    def _release(self) -> None:
+        with self._lock:
+            if self._active <= 0:
+                raise RuntimeError("并发名额释放次数超过获取次数")
+            self._active -= 1
+
+
+#: 进程内的默认答疑闸门（启动校验保证单 worker）。
+CHAT_SLOTS = ConcurrencyGate()
 
 
 @dataclass
@@ -430,11 +497,15 @@ def _first_reason(update: "Mapping[str, Any]") -> "str | None":
 
 
 __all__ = [
+    "CHAT_SLOTS",
+    "MAX_CONCURRENT_CHATS",
     "MAX_TERMINAL_SNAPSHOTS",
     "NODE_ENTRIES",
     "NO_CONTEXT_REASON",
     "PLAN_NODES",
     "RUNS",
+    "ConcurrencyGate",
+    "ConcurrencyLease",
     "FrameCollector",
     "RunRecord",
     "RunStore",
