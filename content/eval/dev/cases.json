@@ -1,0 +1,445 @@
+{
+  "suite": "dev",
+  "cases": [
+    {
+      "case_id": "dev_direction_01",
+      "item_id": "prob_dev_direction_01",
+      "answer": "P(B|A)",
+      "expected_conclusion": "判定为错；命中方向颠倒（P(A|B) 被写成 P(B|A)）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_direction_reversed"
+      ],
+      "item": {
+        "prob_id": "prob_dev_direction_01",
+        "stem": "已知事件关系，求 P(A|B)。",
+        "expected": "P(A|B)",
+        "kc_ids": [
+          "kc_conditional_probability"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_direction_02",
+      "item_id": "prob_dev_direction_02",
+      "answer": "P(C|A)",
+      "expected_conclusion": "判定为错；命中方向颠倒（P(A|C) 被写成 P(C|A)）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_direction_reversed"
+      ],
+      "item": {
+        "prob_id": "prob_dev_direction_02",
+        "stem": "已知事件关系，求 P(A|C)。",
+        "expected": "P(A|C)",
+        "kc_ids": [
+          "kc_conditional_probability"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_direction_03",
+      "item_id": "prob_dev_direction_03",
+      "answer": "P(C|B)",
+      "expected_conclusion": "判定为错；命中方向颠倒（P(B|C) 被写成 P(C|B)）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_direction_reversed"
+      ],
+      "item": {
+        "prob_id": "prob_dev_direction_03",
+        "stem": "已知事件关系，求 P(B|C)。",
+        "expected": "P(B|C)",
+        "kc_ids": [
+          "kc_conditional_probability"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_direction_04",
+      "item_id": "prob_dev_direction_04",
+      "answer": "P(Y|X)",
+      "expected_conclusion": "判定为错；命中方向颠倒（P(X|Y) 被写成 P(Y|X)）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_direction_reversed"
+      ],
+      "item": {
+        "prob_id": "prob_dev_direction_04",
+        "stem": "已知事件关系，求 P(X|Y)。",
+        "expected": "P(X|Y)",
+        "kc_ids": [
+          "kc_conditional_probability"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_direction_05",
+      "item_id": "prob_dev_direction_05",
+      "answer": "P(E|D)",
+      "expected_conclusion": "判定为错；命中方向颠倒（P(D|E) 被写成 P(E|D)）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_direction_reversed"
+      ],
+      "item": {
+        "prob_id": "prob_dev_direction_05",
+        "stem": "已知事件关系，求 P(D|E)。",
+        "expected": "P(D|E)",
+        "kc_ids": [
+          "kc_conditional_probability"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_unit_01",
+      "item_id": "prob_dev_unit_01",
+      "answer": "5厘米",
+      "expected_conclusion": "判定为错；命中单位错（期望 5米，作答 5厘米）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_unit_error"
+      ],
+      "item": {
+        "prob_id": "prob_dev_unit_01",
+        "stem": "某结果的标准答案为 5米，请填写带单位的答案。",
+        "expected": "5米",
+        "kc_ids": [
+          "kc_expectation"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_unit_02",
+      "item_id": "prob_dev_unit_02",
+      "answer": "2分钟",
+      "expected_conclusion": "判定为错；命中单位错（期望 2小时，作答 2分钟）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_unit_error"
+      ],
+      "item": {
+        "prob_id": "prob_dev_unit_02",
+        "stem": "某结果的标准答案为 2小时，请填写带单位的答案。",
+        "expected": "2小时",
+        "kc_ids": [
+          "kc_expectation"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_unit_03",
+      "item_id": "prob_dev_unit_03",
+      "answer": "3克",
+      "expected_conclusion": "判定为错；命中单位错（期望 3千克，作答 3克）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_unit_error"
+      ],
+      "item": {
+        "prob_id": "prob_dev_unit_03",
+        "stem": "某结果的标准答案为 3千克，请填写带单位的答案。",
+        "expected": "3千克",
+        "kc_ids": [
+          "kc_expectation"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_unit_04",
+      "item_id": "prob_dev_unit_04",
+      "answer": "10分米",
+      "expected_conclusion": "判定为错；命中单位错（期望 10米，作答 10分米）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_unit_error"
+      ],
+      "item": {
+        "prob_id": "prob_dev_unit_04",
+        "stem": "某结果的标准答案为 10米，请填写带单位的答案。",
+        "expected": "10米",
+        "kc_ids": [
+          "kc_expectation"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_unit_05",
+      "item_id": "prob_dev_unit_05",
+      "answer": "4分钟",
+      "expected_conclusion": "判定为错；命中单位错（期望 4秒，作答 4分钟）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_unit_error"
+      ],
+      "item": {
+        "prob_id": "prob_dev_unit_05",
+        "stem": "某结果的标准答案为 4秒，请填写带单位的答案。",
+        "expected": "4秒",
+        "kc_ids": [
+          "kc_expectation"
+        ],
+        "pt_id": "pt_conditional_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_partition_01",
+      "item_id": "prob_dev_partition_01",
+      "answer": "0.1+0.2",
+      "expected_conclusion": "判定为错；命中漏完备组（全概率公式只保留了部分分组）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_missing_partition"
+      ],
+      "item": {
+        "prob_id": "prob_dev_partition_01",
+        "stem": "按完备事件组展开全概率公式，并写出全部互斥分支之和。",
+        "expected": "0.1+0.2+0.3",
+        "kc_ids": [
+          "kc_total_probability"
+        ],
+        "pt_id": "pt_total_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_partition_02",
+      "item_id": "prob_dev_partition_02",
+      "answer": "1/6+2/6",
+      "expected_conclusion": "判定为错；命中漏完备组（全概率公式只保留了部分分组）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_missing_partition"
+      ],
+      "item": {
+        "prob_id": "prob_dev_partition_02",
+        "stem": "按完备事件组展开全概率公式，并写出全部互斥分支之和。",
+        "expected": "1/6+2/6+3/6",
+        "kc_ids": [
+          "kc_total_probability"
+        ],
+        "pt_id": "pt_total_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_partition_03",
+      "item_id": "prob_dev_partition_03",
+      "answer": "0.2+0.5",
+      "expected_conclusion": "判定为错；命中漏完备组（全概率公式只保留了部分分组）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_missing_partition"
+      ],
+      "item": {
+        "prob_id": "prob_dev_partition_03",
+        "stem": "按完备事件组展开全概率公式，并写出全部互斥分支之和。",
+        "expected": "0.2+0.3+0.5",
+        "kc_ids": [
+          "kc_total_probability"
+        ],
+        "pt_id": "pt_total_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_partition_04",
+      "item_id": "prob_dev_partition_04",
+      "answer": "p1+p3",
+      "expected_conclusion": "判定为错；命中漏完备组（全概率公式只保留了部分分组）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_missing_partition"
+      ],
+      "item": {
+        "prob_id": "prob_dev_partition_04",
+        "stem": "按完备事件组展开全概率公式，并写出全部互斥分支之和。",
+        "expected": "p1+p2+p3",
+        "kc_ids": [
+          "kc_total_probability"
+        ],
+        "pt_id": "pt_total_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_partition_05",
+      "item_id": "prob_dev_partition_05",
+      "answer": "a+b",
+      "expected_conclusion": "判定为错；命中漏完备组（全概率公式只保留了部分分组）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_missing_partition"
+      ],
+      "item": {
+        "prob_id": "prob_dev_partition_05",
+        "stem": "按完备事件组展开全概率公式，并写出全部互斥分支之和。",
+        "expected": "a+b+c",
+        "kc_ids": [
+          "kc_total_probability"
+        ],
+        "pt_id": "pt_total_probability",
+        "gradable": true,
+        "answer_kind": "text",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_independence_01",
+      "item_id": "prob_dev_independence_01",
+      "answer": "1/2",
+      "expected_conclusion": "判定为错；命中 n 乘错/独立性混淆（把独立重复试验概率按单次概率处理）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_independence_confusion"
+      ],
+      "item": {
+        "prob_id": "prob_dev_independence_01",
+        "stem": "独立重复试验中，计算指定事件首次发生的概率（正确值 1/4）。",
+        "expected": "1/4",
+        "kc_ids": [
+          "kc_independence"
+        ],
+        "pt_id": "pt_independence_check",
+        "gradable": true,
+        "answer_kind": "value",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_independence_02",
+      "item_id": "prob_dev_independence_02",
+      "answer": "1/3",
+      "expected_conclusion": "判定为错；命中 n 乘错/独立性混淆（把独立重复试验概率按单次概率处理）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_independence_confusion"
+      ],
+      "item": {
+        "prob_id": "prob_dev_independence_02",
+        "stem": "独立重复试验中，计算指定事件首次发生的概率（正确值 1/6）。",
+        "expected": "1/6",
+        "kc_ids": [
+          "kc_independence"
+        ],
+        "pt_id": "pt_independence_check",
+        "gradable": true,
+        "answer_kind": "value",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_independence_03",
+      "item_id": "prob_dev_independence_03",
+      "answer": "1/4",
+      "expected_conclusion": "判定为错；命中 n 乘错/独立性混淆（把独立重复试验概率按单次概率处理）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_independence_confusion"
+      ],
+      "item": {
+        "prob_id": "prob_dev_independence_03",
+        "stem": "独立重复试验中，计算指定事件首次发生的概率（正确值 1/8）。",
+        "expected": "1/8",
+        "kc_ids": [
+          "kc_independence"
+        ],
+        "pt_id": "pt_independence_check",
+        "gradable": true,
+        "answer_kind": "value",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_independence_04",
+      "item_id": "prob_dev_independence_04",
+      "answer": "1/5",
+      "expected_conclusion": "判定为错；命中 n 乘错/独立性混淆（把独立重复试验概率按单次概率处理）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_independence_confusion"
+      ],
+      "item": {
+        "prob_id": "prob_dev_independence_04",
+        "stem": "独立重复试验中，计算指定事件首次发生的概率（正确值 1/10）。",
+        "expected": "1/10",
+        "kc_ids": [
+          "kc_independence"
+        ],
+        "pt_id": "pt_independence_check",
+        "gradable": true,
+        "answer_kind": "value",
+        "difficulty": 1
+      }
+    },
+    {
+      "case_id": "dev_independence_05",
+      "item_id": "prob_dev_independence_05",
+      "answer": "1/6",
+      "expected_conclusion": "判定为错；命中 n 乘错/独立性混淆（把独立重复试验概率按单次概率处理）。",
+      "expected_correct": false,
+      "expected_mistake_ids": [
+        "mp_independence_confusion"
+      ],
+      "item": {
+        "prob_id": "prob_dev_independence_05",
+        "stem": "独立重复试验中，计算指定事件首次发生的概率（正确值 1/12）。",
+        "expected": "1/12",
+        "kc_ids": [
+          "kc_independence"
+        ],
+        "pt_id": "pt_independence_check",
+        "gradable": true,
+        "answer_kind": "value",
+        "difficulty": 1
+      }
+    }
+  ]
+}
