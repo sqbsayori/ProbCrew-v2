@@ -42,6 +42,7 @@ __all__ = [
     "db_path",
     "ensure_schema",
     "initialize",
+    "probe_readable",
 ]
 
 #: 并发争用的自动重试窗口（`docs/02 §3.6` 首次取值：5000ms）。
@@ -271,3 +272,23 @@ def initialize(path: "str | Path | None" = None) -> sqlite3.Connection:
         ensure_schema(conn)
         _initialized.add(key)
     return conn
+
+
+def probe_readable(path: "str | Path | None" = None) -> bool:
+    """健康探针：能开连接并**读一次** ⇒ ``True``；其余一律 ``False``（不抛）。
+
+    ★ 它必须住在 `core/db.py` 而不是健康模块里：本文件已有 ``commit()``，符合门禁的
+      「有 ``execute()`` 的文件必须有 ``commit()``」纪律（R-B）；把探针写进一个只读的模块
+      会让那条静态规则误报 —— 而那条规则的值就在于"写库必须显式提交"。
+    ★ 探针**不写业务行**：health 会被运维高频打，插入审计/业务数据等于让探针污染 L2。
+      可写性由 :func:`initialize` 的建表/PRAGMA 与目录可写共同覆盖，不靠写一行假数据来证明。
+    """
+    try:
+        conn = initialize(path)
+        try:
+            conn.execute("SELECT 1").fetchone()
+        finally:
+            conn.close()
+    except (sqlite3.Error, OSError, ValueError):
+        return False
+    return True

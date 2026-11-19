@@ -23,6 +23,7 @@ from app.api import knowledge as knowledge_routes
 from app.api import me as me_routes
 from app.api import practice as practice_routes
 from app.api import runs as run_routes
+from app.api import system as system_routes
 
 __all__ = ["router"]
 
@@ -35,3 +36,4 @@ router.include_router(admin_routes.router)
 router.include_router(chat_routes.router)
 router.include_router(knowledge_routes.router)
 router.include_router(run_routes.router)
+router.include_router(system_routes.router)
