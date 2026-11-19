@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -34,7 +35,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.logging import log_action, setup_logging  # noqa: E402
-from app.identity.tombstones import replay  # noqa: E402
+from app.identity.tombstones import TOMBSTONE_FILENAME, replay  # noqa: E402
 from app.learning.store import delete_user_data  # noqa: E402
 
 #: N19 验收③ 要逐表读回的四个学生表（`docs/03 §8.3` · `docs/02 §3.x`）。
@@ -122,6 +123,18 @@ def run_backup(data_dir: Path, content_dir: Path) -> int:
 
     for db in db_files:
         _snapshot_sqlite(db, backups_dir / f"{db.stem}-{stamp}.sqlite")
+
+    # ★ 墓碑必须在 DB 快照之后复制：若备份期间发生删除，后复制的墓碑仍能覆盖
+    #   刚写入快照的旧数据；换机恢复只有备份目录时，这个快照是唯一的删除依据。
+    tombstone_source = data_dir / TOMBSTONE_FILENAME
+    if tombstone_source.exists():
+        try:
+            shutil.copy2(tombstone_source, backups_dir / f"tombstones-{stamp}.jsonl")
+        except OSError as exc:
+            _write_last(backups_dir, success=False)
+            log_action("backup", status="failed", reason="tombstone_copy_failed")
+            print(f"[失败] 墓碑快照复制失败：{exc}")
+            return 1
 
     rev = None
     manifest = content_dir / "MANIFEST.json"

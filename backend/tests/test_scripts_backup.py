@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import secrets
+import shutil
 import time
 from pathlib import Path
 
@@ -122,6 +123,44 @@ def test_restore_replays_tombstones_so_a_deleted_account_cannot_resurrect(data_d
     assert backup.run_restore(data_dir) == 0
 
     # 备份里这个人的数据"回来了"，但墓碑必须再把它清掉 —— 这就是 B2.3 的判据本身。
+    assert _rows(user_id) == {"qa_log": 0, "hint_log": 0, "attempt": 0, "mastery": 0}
+    assert _status(user_id) == "deleted"
+
+
+def test_backup_copies_tombstones_into_the_same_snapshot_batch(data_dir: Path) -> None:
+    backup = _load_backup_script()
+    user_id = _seed()
+    _fill(user_id)
+    tombstone = tombstones.record(
+        user_id=user_id, action=tombstones.ACTION_DELETE_OWN_DATA, now=100.0
+    )
+
+    assert backup.run_backup(data_dir, REPO_ROOT / "content") == 0
+
+    snapshots = sorted((data_dir / "backups").glob("tombstones-*.jsonl"))
+    assert len(snapshots) == 1
+    lines = [json.loads(line) for line in snapshots[0].read_text(encoding="utf-8").splitlines()]
+    assert lines == [tombstone]
+
+
+def test_cross_machine_restore_uses_the_tombstone_snapshot(
+    data_dir: Path, tmp_path: Path, monkeypatch
+) -> None:
+    """模拟换机：新机器没有现场 tombstones.jsonl，只剩备份目录。"""
+    backup = _load_backup_script()
+    user_id = _seed()
+    _fill(user_id)
+    # 模拟墓碑已落盘、后续删除尚未完成就发生故障；备份里的账号仍 active 且有数据。
+    tombstones.record(user_id=user_id, action=tombstones.ACTION_DELETE_OWN_DATA)
+    assert backup.run_backup(data_dir, REPO_ROOT / "content") == 0
+
+    restored = tmp_path / "restored-machine"
+    restored.mkdir()
+    shutil.copytree(data_dir / "backups", restored / "backups")
+    monkeypatch.setenv("PROBCREW_DB_PATH", str(restored / "probcrew.sqlite"))
+    assert not (restored / "tombstones.jsonl").exists()
+
+    assert backup.run_restore(restored) == 0
     assert _rows(user_id) == {"qa_log": 0, "hint_log": 0, "attempt": 0, "mastery": 0}
     assert _status(user_id) == "deleted"
 
