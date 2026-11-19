@@ -17,7 +17,19 @@ def _workspace(tmp_path: Path) -> "tuple[Path, Path]":
     content = tmp_path / "content"
     corpus = tmp_path / "backend" / "data" / "corpus"
     shutil.copytree(REPO_ROOT / "content", content)
-    shutil.copytree(REPO_ROOT / "backend" / "data" / "corpus", corpus)
+    corpus.mkdir(parents=True)
+    (corpus / "sec01.md").write_text(
+        "---\n"
+        "cite_id: test-01-01\n"
+        "title: 测试语料\n"
+        "chapter: 1\n"
+        "license: CC0-1.0\n"
+        "source_url: https://example.com/test\n"
+        "fetched_at: 2026-11-19\n"
+        "---\n\n"
+        "测试语料正文。\n",
+        encoding="utf-8",
+    )
     return content, corpus
 
 
