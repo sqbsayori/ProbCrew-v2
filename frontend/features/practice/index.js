@@ -472,6 +472,10 @@ async function startChat() {
       if (error?.name === 'AbortError' && chatState.hitlStatus !== 'idle') {
         chatState.pendingHitl = null
         chatState.hitlStatus = 'aborted'
+      } else if (chatState.pendingHitl && chatState.hitlStatus === 'submitting') {
+        // POST 已成功但流式收口中断：保留成功提交的状态，不把面板永久锁在“提交中”。
+        chatState.pendingHitl = null
+        chatState.hitlStatus = 'resolved'
       }
       chatState.error = error?.name === 'AbortError'
         ? '已停止本次答疑。'
@@ -487,11 +491,12 @@ function buildHitlPanel() {
   const chat = state.chat
   const pending = chat.pendingHitl
   if (pending) {
+    const submitting = chat.hitlSubmitting || chat.hitlStatus === 'submitting'
     const draft = el('textarea', {
       class: 'practice-hitl__draft',
       maxlength: 8000,
       placeholder: '可在此修改人工确认稿；留空则沿用服务端草稿。',
-      disabled: chat.hitlSubmitting,
+      disabled: submitting,
     })
     draft.value = chat.hitlDraft
     draft.addEventListener('input', () => { chat.hitlDraft = draft.value })
@@ -499,8 +504,8 @@ function buildHitlPanel() {
     const buttons = pending.options.map((action) => el('button', {
       class: action === 'cancel' ? 'button' : 'button button--primary',
       type: 'button',
-      text: chat.hitlSubmitting ? '提交中…' : hitlActionLabel(action),
-      disabled: chat.hitlSubmitting,
+      text: submitting ? '提交中…' : hitlActionLabel(action),
+      disabled: submitting,
       dataset: { hitlAction: action },
       onclick: () => submitHitl(action),
     }))
