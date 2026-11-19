@@ -3,7 +3,7 @@
   "$id": "https://probcrew.local/contracts/content.schema.json",
   "title": "内容资产与评测资产（Content & Eval Assets）",
   "description": "`content/` 下**全部文件的形状**：五类自制内容资产（L0）· `MANIFEST.json`（含 `content_rev`）· 评测资产（样例集与期望判据表）。★ **一个文件承担四种根形状**（用 `oneOf` 分支区分），因为 `docs/01` 附录 A 把 F20 与 N13 这两条 MUST 的「格式与存放位置」一并指派给了 C13 —— 拆成两份契约只会让「资产怎么算版本」与「评测资产放在哪」分成两处记载。★ **为什么规模下界写进契约**：`docs/01` F20 的首版下界（题库 ≥ 30 · DAG ≥ 40 节点 ≥ 5 章 · 错因 ≥ 40 · 题型 ≥ 15 · 公式 ≥ 30）此前只是**散文里的一句话**，写成 `minItems` 之后它变成**启动校验能拦下来的红灯** —— 旧仓的失败模式正是「要求它存在，但没人核对它够不够」。",
-  "version": "v1.0",
+  "version": "v1.1",
   "oneOf": [
     {
       "title": "内容资产文件（content/problems.json）—— 题库",
@@ -260,6 +260,73 @@
                 "minLength": 1,
                 "maxLength": 300,
                 "description": "期望结论（如「判定为错，且命中 `mp_direction_reversed`」）。★ 样例集**可以**含期望值 —— 它是公开的、且只做回归保护。"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "title": "开发集（content/eval/dev/*.json）",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suite",
+        "cases"
+      ],
+      "properties": {
+        "suite": {
+          "const": "dev"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 20,
+          "maxItems": 20,
+          "description": "阶段 B 的回归开发集：四类错因各 5 道；可用内联 `item` 保持与生产题库隔离。",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "item_id",
+              "answer",
+              "expected_conclusion",
+              "expected_correct",
+              "expected_mistake_ids"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "item_id": {
+                "type": "string",
+                "pattern": "^prob_[a-z0-9_]+$"
+              },
+              "answer": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "expected_conclusion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "expected_correct": {
+                "type": "boolean"
+              },
+              "expected_mistake_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^mp_[a-z0-9_]+$"
+                }
+              },
+              "item": {
+                "$ref": "#/definitions/problemEntry",
+                "description": "可选的内联题目；存在时 item_id 必须与 item.prob_id 一致，且不要求进入生产题库。"
               }
             }
           }
@@ -737,6 +804,18 @@
       "solution_injection 里 ab_reachable=true 的道次 ≥ 8 且 expected=\"recompute_mismatch\"",
       "answer_injection 里 negative=true 的道次 ≥ 2，且其 expected_mistake_ids 必须为空数组；每个 category 的道次 ≥ 4",
       "answer_injection 的 category 取值必须都能在 content/mistakes.json 的 category 里找到"
+    ]
+  },
+  "x-changelog": {
+    "entries": [
+      {
+        "version": "v1.1",
+        "date": "2026-11-19",
+        "type": "兼容增量",
+        "change": "新增开发集分支（content/eval/dev/*.json），支持 expected_correct / expected_mistake_ids 与可选内联 item",
+        "why": "阶段 B 需要 20 道入仓开发题形成首次判定基线，同时避免为了制造单位错案例污染生产题库。",
+        "compat": "新增 oneOf 分支；sample / frozen / 五类资产分支不变。"
+      }
     ]
   },
   "examples": [

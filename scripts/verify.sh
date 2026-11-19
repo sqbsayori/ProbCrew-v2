@@ -1020,6 +1020,8 @@ def rf_contrast_pairs() -> str:
 
 def content_branch_title(document: dict) -> str:
     """按文档自己的键，指出它**自称**是哪一支（`cases` / `revs` / `asset`）—— 报错时只说那一支。"""
+    if document.get("suite") == "dev":
+        return "开发集"
     if "cases" in document:
         return "样例集"
     if "revs" in document:
@@ -1082,7 +1084,11 @@ def content_assets() -> str:
     schemas = load_schemas()
     content_id = next(sid for sid in schemas if sid.endswith("/content.schema.json"))
     validator = validator_for(schemas[content_id])
-    files = sorted(glob.glob("content/*.json")) + sorted(glob.glob("content/eval/sample/*.json"))
+    files = (
+        sorted(glob.glob("content/*.json"))
+        + sorted(glob.glob("content/eval/sample/*.json"))
+        + sorted(glob.glob("content/eval/dev/*.json"))
+    )
     if not files:
         raise Skipped("0 个内容资产文件（`content/*.json` 未产出 —— 五类资产属 W2 / W4）")
 
@@ -1175,8 +1181,41 @@ def content_assets() -> str:
             notes.append(f"{len(cited)} 个 mp_id 引用闭包成立")
         else:
             notes.append("错因库未产出 ⇒ expected_conclusion 的 mp_id 闭包本轮机检跳过（`docs/07 §2.2`）")
-        return f"{checked} 个文件过 `content.schema.json` 校验 · " + " · ".join(notes)
-    notes.append("样例集未产出（`content/eval/sample/**` —— 属 W5 第二批）")
+        notes.append(f"样例集 {len(cases)} 道（含 item_id / 错因引用闭包）")
+    else:
+        notes.append("样例集未产出（`content/eval/sample/**` —— 属 W5 第二批）")
+
+    dev_files = sorted(glob.glob("content/eval/dev/*.json"))
+    if dev_files:
+        dev_cases = [case for path in dev_files for case in json.loads(read(path))["cases"]]
+        assert len(dev_cases) == 20, f"开发集 {len(dev_cases)} 道 —— 阶段 B 裁定为 20 道"
+        assert len({case["case_id"] for case in dev_cases}) == len(dev_cases), "开发集 case_id 有重复"
+        assert len({case["item_id"] for case in dev_cases}) == len(dev_cases), "开发集 item_id 有重复"
+        known_problems = {item["prob_id"] for item in items_of("problems")}
+        known_mp = {item["mp_id"]: item["category"] for item in items_of("mistakes")}
+        known_types = {item["pt_id"] for item in items_of("types")}
+        category_counts: dict[str, int] = {}
+        for case in dev_cases:
+            inline = case.get("item")
+            if inline is not None:
+                assert inline["prob_id"] == case["item_id"], f"开发集 {case['case_id']} 的内联 item_id 不一致"
+                assert inline.get("gradable") is True, f"开发集 {case['case_id']} 必须可判定"
+                assert set(inline["kc_ids"]) <= dag_ids, f"开发集 {case['case_id']} 引用 DAG 外知识点"
+                assert inline["pt_id"] in known_types, f"开发集 {case['case_id']} 引用未知题型"
+            else:
+                assert case["item_id"] in known_problems, f"开发集 {case['case_id']} 引用题库外 item_id"
+            expected_mp = set(case["expected_mistake_ids"])
+            unknown_mp = sorted(expected_mp - set(known_mp))
+            assert not unknown_mp, f"开发集 {case['case_id']} 引用未知错因：{unknown_mp}"
+            categories = {known_mp[mid] for mid in expected_mp}
+            assert len(categories) == 1, f"开发集 {case['case_id']} 的期望错因必须属于同一类别"
+            category = next(iter(categories))
+            category_counts[category] = category_counts.get(category, 0) + 1
+        expected_categories = {"direction_reversed", "missing_partition", "unit_error", "independence_confusion"}
+        assert set(category_counts) == expected_categories, f"开发集类别不齐：{category_counts}"
+        assert all(category_counts[name] == 5 for name in expected_categories), f"开发集四类须各 5 道：{category_counts}"
+        notes.append(f"开发集 {len(dev_cases)} 道 · 四类各 5 · 内联题目与引用闭包成立")
+
     return f"{checked} 个文件过 `content.schema.json` 校验 · " + " · ".join(notes)
 
 
