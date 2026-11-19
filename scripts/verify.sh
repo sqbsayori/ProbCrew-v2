@@ -61,11 +61,14 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 from urllib.parse import urljoin
 from collections import Counter
 
 ROOT = sys.argv[1]
 os.chdir(ROOT)
+sys.path.insert(0, str(Path(ROOT) / "backend"))
+from app.learning.asset_validation import ContentAssetValidationError, validate_content_assets
 
 RESULTS: list[tuple[str, "bool | None", str]] = []
 
@@ -1081,6 +1084,11 @@ def content_assets() -> str:
       ① 样例集的 `item_id` **必须在题库里存在**（引用闭包）；② 若错因库已产出，则
       `expected_conclusion` 里出现的 `mp_*` **也必须在错因库里**（未产出时**如实打印**为未机检）。
     """
+    try:
+        validate_content_assets(Path("content"))
+    except ContentAssetValidationError as exc:
+        raise AssertionError("七条启动校验失败：" + "；".join(exc.violations)) from exc
+
     schemas = load_schemas()
     content_id = next(sid for sid in schemas if sid.endswith("/content.schema.json"))
     validator = validator_for(schemas[content_id])

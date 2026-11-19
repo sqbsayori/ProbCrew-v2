@@ -36,6 +36,7 @@ from app.core.config import load_settings
 from app.core.errors import AppError, HTTP_STATUS_BY_CODE, error_envelope
 from app.core.logging import setup_logging
 from app.graph.runner import resolve_hitl_timeout
+from app.learning.asset_validation import ContentAssetValidationError, validate_content_assets
 
 __all__ = [
     "CONCURRENCY_ENV",
@@ -301,10 +302,18 @@ def main() -> None:
     # ★ 部署形态：坏值在函数内拒绝；一致性检查见 `docs/02 §4.2.1` 规则 2 的落点说明。
     deployment = resolve_deployment()
     assert_deployment_consistent(deployment)
+    settings = load_settings()
+    try:
+        validate_content_assets(settings.content_dir)
+    except ContentAssetValidationError as exc:
+        sys.stderr.write("[拒绝启动] 内容资产未通过七条启动校验：\n")
+        for violation in exc.violations:
+            sys.stderr.write(f"  - {violation}\n")
+        raise SystemExit(REFUSE_EXIT_CODE) from exc
     print(describe_deployment(deployment), flush=True)
     # ★ 审计日志（R-O）：跑业务前先挂上 handler —— 否则 `core/logging.log_action` 会当场拒绝写入
     #   （不接受「静默丢日志」，docs/02 §1.4 规则 1 · ADR-0005）。
-    setup_logging(load_settings().log_dir)
+    setup_logging(settings.log_dir)
     import uvicorn
 
     uvicorn.run(app, host=HOST, port=port, log_level="info")

@@ -17,7 +17,9 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+import app.main as main_module
 from app.core.errors import AppError
+from app.learning.asset_validation import ContentAssetValidationError
 from app.main import (
     DEPLOYMENT_ENV,
     DEPLOYMENT_HOSTED,
@@ -77,6 +79,20 @@ def test_describe_states_the_switch_outcome() -> None:
     """启动时那一行必须说清"例外开不开" —— 否则运维看不到自己跑在哪一档。"""
     assert "单机" in describe_deployment(DEPLOYMENT_SINGLE)
     assert "一律拒绝" in describe_deployment(DEPLOYMENT_HOSTED)
+
+
+def test_main_refuses_when_content_validation_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """七条启动校验失败 ⇒ 在起 uvicorn 前退出，且逐条打印原因。"""
+    monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
+    monkeypatch.setenv(DEPLOYMENT_ENV, DEPLOYMENT_HOSTED)
+    monkeypatch.setattr(
+        main_module,
+        "validate_content_assets",
+        lambda _: (_ for _ in ()).throw(ContentAssetValidationError(["DAG 有环：x"])),
+    )
+    with pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == REFUSE_EXIT_CODE
 
 
 def test_main_refuses_on_bad_deployment(monkeypatch: pytest.MonkeyPatch) -> None:
