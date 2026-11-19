@@ -10,8 +10,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, Path
 
 from app.api.deps import password_gate
+from app.api.schemas import HitlResolvedRequest
 from app.core.errors import AppError
-from app.graph.runner import RUNS
+from app.graph.runner import RUNS, HitlResolutionError
 from app.identity.auth import AuthContext
 
 __all__ = ["router"]
@@ -29,3 +30,22 @@ def read_run(
     if snapshot is None:
         raise AppError("not_found", "运行不存在或已过期")
     return snapshot
+
+
+@router.post("/api/runs/{id}/hitl")
+def resolve_hitl(
+    payload: HitlResolvedRequest,
+    id: str = Path(min_length=1, max_length=64),
+    context: AuthContext = Depends(password_gate("run")),
+) -> "dict[str, Any]":
+    """解析挂起中的人工确认；归属错误 404，状态/动作错误 409。"""
+    try:
+        return RUNS.resolve_hitl(
+            id,
+            context.user_id,
+            action=payload.action,
+            final=payload.final,
+        )
+    except HitlResolutionError as exc:
+        code = "not_found" if exc.kind == "not_found" else "conflict"
+        raise AppError(code, str(exc)) from exc
