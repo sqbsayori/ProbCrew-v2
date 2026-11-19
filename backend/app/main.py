@@ -35,6 +35,7 @@ from app.api import router as api_router
 from app.core.config import load_settings
 from app.core.errors import AppError, HTTP_STATUS_BY_CODE, error_envelope
 from app.core.logging import setup_logging
+from app.graph.runner import resolve_hitl_timeout
 
 __all__ = [
     "CONCURRENCY_ENV",
@@ -291,6 +292,12 @@ def main() -> None:
         raise SystemExit(REFUSE_EXIT_CODE) from exc
 
     assert_single_worker(concurrency)
+    # ★ HITL 超时必须是有限正数；坏值拒绝启动，不在运行期静默回退。
+    try:
+        resolve_hitl_timeout()
+    except ValueError as exc:
+        sys.stderr.write(f"[拒绝启动] {exc}\n")
+        raise SystemExit(REFUSE_EXIT_CODE) from exc
     # ★ 部署形态：坏值在函数内拒绝；一致性检查见 `docs/02 §4.2.1` 规则 2 的落点说明。
     deployment = resolve_deployment()
     assert_deployment_consistent(deployment)

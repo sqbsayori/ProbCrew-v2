@@ -293,6 +293,57 @@ def test_f1_missing_context_still_degrades_explicitly(client, monkeypatch):
     assert resolved["payload"]["reason"]
 
 
+def test_hitl_endpoint_validates_contract_owner_and_state(client, monkeypatch):
+    owner = _seed("stu01")
+    _seed("stu02")
+    owner_token = _token(client, "stu01")
+    other_token = _token(client, "stu02")
+
+    fake = {"action": "continue_uncertain", "final": "人工确认稿"}
+    original_resolve = runner.RUNS.resolve_hitl
+    monkeypatch.setattr(runner.RUNS, "resolve_hitl", lambda *args, **kwargs: dict(fake))
+    ok = client.post(
+        "/api/runs/run_hitl/hitl",
+        json={"action": "continue_uncertain", "final": "人工确认稿"},
+        headers=_auth(owner_token),
+    )
+    assert ok.status_code == 200
+    assert ok.json() == fake
+    Draft7Validator(EVENTS["definitions"]["hitlResolvedPayload"]).validate(ok.json())
+
+    monkeypatch.setattr(runner.RUNS, "resolve_hitl", original_resolve)
+    runner.RUNS.start(run_id="run_no_hitl", session_id="ses_1", owner_id=owner["user_id"])
+    conflict = client.post(
+        "/api/runs/run_no_hitl/hitl",
+        json={"action": "cancel", "final": None},
+        headers=_auth(owner_token),
+    )
+    assert conflict.status_code == 409
+    assert conflict.json()["error"]["code"] == "conflict"
+
+    not_owner = client.post(
+        "/api/runs/run_no_hitl/hitl",
+        json={"action": "cancel", "final": None},
+        headers=_auth(other_token),
+    )
+    assert not_owner.status_code == 404
+
+    unknown = client.post(
+        "/api/runs/run_missing/hitl",
+        json={"action": "cancel", "final": None},
+        headers=_auth(owner_token),
+    )
+    assert unknown.status_code == 404
+
+    extra = client.post(
+        "/api/runs/run_missing/hitl",
+        json={"action": "cancel", "role": "admin"},
+        headers=_auth(owner_token),
+    )
+    assert extra.status_code == 400
+    assert extra.json()["error"]["code"] == "invalid_argument"
+
+
 def test_cancelled_run_snapshot_is_public_contract_valid(client):
     user = _seed()
     token = _token(client)

@@ -36,6 +36,7 @@ __all__ = [
     "ChatRequest",
     "GradeRequest",
     "HintRequest",
+    "HitlResolvedRequest",
     "LoginRequest",
     "NoticeAckRequest",
     "PasswordChangeRequest",
@@ -63,6 +64,15 @@ class PasswordChangeRequest(BaseModel):
 
     old_password: str = Field(min_length=1, max_length=72)
     new_password: str = Field(min_length=1, max_length=72)
+
+
+class HitlResolvedRequest(BaseModel):
+    """`POST /api/runs/{id}/hitl` 的请求体（`events.schema.json#/definitions/hitlResolvedPayload`）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: str = Field(min_length=1, max_length=64)
+    final: "str | None" = Field(default=None, max_length=8000)
 
 
 class GradeRequest(BaseModel):

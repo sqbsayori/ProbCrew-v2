@@ -522,6 +522,7 @@ def test_failed_verification_recomputes_once_then_marks_uncertain(
         endpoint=ENDPOINT,
         credential=CREDENTIAL,
         store=store,
+        hitl_timeout_s=0.02,
     )
     for frame in frames:
         EVENT_VALIDATOR.validate(frame.to_dict())
@@ -538,8 +539,79 @@ def test_failed_verification_recomputes_once_then_marks_uncertain(
     )
     assert "数值重算" in told.payload["summary"] or "符号等价性" in told.payload["summary"]  # 显式告知
 
+    types = [frame.type for frame in frames]
+    assert types.count("hitl.request") == 1 and types.count("hitl.resolved") == 1
     assert frames[-1].type == "done" and frames[-1].payload["status"] == "uncertain"
+    resolved = next(frame for frame in frames if frame.type == "hitl.resolved")
+    assert resolved.payload["action"] == "timeout"
     assert store.snapshot("run_3")["verification"]["uncertain"] is True
+
+
+def test_hitl_timeout_config_is_strict() -> None:
+    assert runner.resolve_hitl_timeout({}) == runner.DEFAULT_HITL_TIMEOUT_S
+    assert runner.resolve_hitl_timeout({runner.HITL_TIMEOUT_ENV: "1.5"}) == 1.5
+    for bad in ("0", "-1", "nan", "inf", "abc"):
+        with pytest.raises(ValueError):
+            runner.resolve_hitl_timeout({runner.HITL_TIMEOUT_ENV: bad})
+
+
+@pytest.mark.parametrize(
+    "action, final, expected_final",
+    [
+        ("continue_uncertain", "人工确认后的答案", "人工确认后的答案"),
+        ("cancel", None, None),
+    ],
+)
+def test_hitl_resolution_is_paired_and_one_shot(
+    monkeypatch: pytest.MonkeyPatch,
+    action: str,
+    final: "str | None",
+    expected_final: "str | None",
+) -> None:
+    monkeypatch.setattr(llm, "_TRANSPORT", FakeModelTransport(solution=WRONG_SOLUTION))
+
+    async def scenario() -> "tuple[list[Any], runner.RunStore]":
+        store = runner.RunStore()
+        frames: "list[Any]" = []
+        async for frame in runner.stream_run(
+            run_id="run_hitl",
+            session_id="ses_1",
+            query="这道贝叶斯题怎么算？",
+            endpoint=ENDPOINT,
+            credential=CREDENTIAL,
+            store=store,
+            owner_id="usr_owner",
+            hitl_timeout_s=1.0,
+        ):
+            frames.append(frame)
+            if frame.type == "hitl.request":
+                snapshot = store.snapshot("run_hitl")
+                assert snapshot["status"] == runner.STATUS_HITL_PENDING
+                assert snapshot["hitl"]["hitl_id"] == frame.payload["hitl_id"]
+                with pytest.raises(runner.HitlResolutionError) as bad:
+                    store.resolve_hitl(
+                        "run_hitl", "usr_owner", action="not-an-option", final=None
+                    )
+                assert bad.value.kind == "conflict"
+                resolved = store.resolve_hitl(
+                    "run_hitl", "usr_owner", action=action, final=final
+                )
+                assert resolved["action"] == action
+                with pytest.raises(runner.HitlResolutionError) as duplicate:
+                    store.resolve_hitl("run_hitl", "usr_owner", action=action, final=final)
+                assert duplicate.value.kind == "conflict"
+        return frames, store
+
+    frames, store = asyncio.run(scenario())
+    types = [frame.type for frame in frames]
+    assert types.count("hitl.request") == 1
+    assert types.count("hitl.resolved") == 1
+    assert types.index("hitl.resolved") > types.index("hitl.request")
+    assert frames[-1].type == "done" and frames[-1].payload["status"] == "uncertain"
+    if expected_final is not None:
+        assert frames[-1].payload["final_answer"] == expected_final
+    assert store.snapshot("run_hitl")["status"] == runner.STATUS_DONE
+    assert "hitl" not in store.snapshot("run_hitl")
 
 
 def test_cancelled_run_leaves_the_active_set_and_keeps_a_snapshot() -> None:

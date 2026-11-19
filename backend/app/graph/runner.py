@@ -33,6 +33,8 @@ S4 的判据（节点级用例 · `steps` 两处逐值一致 · 断开后活跃�
 from __future__ import annotations
 
 import asyncio
+import math
+import os
 import threading
 import time
 from dataclasses import dataclass, field
@@ -50,6 +52,11 @@ MAX_TERMINAL_SNAPSHOTS = 20
 
 #: N20 的并发上限：第 11 路答疑必须在写 `qa_log` 前显式拒绝。
 MAX_CONCURRENT_CHATS = 10
+
+#: HITL 超时配置（阶段 B 首次默认 300 秒，阶段 C 实测后回写）。
+HITL_TIMEOUT_ENV = "PROBCREW_HITL_TIMEOUT_S"
+DEFAULT_HITL_TIMEOUT_S = 300.0
+HITL_OPTIONS: "tuple[str, ...]" = ("continue_uncertain", "cancel")
 
 STATUS_RUNNING = "running"
 STATUS_DONE = "done"
@@ -91,6 +98,50 @@ ERROR_MESSAGES = {
     "internal_error": "服务出了点问题，请稍后重试。",
 }
 _MESSAGE_MAX = 200
+
+
+def resolve_hitl_timeout(env: "Mapping[str, str] | None" = None) -> float:
+    """解析 HITL 超时；空值取默认，坏值拒绝（不静默回退到 300）。"""
+    source = os.environ if env is None else env
+    raw = source.get(HITL_TIMEOUT_ENV, "")
+    if raw.strip() == "":
+        return DEFAULT_HITL_TIMEOUT_S
+    try:
+        value = float(raw.strip())
+    except ValueError as exc:
+        raise ValueError(f"{HITL_TIMEOUT_ENV}={raw!r} 不是数字") from exc
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{HITL_TIMEOUT_ENV}={raw!r} 必须是有限正数")
+    return value
+
+
+class HitlResolutionError(RuntimeError):
+    """HITL 解析失败；``kind`` 由 API 层映射为 404 / 409。"""
+
+    def __init__(self, kind: str, message: str) -> None:
+        self.kind = kind
+        super().__init__(message)
+
+
+@dataclass
+class PendingHitl:
+    """一次挂起中的人工确认；future 跨线程由 API → 流式生成器传递结果。"""
+
+    hitl_id: str
+    node: str
+    draft: "str | None"
+    options: "tuple[str, ...]"
+    future: "asyncio.Future[Mapping[str, Any]]"
+    loop: "asyncio.AbstractEventLoop"
+
+    @property
+    def payload(self) -> "dict[str, Any]":
+        body: "dict[str, Any]" = {"hitl_id": self.hitl_id, "options": list(self.options)}
+        if self.node:
+            body["node"] = self.node
+        if self.draft is not None:
+            body["draft"] = self.draft
+        return body
 
 
 class ConcurrencyLease:
@@ -167,6 +218,7 @@ class RunRecord:
     steps: "list[Any]" = field(default_factory=list)
     verification: "Mapping[str, Any] | None" = None
     hitl: "Mapping[str, Any] | None" = None
+    pending_hitl: "PendingHitl | None" = field(default=None, repr=False)
     updated_at: float = 0.0
 
 
@@ -187,33 +239,38 @@ class RunStore:
         self._records: "dict[str, RunRecord]" = {}
         self._max_terminal = max_terminal
         self._clock = clock
+        self._lock = threading.RLock()
 
     def start(
         self, *, run_id: str, session_id: str, owner_id: "str | None" = None
     ) -> RunRecord:
-        record = RunRecord(
-            run_id=run_id,
-            session_id=session_id,
-            owner_id=owner_id,
-            updated_at=self._clock(),
-        )
-        self._records[run_id] = record
-        return record
+        with self._lock:
+            record = RunRecord(
+                run_id=run_id,
+                session_id=session_id,
+                owner_id=owner_id,
+                updated_at=self._clock(),
+            )
+            self._records[run_id] = record
+            return record
 
     def get(self, run_id: str) -> "RunRecord | None":
-        return self._records.get(run_id)
+        with self._lock:
+            return self._records.get(run_id)
 
     def update(self, run_id: str, **fields: Any) -> None:
-        record = self._records.get(run_id)
-        if record is None:
-            return
-        for key, value in fields.items():
-            setattr(record, key, value)
-        record.updated_at = self._clock()
+        with self._lock:
+            record = self._records.get(run_id)
+            if record is None:
+                return
+            for key, value in fields.items():
+                setattr(record, key, value)
+            record.updated_at = self._clock()
 
     def finish(self, run_id: str, *, status: str) -> None:
-        self.update(run_id, status=status)
-        self._evict()
+        with self._lock:
+            self.update(run_id, status=status)
+            self._evict()
 
     def snapshot(self, run_id: str) -> "dict[str, Any] | None":
         """`GET /api/runs/{id}` 的响应形状（契约 `definitions.runSnapshot`）。
@@ -221,20 +278,21 @@ class RunStore:
         ★ `steps` **不复制** —— 契约要求它与该次解答事件的 `payload.steps` 是
         **同一次生成的同一份数据**（F2 的两处落点）。
         """
-        record = self._records.get(run_id)
-        if record is None:
-            return None
-        snapshot: "dict[str, Any]" = {
-            "run_id": record.run_id,
-            "status": record.status,
-            "steps": record.steps,
-            "updated_at": record.updated_at,
-        }
-        if record.hitl is not None:
-            snapshot["hitl"] = record.hitl
-        if record.verification is not None:
-            snapshot["verification"] = record.verification
-        return snapshot
+        with self._lock:
+            record = self._records.get(run_id)
+            if record is None:
+                return None
+            snapshot: "dict[str, Any]" = {
+                "run_id": record.run_id,
+                "status": record.status,
+                "steps": record.steps,
+                "updated_at": record.updated_at,
+            }
+            if record.hitl is not None:
+                snapshot["hitl"] = dict(record.hitl)
+            if record.verification is not None:
+                snapshot["verification"] = record.verification
+            return snapshot
 
     def snapshot_for(self, run_id: str, owner_id: str) -> "dict[str, Any] | None":
         """按**归属**取快照：别人的 run 一律当作不存在（对外 404，`docs/02 §6.3`）。
@@ -242,19 +300,110 @@ class RunStore:
         ★ 契约的 `runSnapshot` 没有 `user_id`（`additionalProperties: false`），
           所以归属只留在内存记录里，不进入响应。
         """
-        record = self._records.get(run_id)
-        if record is None or record.owner_id != owner_id:
-            return None
+        with self._lock:
+            record = self._records.get(run_id)
+            if record is None or record.owner_id != owner_id:
+                return None
         return self.snapshot(run_id)
 
     @property
     def active(self) -> "list[str]":
         """还没终结的 run —— 客户端断开后**必须**从集合里消失（`docs/02 §4.2-2`）。"""
-        return [
-            run_id
-            for run_id, record in self._records.items()
-            if record.status not in TERMINAL_STATUSES
-        ]
+        with self._lock:
+            return [
+                run_id
+                for run_id, record in self._records.items()
+                if record.status not in TERMINAL_STATUSES
+            ]
+
+    def begin_hitl(
+        self,
+        *,
+        run_id: str,
+        owner_id: "str | None",
+        node: str,
+        draft: "str | None",
+        options: "tuple[str, ...]" = HITL_OPTIONS,
+    ) -> PendingHitl:
+        """创建一次挂起并把 run 置为 ``hitl_pending``。"""
+        loop = asyncio.get_running_loop()
+        with self._lock:
+            record = self._records.get(run_id)
+            if record is None or record.owner_id != owner_id:
+                raise HitlResolutionError("not_found", "运行不存在或不属于当前用户")
+            if record.pending_hitl is not None:
+                raise HitlResolutionError("conflict", "该运行已经在等待人工确认")
+            if record.status != STATUS_RUNNING:
+                raise HitlResolutionError("conflict", "该运行当前状态不允许人工确认")
+            pending = PendingHitl(
+                hitl_id=f"hitl_{time.time_ns():x}",
+                node=node,
+                draft=draft,
+                options=tuple(options),
+                future=loop.create_future(),
+                loop=loop,
+            )
+            record.pending_hitl = pending
+            record.hitl = pending.payload
+            record.status = STATUS_HITL_PENDING
+            record.updated_at = self._clock()
+            return pending
+
+    def resolve_hitl(
+        self,
+        run_id: str,
+        owner_id: str,
+        *,
+        action: str,
+        final: "str | None" = None,
+    ) -> "dict[str, Any]":
+        """由 HITL API 调用：一次性解析挂起；重复/非法动作返回 conflict。"""
+        with self._lock:
+            record = self._records.get(run_id)
+            if record is None or record.owner_id != owner_id:
+                raise HitlResolutionError("not_found", "运行不存在或不属于当前用户")
+            pending = record.pending_hitl
+            if pending is None or pending.future.done():
+                raise HitlResolutionError("conflict", "当前没有可解析的人工确认")
+            if action not in pending.options:
+                raise HitlResolutionError("conflict", "动作不在本次人工确认的可选项中")
+            body: "dict[str, Any]" = {"action": action}
+            if action == "continue_uncertain":
+                chosen = pending.draft if final is None else str(final)
+                if chosen:
+                    body["final"] = chosen[:8000]
+            record.pending_hitl = None
+            record.hitl = None
+            record.status = STATUS_RUNNING
+            record.updated_at = self._clock()
+            pending.loop.call_soon_threadsafe(_set_future, pending.future, body)
+            return body
+
+    def expire_hitl(self, run_id: str, hitl_id: str) -> "dict[str, Any] | None":
+        """超时收口；若 API 已先解析则返回 ``None``，由调用方读取已有 future。"""
+        with self._lock:
+            record = self._records.get(run_id)
+            pending = None if record is None else record.pending_hitl
+            if record is None or pending is None or pending.hitl_id != hitl_id or pending.future.done():
+                return None
+            body: "dict[str, Any]" = {"action": "timeout"}
+            pending.future.set_result(body)
+            record.pending_hitl = None
+            record.hitl = None
+            record.status = STATUS_RUNNING
+            record.updated_at = self._clock()
+            return body
+
+    def cancel_pending_hitl(self, run_id: str) -> None:
+        with self._lock:
+            record = self._records.get(run_id)
+            pending = None if record is None else record.pending_hitl
+            if record is None or pending is None:
+                return
+            if not pending.future.done():
+                pending.future.cancel()
+            record.pending_hitl = None
+            record.hitl = None
 
     def _evict(self) -> None:
         terminal = [
@@ -327,6 +476,11 @@ class FrameCollector:
         self._sink.tap = None
 
 
+def _set_future(future: "asyncio.Future[Mapping[str, Any]]", value: "Mapping[str, Any]") -> None:
+    if not future.done():
+        future.set_result(value)
+
+
 async def stream_run(
     *,
     run_id: str,
@@ -337,6 +491,7 @@ async def stream_run(
     credential: "str | None" = None,
     store: "RunStore | None" = None,
     owner_id: "str | None" = None,
+    hitl_timeout_s: "float | None" = None,
 ) -> "AsyncIterator[Frame]":
     """跑一次答疑并逐帧 yield；**最后一帧一定是 `done` 或 `error`**（取消是唯一例外）。
 
@@ -422,17 +577,42 @@ async def stream_run(
             if verification.get("passed") or attempt == 1:
                 break
 
-        # ⑤ 终帧（`uncertain` 也是 `done`：它是"如实标注"，不是错误）
-        final_answer = str(state.get("final_answer") or "")[:8000] or None
+        # ⑤ HITL：只有第二次验证后仍 uncertain 才要求人工处置
+        draft = str(state.get("final_answer") or "")[:8000] or None
+        if verification.get("uncertain"):
+            pending = runs.begin_hitl(
+                run_id=run_id,
+                owner_id=owner_id,
+                node="verify",
+                draft=draft,
+                options=HITL_OPTIONS,
+            )
+            # ★ request 必须立刻上屏；不能等人工答复后才把两帧一起发出。
+            yield sink.emit("hitl.request", **pending.payload)
+            wait_s = resolve_hitl_timeout() if hitl_timeout_s is None else hitl_timeout_s
+            done, _ = await asyncio.wait({pending.future}, timeout=wait_s)
+            if pending.future in done:
+                resolution = dict(pending.future.result())
+            else:
+                resolution = runs.expire_hitl(run_id, pending.hitl_id) or dict(
+                    pending.future.result()
+                )
+            yield sink.emit("hitl.resolved", **resolution)
+            if resolution.get("action") == "continue_uncertain":
+                draft = str(resolution.get("final") or draft or "")[:8000] or None
+            # cancel / timeout 都保留草稿；action 本身已由 hitl.resolved 明确告知。
+
+        # ⑥ 终帧（`uncertain` 也是 `done`：它是"如实标注"，不是错误）
         runs.finish(run_id, status=STATUS_DONE)
         yield sink.emit(
             "done",
             status="uncertain" if verification.get("uncertain") else "ok",
-            final_answer=final_answer,
+            final_answer=draft,
         )
         finished = True
     except (GeneratorExit, asyncio.CancelledError):
-        # ★ 客户端断开：不再往下走 + 从活跃集合移除 + 快照如实标 `cancelled`（内部状态）。
+        # ★ 客户端断开：先取消挂起等待，再离开活跃集合并保留 cancelled 快照。
+        runs.cancel_pending_hitl(run_id)
         runs.finish(run_id, status=STATUS_CANCELLED)
         sink.close(cancelled=True)
         raise
@@ -498,6 +678,9 @@ def _first_reason(update: "Mapping[str, Any]") -> "str | None":
 
 __all__ = [
     "CHAT_SLOTS",
+    "DEFAULT_HITL_TIMEOUT_S",
+    "HITL_OPTIONS",
+    "HITL_TIMEOUT_ENV",
     "MAX_CONCURRENT_CHATS",
     "MAX_TERMINAL_SNAPSHOTS",
     "NODE_ENTRIES",
@@ -507,6 +690,8 @@ __all__ = [
     "ConcurrencyGate",
     "ConcurrencyLease",
     "FrameCollector",
+    "HitlResolutionError",
+    "PendingHitl",
     "RunRecord",
     "RunStore",
     "STATUS_CANCELLED",
@@ -518,5 +703,6 @@ __all__ = [
     "error_code_for",
     "get_snapshot",
     "message_for",
+    "resolve_hitl_timeout",
     "stream_run",
 ]
