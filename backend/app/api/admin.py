@@ -36,10 +36,10 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Path, Query
 
-from app.api.deps import get_conn, require_admin
+from app.api.deps import content_rev_best_effort, get_conn, require_admin
 from app.api.schemas import AdminImportRequest, AdminUserPatch
 from app.core.errors import AppError
-from app.identity import audit, auth, tokens, users
+from app.identity import audit, auth, tokens, tombstones, users
 from app.identity.auth import AuthContext
 from app.learning import store
 
@@ -233,10 +233,19 @@ def delete_user(
     context: AuthContext = Depends(require_admin),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> "dict[str, Any]":
-    """管理员删除一个账号 —— **与 F16 同一套四类处置**，但审计动作是 `delete_user`。"""
+    """管理员删除一个账号 —— **与 F16 同一套四类处置**，但审计动作是 `delete_user`。
+
+    ★ **墓碑与自删共用同一实现**（`identity/tombstones.py`），`action` 取 `delete_user` ——
+      恢复后重放时两种删除一视同仁（`docs/02 §1.4` 的 2026-11-08 裁定）。
+    """
     if user_id == context.user_id:
         raise AppError("invalid_argument", "不能删除自己的账号", {"field": "user_id"})
     _require_target(conn, user_id)
+    tombstones.record(
+        user_id=user_id,
+        action=tombstones.ACTION_DELETE_USER,
+        content_rev=content_rev_best_effort(),
+    )
     before = store.count_user_rows(conn, user_id)
     deleted_rows = store.delete_user_data(conn, user_id)
     tokens_revoked = users.anonymize_user(conn, user_id)

@@ -23,7 +23,7 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT7
 
 from app.core import db
-from app.identity import users
+from app.identity import tombstones, users
 from app.main import app
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -389,6 +389,12 @@ def test_admin_delete_user_reuses_delete_result_and_audits_delete_user(client):
     assert rows[0]["detail"] != "{}"
     assert json.loads(rows[0]["detail"])["deleted_rows"] >= 1  # 删前的行数（作答 + 掌握度…）
     assert client.delete(f"/api/admin/users/{admin_id}", headers=_auth(admin_token)).status_code == 400
+
+    # ★ 墓碑与自删共用同一实现，但 `action` 必须可区分 —— 恢复重放时对两种删除一视同仁（B2.1）。
+    entries = tombstones.load()
+    assert len(entries) == 1
+    assert entries[0]["user_id"] == student_id
+    assert entries[0]["action"] == tombstones.ACTION_DELETE_USER
 
 
 
