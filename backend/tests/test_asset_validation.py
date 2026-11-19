@@ -125,3 +125,45 @@ def test_corpus_missing_license_is_rejected(tmp_path: Path) -> None:
     text = target.read_text(encoding="utf-8").replace("license: CC0-1.0\n", "")
     target.write_text(text, encoding="utf-8")
     _assert_rejected(content, "L1 语料缺 license")
+
+
+def test_multiple_violations_are_all_reported(tmp_path: Path) -> None:
+    """多条同时坏 ⇒ `violations` **全部列出**，不因第一条命中就提前返回。
+
+    ★ 为什么要这一条：启动校验的价值在"一次把坏处说清"；只报第一条会让人改一处重启一次，
+      而在真实坏资产里（一次脚本重写五类文件）多条同时坏才是常态。
+    """
+    content, _corpus = _workspace(tmp_path)
+    dag_path = content / "dag.json"
+    dag = _read(dag_path)
+    first, last = dag["items"][0], dag["items"][-1]
+    first["depends_on"] = [last["kc_id"]]
+    last["depends_on"] = [first["kc_id"]]
+    _write(dag_path, dag)
+    problems_path = content / "problems.json"
+    problems = _read(problems_path)
+    problems["items"][0].pop("gradable")
+    _write(problems_path, problems)
+    formula_path = content / "formula.json"
+    formula = _read(formula_path)
+    formula["items"][1]["name"] = formula["items"][0]["name"]
+    _write(formula_path, formula)
+
+    with pytest.raises(ContentAssetValidationError) as raised:
+        validate_content_assets(content)
+    message = str(raised.value)
+    assert "DAG 有环" in message
+    assert "缺 gradable" in message
+    assert "公式名称重复" in message
+
+
+def test_main_uses_the_single_validation_implementation() -> None:
+    """**唯一实现守卫**：启动入口引用的必须就是 `learning/asset_validation.py` 的那个函数。
+
+    ★ 这条防的是 `docs/06 §15.3 B1` 明令禁止的两种退化：① 启动只打 warning/不校验；
+      ② 门禁或启动另写一份校验（两份实现必然漂移，而漂移不报错）。
+    """
+    import app.main as main_module
+    from app.learning import asset_validation
+
+    assert main_module.validate_content_assets is asset_validation.validate_content_assets

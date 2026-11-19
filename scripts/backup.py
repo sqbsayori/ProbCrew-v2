@@ -34,6 +34,8 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.logging import log_action, setup_logging  # noqa: E402
+from app.identity.tombstones import replay  # noqa: E402
+from app.learning.store import delete_user_data  # noqa: E402
 
 #: N19 验收③ 要逐表读回的四个学生表（`docs/03 §8.3` · `docs/02 §3.x`）。
 STUDENT_TABLES = ("student_user", "student_attempt", "student_mastery", "student_hint_log")
@@ -153,17 +155,30 @@ def run_restore(data_dir: Path) -> int:
         live = data_dir / f"{_dbname(backup_file)}.sqlite"
         _snapshot_sqlite(backup_file, live)
 
+    # ★ **重放删除墓碑**（`docs/02 §1.4` 的 2026-11-08 裁定 · `docs/06 §15.3 B2.3`）：
+    #   备份是"某时刻的快照"，它会把删除之后的行带回来 ⇒ 恢复完必须按墓碑再删一遍，
+    #   否则"已删除账号在恢复后仍不可登录、学习数据仍为 0"这条判据就不成立。
+    #   ★ 墓碑是旁挂文件（`identity/tombstones.py`），**不在**被恢复的 `*.sqlite` 里 —— 这正是它不被回滚的原因。
+    #   ★ `purge` 由本脚本注入：`identity/` 的依赖白名单不许它 import `learning/`。
+    replayed: "dict[str, int]" = {"tombstones": 0, "applied": 0, "missing": 0}
     counts: dict[str, int] = {}
     for db in sorted(data_dir.glob("*.sqlite")):
         conn = sqlite3.connect(str(db))
+        # 重放用的存储层按 `row["n"]` 读回（`learning.store.count_user_rows`），因此这里要开 Row 工厂。
+        conn.row_factory = sqlite3.Row
         try:
+            replayed = replay(conn, purge=delete_user_data, paths=[backups_dir])
             for table in STUDENT_TABLES:
                 counts[table] = _table_rows(conn, table)
         finally:
             conn.close()
 
-    log_action("restore", status="ok")
-    print(f"[成功] 恢复 {len(batch)} 个库；逐表读回（-1 = 表不存在）：{counts}")
+    log_action("restore", status="ok", reason=f"tombstones={replayed['tombstones']}")
+    print(
+        f"[成功] 恢复 {len(batch)} 个库；墓碑重放（{replayed['tombstones']} 条："
+        f"清零 {replayed['applied']} 个账号 / 库中已无 {replayed['missing']} 个）；"
+        f"逐表读回（-1 = 表不存在）：{counts}"
+    )
     return 0
 
 
