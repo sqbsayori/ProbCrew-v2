@@ -96,6 +96,17 @@ def test_rev_manifest_mismatch_is_rejected(tmp_path: Path) -> None:
     _assert_rejected(content, "dag.rev 与 MANIFEST 不一致")
 
 
+def test_explicit_corpus_dir_is_used_independently_of_content_dir(tmp_path: Path) -> None:
+    content, corpus = _workspace(tmp_path)
+    alternate = tmp_path / "alternate-corpus"
+    alternate.mkdir()
+    (alternate / "sec.md").write_text("没有许可字段的正文", encoding="utf-8")
+    with pytest.raises(ContentAssetValidationError) as raised:
+        validate_content_assets(content, alternate)
+    assert "L1 语料缺 license" in str(raised.value)
+    validate_content_assets(content, corpus)
+
+
 def test_corpus_missing_license_is_rejected(tmp_path: Path) -> None:
     content, corpus = _workspace(tmp_path)
     target = sorted(corpus.rglob("*.md"))[0]

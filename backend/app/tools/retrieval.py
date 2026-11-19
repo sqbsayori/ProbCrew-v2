@@ -38,6 +38,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from app.core.config import load_settings
 from app.core.logging import log_action
 from app.tools import CITE_UNAVAILABLE, PARSE_ERROR, ToolResult
 
@@ -206,7 +207,7 @@ def search(query: str, *, corpus_dir: "str | Path" = "", limit: int = 5) -> Tool
         wanted = LIMIT_MIN
     wanted = max(LIMIT_MIN, min(LIMIT_MAX, wanted))
 
-    directory = Path(corpus_dir) if str(corpus_dir) else DEFAULT_CORPUS_DIR
+    directory = Path(corpus_dir) if str(corpus_dir) else load_settings().corpus_dir
     if not directory.is_dir():
         return _degrade("corpus_missing")
     documents = load_corpus(directory)

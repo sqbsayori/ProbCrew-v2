@@ -65,8 +65,8 @@ def _corpus_files(corpus_dir: Path) -> "list[Path]":
     return sorted(corpus_dir.rglob("*.md")) if corpus_dir.is_dir() else []
 
 
-def validate_content_assets(content_dir: Path) -> None:
-    """执行 `docs/02 §8-14` 的七条；失败抛 :class:`ContentAssetValidationError`。"""
+def validate_content_assets(content_dir: Path, corpus_dir: "Path | None" = None) -> None:
+    """执行 `docs/02 §8-14` 的七条；``corpus_dir`` 未给出时使用部署默认路径。"""
     content_dir = Path(content_dir)
     violations: "list[str]" = []
 
@@ -111,8 +111,8 @@ def validate_content_assets(content_dir: Path) -> None:
         if declared.get(key) != actual:
             violations.append(f"{key}.rev 与 MANIFEST 不一致：{actual!r} != {declared.get(key)!r}")
 
-    corpus_dir = content_dir.parent / "backend" / "data" / "corpus"
-    for path in _corpus_files(corpus_dir):
+    corpus_root = Path(corpus_dir) if corpus_dir is not None else content_dir.parent / "backend" / "data" / "corpus"
+    for path in _corpus_files(corpus_root):
         text = path.read_text(encoding="utf-8")
         match = _FRONT_MATTER.match(text)
         fields: "dict[str, str]" = {}

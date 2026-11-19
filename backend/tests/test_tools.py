@@ -561,7 +561,7 @@ def test_tool_failures_enter_the_event_stream(
     ★ 检索这一格用**指向不存在的语料目录**来保证"一定失败"（默认目录被 monkeypatch），
     否则"本机有/没有 `backend/data/corpus`"会让这条用例的结论随环境漂。
     """
-    monkeypatch.setattr(retrieval, "DEFAULT_CORPUS_DIR", tmp_path / "missing-corpus")
+    monkeypatch.setenv("PROBCREW_CORPUS_DIR", str(tmp_path / "missing-corpus"))
     collector = FrameCollector(FrameSink())
     ctx = NodeContext.for_node("solve", events=collector)
 

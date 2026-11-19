@@ -304,7 +304,7 @@ def main() -> None:
     assert_deployment_consistent(deployment)
     settings = load_settings()
     try:
-        validate_content_assets(settings.content_dir)
+        validate_content_assets(settings.content_dir, settings.corpus_dir)
     except ContentAssetValidationError as exc:
         sys.stderr.write("[拒绝启动] 内容资产未通过七条启动校验：\n")
         for violation in exc.violations:

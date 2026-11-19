@@ -88,7 +88,7 @@ def test_main_refuses_when_content_validation_fails(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(
         main_module,
         "validate_content_assets",
-        lambda _: (_ for _ in ()).throw(ContentAssetValidationError(["DAG 有环：x"])),
+        lambda *_args: (_ for _ in ()).throw(ContentAssetValidationError(["DAG 有环：x"])),
     )
     with pytest.raises(SystemExit) as exc:
         main()

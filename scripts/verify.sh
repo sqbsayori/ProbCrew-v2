@@ -68,6 +68,7 @@ from collections import Counter
 ROOT = sys.argv[1]
 os.chdir(ROOT)
 sys.path.insert(0, str(Path(ROOT) / "backend"))
+from app.core.config import load_settings
 from app.learning.asset_validation import ContentAssetValidationError, validate_content_assets
 
 RESULTS: list[tuple[str, "bool | None", str]] = []
@@ -1085,7 +1086,8 @@ def content_assets() -> str:
       `expected_conclusion` 里出现的 `mp_*` **也必须在错因库里**（未产出时**如实打印**为未机检）。
     """
     try:
-        validate_content_assets(Path("content"))
+        settings = load_settings()
+        validate_content_assets(settings.content_dir, settings.corpus_dir)
     except ContentAssetValidationError as exc:
         raise AssertionError("七条启动校验失败：" + "；".join(exc.violations)) from exc
 
